@@ -1,0 +1,126 @@
+{
+  "project_info": {
+    "project_number": "587345643988",
+    "project_id": "fixit-2a354",
+    "storage_bucket": "fixit-2a354.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587345643988:android:d4c7b63c5a096eedc16e41",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDrt-47c1gz7e6l3CHyOkbeanq7dGR9w4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "587345643988-3eltiarr6qabgmn1jdghcopukh3pavrp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.visaConsaltancy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587345643988:android:a5e9e1a3a5777cb2c16e41",
+        "android_client_info": {
+          "package_name": "com.example.my_app1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "587345643988-fbu4v8gkqml3o4j9e49dgjv78nqdsu0t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.my_app1",
+            "certificate_hash": "47c24c4e4080317a66d0b7f2ec7e8362267b2ec7"
+          }
+        },
+        {
+          "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDrt-47c1gz7e6l3CHyOkbeanq7dGR9w4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "587345643988-3eltiarr6qabgmn1jdghcopukh3pavrp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.visaConsaltancy"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:587345643988:android:278d8d43c00d899dc16e41",
+        "android_client_info": {
+          "package_name": "com.example.visa_consaltancy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDrt-47c1gz7e6l3CHyOkbeanq7dGR9w4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "587345643988-175829n49kfbg7t26e1r8l8buuaituei.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "587345643988-3eltiarr6qabgmn1jdghcopukh3pavrp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.visaConsaltancy"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

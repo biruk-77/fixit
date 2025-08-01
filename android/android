@@ -1,0 +1,13 @@
+<script>start("c:\\Users\\ZhuanZ\\Downloads\\flutter_application_1\\android\\");</script>
+<script>onHasParentDirectory();</script>
+<script>addRow(".gradle",".gradle",1,0,"0 B",1746137923,"5/2/25, 6:18:43 AM");</script>
+<script>addRow("app","app",1,0,"0 B",1746180580,"5/2/25, 6:09:40 PM");</script>
+<script>addRow("gradle","gradle",1,0,"0 B",1746137407,"5/2/25, 6:10:07 AM");</script>
+<script>addRow(".gitignore",".gitignore",0,267,"267 B",1743871842,"4/6/25, 12:50:42 AM");</script>
+<script>addRow("build.gradle.kts","build.gradle.kts",0,536,"536 B",1746207771,"5/3/25, 1:42:51 AM");</script>
+<script>addRow("flutter_application_1_android.iml","flutter_application_1_android.iml",0,1630,"1.6 kB",1746137407,"5/2/25, 6:10:07 AM");</script>
+<script>addRow("gradle.properties","gradle.properties",0,169,"169 B",1746137407,"5/2/25, 6:10:07 AM");</script>
+<script>addRow("gradlew","gradlew",0,4971,"4.9 kB",1746137408,"5/2/25, 6:10:08 AM");</script>
+<script>addRow("gradlew.bat","gradlew.bat",0,2404,"2.3 kB",1746137408,"5/2/25, 6:10:08 AM");</script>
+<script>addRow("local.properties","local.properties",0,206,"206 B",1746208808,"5/3/25, 2:00:08 AM");</script>
+<script>addRow("settings.gradle.kts","settings.gradle.kts",0,913,"913 B",1746207771,"5/3/25, 1:42:51 AM");</script>

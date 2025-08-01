@@ -1,0 +1,93 @@
+// def kotlin_version = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : '2.1.0'
+
+plugins {
+    id "com.android.application"
+    id 'com.google.gms.google-services'
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+android {
+    namespace = "com.example.my_app1" // TODO: Replace with your namespace
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = "29.0.13113456" // Keep if needed
+    
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+
+    signingConfigs {
+        debug {
+            // *** FIXED LINE: Point to the default debug keystore location ***
+            storeFile file("${System.properties['user.home']}/.android/debug.keystore")
+            // Standard password/alias for the default debug key
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            // TODO: Configure your release keystore here for actual releases
+            // storeFile file('YOUR_RELEASE_KEYSTORE_PATH')
+            // storePassword 'YOUR_KEYSTORE_PASSWORD'
+            // keyAlias 'YOUR_RELEASE_KEY_ALIAS'
+            // keyPassword 'YOUR_RELEASE_KEY_PASSWORD'
+
+            // TEMPORARY: If you haven't set up release signing, you might need to
+            // provide dummy values or reference the debug config like below,
+            // but it's better to configure it properly.
+            // If you keep `signingConfig = signingConfigs.debug` in buildTypes.release,
+            // this release block might not even be strictly needed *yet*.
+        }
+    }
+
+
+    defaultConfig {
+        applicationId = "com.example.my_app1" // TODO: Replace with your App ID
+        minSdk = 23
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+        multiDexEnabled = true
+    }
+
+   
+           buildTypes {
+        release {
+            // Using debug keys for now. For production, create a release keystore,
+            // fill in signingConfigs.release above, and change this line to:
+            // signingConfig = signingConfigs.release
+            signingConfig = signingConfigs.debug
+
+            minifyEnabled = true // <-- CORRECT, enables R8
+            shrinkResources = true
+            // <-- CORRECT, tells R8 to use your rules file
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+             minifyEnabled = false
+             // Ensure debug uses the corrected debug signing config
+             signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation platform('com.google.firebase:firebase-bom:33.1.1')
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
