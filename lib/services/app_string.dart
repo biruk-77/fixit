@@ -9,9 +9,15 @@ abstract class AppStrings {
   Locale get locale;
 
   String get appName;
-  // --- General ---
+  String get workerDetailChat;
+
+  String get workerDetailLocation;
+  String get workerDetailMapLaunchError;
+  String get workerDetailEta;
+  String get workerDetailViewOnMap;
+
   String get appTitle;
-  String get highContrastTooltip;
+  String get jobDetailAboutTheClient;
   String get specifyInDescription;
   String get switchedToClientView;
   String get currency;
@@ -62,7 +68,7 @@ abstract class AppStrings {
   String get performanceOverviewTitle;
   String get failedToMakeCall;
   String
-      get submitReviewButton; // Ensure this is also present if missing from your abstract
+  get submitReviewButton; // Ensure this is also present if missing from your abstract
   String get errorConnectivityCheck;
   String get errorActionFailed;
   String get errorCouldNotLaunchUrl;
@@ -150,6 +156,11 @@ abstract class AppStrings {
   String workerDetailReviews(int count);
   String get workerDetailLeaveReview;
   String get workerDetailHireNow;
+  String get workerDetailWeeklyAvailability;
+  String get errorLoadingAvailability;
+  String get noAvailabilityData;
+  String get booked;
+  String get all;
   String get workerDetailWorking;
   String get workerDetailCall;
   String get workerDetailSubmitReview;
@@ -199,7 +210,10 @@ abstract class AppStrings {
   String get workerDetailNoCerts;
   String get generalClose;
   String workerDetailShareMessage(
-      String workerName, String profession, String phone);
+    String workerName,
+    String profession,
+    String phone,
+  );
 
   // --- Notifications ---
   String get notificationTitle;
@@ -525,6 +539,11 @@ abstract class AppStrings {
   String get jobStatusStartedWorking;
   String get myWorkDashboard;
   String get myJobsDashboard;
+  String get applicationDeletedSuccessfullyText;
+  String errorDeletingApplication(String error);
+  String get chatText;
+  String errorDecliningApplication(String error);
+  String get noApplicationsText;
   String get assignedJobsTab;
   String get myApplicationsTab;
   String get activeWorkTab;
@@ -651,7 +670,12 @@ abstract class AppStrings {
   String get professionalSetupStrengthIncomplete;
   String get professionalSetupStrengthGood;
   String get professionalSetupStrengthExcellent;
-
+  String get appTagline;
+  String get headline1;
+  String get headline2;
+  String get headline3;
+  String get headline4;
+  String get orDivider;
   // Section: Basic Info
   String get professionalSetupBasicTitle;
   String get professionalSetupBasicSubtitle;
@@ -705,6 +729,164 @@ abstract class AppStrings {
   String get professionalSetupLabelRate;
   String get professionalSetupAvailabilityTitle;
   String get professionalSetupAvailabilityTo;
+  // lib/services/app_string.dart
+
+  // --- General Actions (can be shared) ---
+  String get cancel;
+  String get delete;
+  String get reply;
+
+  // --- Notifications Screen (Main) ---
+  String get notifAppBarTitle;
+  String notifAppBarTitleSelected(int count);
+  String get notifTooltipSelectMode;
+  String get notifTooltipDeleteAll;
+  String get notifTabInbox;
+  String get notifTabArchived;
+
+  // --- Filter Bar ---
+  String get notifFilterTypeAll;
+  String get notifFilterTypeApplications;
+  String get notifFilterTypeUpdates;
+  String get notifFilterTypePayments;
+  String get notifFilterTypeMessages;
+  String get notifFilterStatusAll;
+  String get notifFilterStatusUnread;
+  String get notifSortDateDesc;
+  String get notifSortDateAsc;
+  String get notifSortPriority;
+
+  // --- Multi-Select & Batch Actions ---
+  String get notifTooltipMarkRead;
+  String get notifTooltipMarkUnread;
+  String get notifActionArchive;
+  String get notifActionUnarchive;
+  String notifActionDeleteCount(int count);
+  String notifMsgMarkReadSuccess(int count);
+  String get notifMsgMarkReadError;
+  String notifMsgMarkUnreadSuccess(int count);
+  String get notifMsgMarkUnreadError;
+  String notifMsgArchiveSuccess(int count);
+  String get notifMsgArchiveActionError;
+  String notifMsgUnarchiveSuccess(int count);
+  String get notifMsgUnarchiveActionError;
+  String notifMsgDeleteSuccess(int count);
+  String get notifMsgDeleteError;
+
+  // --- Dialogs ---
+  String notifDeleteAllDialogTitle(String folderName);
+  String get notifDeleteAllDialogContent;
+  String get notifDeleteAllDialogAction;
+  String get notifDeleteSingleDialogTitle;
+  String get notifDeleteSingleDialogContent;
+  String notifMsgFolderEmpty(String folderName);
+  String notifMsgDeleteAllSuccess(String folderName);
+  String get notifMsgDeleteAllError;
+  String get notifMsgDeleteSingleError;
+
+  // --- Folder Names (for dialogs/messages) ---
+  String get notifFolderNameInbox;
+  String get notifFolderNameArchived;
+
+  // --- Empty/Error States ---
+  String get notifListErrorGeneric;
+  String get notifEmptyStateTitle;
+  String get notifEmptyStateSubtitle;
+  String get notifEmptyStateFilteredTitle;
+  String get notifEmptyStateFilteredSubtitle;
+  // --- Chat List Pane ---
+  String get chatListAppBarTitle;
+  String get chatListSearchHint;
+  String get chatListFilterAll;
+  String get chatListFilterUnread;
+  String get chatListPleaseLogin;
+  String get chatListEmptyFiltered;
+  String get chatListEmptyTitle;
+  String get chatListEmptySubtitle;
+  String get chatListAiName;
+  String get chatListAiSubtitle;
+  String get chatListDefaultUserName;
+  String get chatListYouPrefix;
+  String get chatListTyping;
+  String get chatListLastMsgPhoto;
+  String get chatListLastMsgVoice;
+  String get chatListTimestampYesterday;
+  // --- Notification Cards (General & Specific) ---
+  String get notifInAppDefaultTitle;
+  String get notifMsgChatError;
+  String get notifTooltipDeleteSingle;
+  String notifCardMsgFrom(String name);
+  String get notifMsgActionErrorData;
+  String get notifMsgActionErrorGeneric;
+  String get notifCardAppTitle;
+  String get notifActionDecline;
+  String get notifActionAccept;
+  String get notifCardJobInfoUnavailable;
+  String get notifJobStatusCompleted;
+  String get notifJobStatusAccepted;
+  String get notifJobStatusFilled;
+  String get notifCardJobPostedByYou;
+  String notifCardJobPostedBy(String name);
+  String get notifCardLocationNotSpecified;
+  String get notifActionViewDetails;
+  String get notifCardJobDeleted;
+  String get notifCardGenericTitle;
+  String get notifActionChatWorker;
+  String get notifActionChatClient;
+  String get timelineAssigned;
+  // --- Conversation Pane & Messages ---
+  String get convoDateToday;
+  String get convoDateYesterday;
+  String get convoAiWelcome;
+  String get convoAiErrorInit;
+  String get convoAiStillInitializing;
+  String get convoAiAppBarTitle;
+  String get convoAppBarLoading;
+  String get convoUserStatusOnline;
+  String get convoUserStatusOffline;
+  String convoUserStatusLastSeen(String time);
+  String convoNewMessageNotifTitle(String name);
+  String get convoNewMessageNotifTitleDefault;
+  String get convoLastMsgAttachment;
+  String get convoLastMsgJobProposal;
+  String get convoErrorFileUpload;
+  String get convoMsgDeletedForMe;
+  String get convoErrorDeleteForEveryoneTimeLimit;
+  String get convoMsgDeletedForEveryone;
+  String get convoErrorChatAlreadyEmpty;
+  String get convoMsgChatCleared;
+  String get convoErrorClearChat;
+  String get convoMenuViewProfile;
+  String get convoMenuClearChat;
+  String get convoErrorProfileIdMissing;
+  String get convoErrorProfileLoad;
+  String get convoErrorGeneric;
+  String get convoErrorPhoneNotAvailable;
+  String convoErrorPhoneLaunch(String number);
+  String get convoEmptyHumanChat;
+  String convoTypingIndicator(String name);
+  String get convoTypingIndicatorDefault;
+  String get convoAiErrorThinking;
+  String get convoActionReply;
+  String get convoActionCopy;
+  String get convoMsgCopied;
+  String get convoActionDeleteForMe;
+  String get convoActionDeleteForEveryone;
+  String get convoJobProposalInvalid;
+  String get convoJobProposalTitle;
+  String convoJobProposalBudget(String budget);
+  String get convoReplyToYou;
+  String convoReplyingTo(String name);
+  String convoPermissionRequired(String permissionName);
+  String get convoPermissionSettings;
+  String get convoErrorRecorderInit;
+  String get convoRecording;
+  String get convoMessageHint;
+  String get convoAttachGallery;
+  String get convoAttachCamera;
+  String get convoAttachDocument;
+  String get convoAttachJob;
+  String get convoAudioPlaybackError;
 }
 
 // ===========================================================
@@ -730,51 +912,51 @@ class AppStringsEn implements AppStrings {
 
   @override
   Map<String, List<String>> get jobCategoriesAndSkills => {
-        'Plumbing': [
-          'Leak Repair',
-          'Pipe Installation',
-          'Drain Cleaning',
-          'Faucet Fix',
-          'Toilet Repair',
-          'Water Heater'
-        ],
-        'Electrical': [
-          'Wiring',
-          'Outlet Repair',
-          'Lighting Installation',
-          'Circuit Breaker',
-          'Fan Installation',
-          'Appliance Repair'
-        ],
-        'Cleaning': [
-          'Home Cleaning',
-          'Office Cleaning',
-          'Deep Cleaning',
-          'Window Washing',
-          'Carpet Cleaning'
-        ],
-        'Painting': [
-          'Interior Painting',
-          'Exterior Painting',
-          'Wall Preparation',
-          'Furniture Painting'
-        ],
-        'Carpentry': [
-          'Furniture Assembly',
-          'Door Repair',
-          'Shelf Installation',
-          'Wood Repair'
-        ],
-        'Gardening': ['Lawn Mowing', 'Planting', 'Weeding', 'Tree Trimming'],
-        'Moving': ['Loading/Unloading', 'Packing', 'Furniture Moving'],
-        'Handyman': [
-          'General Repairs',
-          'Mounting TV',
-          'Picture Hanging',
-          'Minor Fixes'
-        ],
-        'Other': ['Specify in Description']
-      };
+    'Plumbing': [
+      'Leak Repair',
+      'Pipe Installation',
+      'Drain Cleaning',
+      'Faucet Fix',
+      'Toilet Repair',
+      'Water Heater',
+    ],
+    'Electrical': [
+      'Wiring',
+      'Outlet Repair',
+      'Lighting Installation',
+      'Circuit Breaker',
+      'Fan Installation',
+      'Appliance Repair',
+    ],
+    'Cleaning': [
+      'Home Cleaning',
+      'Office Cleaning',
+      'Deep Cleaning',
+      'Window Washing',
+      'Carpet Cleaning',
+    ],
+    'Painting': [
+      'Interior Painting',
+      'Exterior Painting',
+      'Wall Preparation',
+      'Furniture Painting',
+    ],
+    'Carpentry': [
+      'Furniture Assembly',
+      'Door Repair',
+      'Shelf Installation',
+      'Wood Repair',
+    ],
+    'Gardening': ['Lawn Mowing', 'Planting', 'Weeding', 'Tree Trimming'],
+    'Moving': ['Loading/Unloading', 'Packing', 'Furniture Moving'],
+    'Handyman': [
+      'General Repairs',
+      'Mounting TV',
+      'Picture Hanging',
+      'Minor Fixes',
+    ],
+    'Other': ['Specify in Description'],
+  };
   @override
   String get errorInitializationFailed => "Initialization failed";
   @override
@@ -803,6 +985,15 @@ class AppStringsEn implements AppStrings {
   String get successSubscription => "Thank you for subscribing!";
   @override
   String get connectionRestored => "Internet connection restored.";
+  // Inside the 'class AppStringsEn implements AppStrings {' block
+  @override
+  String get workerDetailLocation => "Location";
+  @override
+  String get workerDetailMapLaunchError => "Failed to open map application.";
+  @override
+  String get workerDetailEta => "Estimated ETA";
+  @override
+  String get workerDetailViewOnMap => "View on Map";
   @override
   String get noInternet => "No internet connection.";
   @override
@@ -823,7 +1014,10 @@ class AppStringsEn implements AppStrings {
   String get currency => "ETB";
   @override
   String workerDetailShareMessage(
-          String workerName, String profession, String phone) =>
+    String workerName,
+    String profession,
+    String phone,
+  ) =>
       'Check out this professional on FixIt: $workerName ($profession). Contact: $phone';
   @override
   String get emailVerifiedSuccess => "Email successfully verified!";
@@ -860,7 +1054,22 @@ class AppStringsEn implements AppStrings {
   String get notSet => "Not Set";
   @override
   String get generalClose => "Close";
+  // lib/services/app_string.dart -> class AppStringsEn
 
+  // --- NEWLY ADDED STRINGS ---
+  @override
+  String get appTagline =>
+      "Connecting you with Addis Ababa's finest skilled professionals.\nFrom plumbers to painters, find trusted experts for any job.";
+  @override
+  String get headline1 => "Find Skilled Professionals.";
+  @override
+  String get headline2 => "Get Work Done Right.";
+  @override
+  String get headline3 => "Trust & Quality.";
+  @override
+  String get headline4 => "Your Project, Our Experts.";
+  @override
+  String get orDivider => "OR";
   // --- HomeScreen ---
   @override
   String helloUser(String userName) => "Hello, $userName!";
@@ -880,6 +1089,8 @@ class AppStringsEn implements AppStrings {
   String get navFeed => "Feed";
   @override
   String get navMyJobs => "My Jobs";
+  @override
+  String get workerDetailChat => "Chat";
   @override
   String get navSetup => "Setup";
   @override
@@ -944,6 +1155,8 @@ class AppStringsEn implements AppStrings {
   @override
   String workerCardYearsExp(int years) => "$years yrs Exp";
   @override
+  String get jobDetailAboutTheClient => "job sent by:";
+  @override
   String get workerCardHire => "Hire";
   @override
   String get jobCardView => "View Details";
@@ -993,6 +1206,14 @@ class AppStringsEn implements AppStrings {
   String get workerDetailLeaveReview => "Leave a Review";
   @override
   String get workerDetailHireNow => "Hire Now";
+  @override
+  String get workerDetailWeeklyAvailability => "Weekly Availability";
+  @override
+  String get errorLoadingAvailability => "Error loading availability";
+  @override
+  String get noAvailabilityData => "No availability data found.";
+  @override
+  String get booked => "Booked";
   @override
   String get workerDetailWorking => "Working";
   @override
@@ -1150,6 +1371,8 @@ class AppStringsEn implements AppStrings {
       "For detailed jobs with specific requirements.";
   @override
   String get workerDetailVideoIntro => "Video Introduction";
+  @override
+  String get all => "All";
   @override
   String get workerDetailGallery => "Work Gallery";
   @override
@@ -1865,6 +2088,23 @@ class AppStringsEn implements AppStrings {
   @override
   String get myJobsDashboardText => "My Jobs Dashboard";
   @override
+  String get applicationDeletedSuccessfullyText =>
+      "Application deleted successfully";
+
+  @override
+  String errorDeletingApplication(String error) =>
+      "Error deleting application: $error";
+
+  @override
+  String get chatText => "Chat";
+
+  @override
+  String errorDecliningApplication(String error) =>
+      "Error declining application: $error";
+
+  @override
+  String get noApplicationsText => "No applications found";
+  @override
   String get assignedJobsText => "ASSIGNED JOBS";
   @override
   String get myApplicationsText => "MY APPLICATIONS";
@@ -1887,7 +2127,7 @@ class AppStringsEn implements AppStrings {
   @override
   String get completedText => "Completed";
   @override
-  String get closedText => "Closed";
+  String get closedText => "";
   @override
   String get cancelledText => "Cancelled";
   @override
@@ -1973,6 +2213,208 @@ class AppStringsEn implements AppStrings {
   String get moreApplicantsText => "more applicants";
 
   // --- Helper Method Implementations ---
+  // English Strings Implementation
+
+  // --- General Actions ---
+  @override
+  String get cancel => "Cancel";
+  @override
+  String get delete => "Delete";
+  @override
+  String get reply => "Reply";
+
+  // --- Notifications Screen (Main) ---
+  @override
+  String get notifAppBarTitle => "Notifications Inbox";
+  @override
+  String notifAppBarTitleSelected(int count) => "$count Selected";
+  @override
+  String get notifTooltipSelectMode => "Select Mode";
+  @override
+  String get notifTooltipDeleteAll => "Delete All in Folder";
+  @override
+  String get notifTabInbox => "Inbox";
+  @override
+  String get notifTabArchived => "Archived";
+
+  // --- Filter Bar ---
+  @override
+  String get notifFilterTypeAll => "All";
+  @override
+  String get notifFilterTypeApplications => "Applications";
+  @override
+  String get notifFilterTypeUpdates => "Updates";
+  @override
+  String get notifFilterTypePayments => "Payments";
+  @override
+  String get notifFilterTypeMessages => "Messages";
+  @override
+  String get notifFilterStatusAll => "All Statuses";
+  @override
+  String get notifFilterStatusUnread => "Unread Only";
+  @override
+  String get notifSortDateDesc => "Newest First";
+  @override
+  String get notifSortDateAsc => "Oldest First";
+  @override
+  String get notifSortPriority => "By Priority";
+  // --- Chat List Pane ---
+  @override
+  String get chatListAppBarTitle => "Messages";
+  @override
+  String get chatListSearchHint => "Search chats...";
+  @override
+  String get chatListFilterAll => "All Chats";
+  @override
+  String get chatListFilterUnread => "Unread";
+  @override
+  String get chatListPleaseLogin => "Please log in.";
+  @override
+  String get chatListEmptyFiltered => "No conversations match your criteria.";
+  @override
+  String get chatListEmptyTitle => "No User Chats Yet";
+  @override
+  String get chatListEmptySubtitle =>
+      "Start a new conversation by contacting a worker from their profile page.";
+  @override
+  String get chatListAiName => "Min Atu"; // AI Assistant Name
+  @override
+  String get chatListAiSubtitle => "Your personal AI assistant...";
+  @override
+  String get chatListDefaultUserName => "Chat User";
+  @override
+  String get chatListYouPrefix => "You: ";
+  @override
+  String get chatListTyping => "typing...";
+  @override
+  String get chatListLastMsgPhoto => "Photo";
+  @override
+  String get chatListLastMsgVoice => "Voice message";
+  @override
+  String get chatListTimestampYesterday => "Yesterday";
+  // --- Multi-Select & Batch Actions ---
+  @override
+  String get notifTooltipMarkRead => "Mark as Read";
+  @override
+  String get notifTooltipMarkUnread => "Mark as Unread";
+  @override
+  String get notifActionArchive => "Archive";
+  @override
+  String get notifActionUnarchive => "Unarchive";
+  @override
+  String notifActionDeleteCount(int count) => "Delete ($count)";
+  @override
+  String notifMsgMarkReadSuccess(int count) =>
+      "$count notifications marked as read.";
+  @override
+  String get notifMsgMarkReadError => "Failed to mark as read.";
+  @override
+  String notifMsgMarkUnreadSuccess(int count) =>
+      "$count notifications marked as unread.";
+  @override
+  String get notifMsgMarkUnreadError => "Failed to mark as unread.";
+  @override
+  String notifMsgArchiveSuccess(int count) => "$count notifications archived.";
+  @override
+  String get notifMsgArchiveActionError => "Failed to archive.";
+  @override
+  String notifMsgUnarchiveSuccess(int count) =>
+      "$count notifications unarchived.";
+  @override
+  String get notifMsgUnarchiveActionError => "Failed to unarchive.";
+  @override
+  String notifMsgDeleteSuccess(int count) => "$count notifications deleted.";
+  @override
+  String get notifMsgDeleteError => "Failed to delete.";
+
+  // --- Dialogs ---
+  @override
+  String notifDeleteAllDialogTitle(String folderName) =>
+      "Delete All in $folderName?";
+  @override
+  String get notifDeleteAllDialogContent =>
+      "This will permanently delete all notifications in this folder. This action cannot be undone.";
+  @override
+  String get notifDeleteAllDialogAction => "Delete All";
+  @override
+  String get notifDeleteSingleDialogTitle => "Delete Notification?";
+  @override
+  String get notifDeleteSingleDialogContent =>
+      "This action is permanent and cannot be undone.";
+  @override
+  String notifMsgFolderEmpty(String folderName) =>
+      "The $folderName folder is already empty.";
+  @override
+  String notifMsgDeleteAllSuccess(String folderName) =>
+      "All notifications in $folderName deleted.";
+  @override
+  String get notifMsgDeleteAllError => "Failed to delete notifications.";
+  @override
+  String get notifMsgDeleteSingleError => "Failed to delete notification.";
+
+  // --- Folder Names (for dialogs/messages) ---
+  @override
+  String get notifFolderNameInbox => "Inbox";
+  @override
+  String get notifFolderNameArchived => "Archived";
+
+  // --- Empty/Error States ---
+  @override
+  String get notifListErrorGeneric =>
+      "An error occurred while loading notifications.";
+  @override
+  String get notifEmptyStateTitle => "This Folder is Empty";
+  @override
+  String get notifEmptyStateSubtitle => "You have no notifications here.";
+  @override
+  String get notifEmptyStateFilteredTitle => "No Matches Found";
+  @override
+  String get notifEmptyStateFilteredSubtitle =>
+      "Try adjusting your filters to see more notifications.";
+
+  // --- Notification Cards (General & Specific) ---
+  @override
+  String get notifInAppDefaultTitle => "New Notification";
+  @override
+  String get notifMsgChatError => "Could not open chat. Data missing.";
+  @override
+  String get notifTooltipDeleteSingle => "Delete Notification";
+  @override
+  String notifCardMsgFrom(String name) => "Message from $name";
+  @override
+  String get notifMsgActionErrorData => "Error: Missing required data.";
+  @override
+  String get notifMsgActionErrorGeneric => "Action failed. Please try again.";
+  @override
+  String get notifCardAppTitle => "Job Application";
+  @override
+  String get notifActionDecline => "Decline";
+  @override
+  String get notifActionAccept => "Accept";
+  @override
+  String get notifCardJobInfoUnavailable => "Job info unavailable";
+  @override
+  String get notifJobStatusCompleted => "JOB COMPLETED";
+  @override
+  String get notifJobStatusAccepted => "ACCEPTED";
+  @override
+  String get notifJobStatusFilled => "FILLED BY ANOTHER";
+  @override
+  String get notifCardJobPostedByYou => "You posted a new job";
+  @override
+  String notifCardJobPostedBy(String name) => "$name posted a new job";
+  @override
+  String get notifCardLocationNotSpecified => "Not specified";
+  @override
+  String get notifActionViewDetails => "View Details";
+  @override
+  String get notifCardJobDeleted => "This job may have been deleted.";
+  @override
+  String get notifCardGenericTitle => "Notification";
+  @override
+  String get notifActionChatWorker => "Chat with Worker";
+  @override
+  String get notifActionChatClient => "Chat with Client";
   @override
   String getStatusName(String key) {
     switch (key.toLowerCase()) {
@@ -2163,6 +2605,8 @@ class AppStringsEn implements AppStrings {
   @override
   String get distanceLabel => "Distance";
   @override
+  String get timelineAssigned => "time";
+  @override
   String get locationTitle => "Location";
   @override
   String get mapNotAvailable => "Map not available";
@@ -2279,6 +2723,119 @@ class AppStringsEn implements AppStrings {
   @override
   String get postAJobButton => "Post a Job";
   @override
+  // --- Conversation Pane & Messages ---
+  @override
+  String get convoDateToday => "Today";
+  @override
+  String get convoDateYesterday => "Yesterday";
+  @override
+  String get convoAiWelcome =>
+      "Selam! I'm Min Atu, your personal AI assistant. How can I help you today? 😊";
+  @override
+  String get convoAiErrorInit =>
+      "Sorry, I'm having trouble connecting right now. Please try again later.";
+  @override
+  String get convoAiStillInitializing => "AI is still initializing...";
+  @override
+  String get convoAiAppBarTitle => "Min Atu Assistant";
+  @override
+  String get convoAppBarLoading => "Loading...";
+  @override
+  String get convoUserStatusOnline => "Online";
+  @override
+  String get convoUserStatusOffline => "Offline";
+  @override
+  String convoUserStatusLastSeen(String time) => "Last seen $time";
+  @override
+  String convoNewMessageNotifTitle(String name) => "New message from $name";
+  @override
+  String get convoNewMessageNotifTitleDefault => "New Message";
+  @override
+  String get convoLastMsgAttachment => "📎 Attachment";
+  @override
+  String get convoLastMsgJobProposal => "💼 Job Proposal";
+  @override
+  String get convoErrorFileUpload => "File upload failed.";
+  @override
+  String get convoMsgDeletedForMe => "Message hidden for you.";
+  @override
+  String get convoErrorDeleteForEveryoneTimeLimit =>
+      "Too late to delete for everyone.";
+  @override
+  String get convoMsgDeletedForEveryone => "Message deleted for everyone.";
+  @override
+  String get convoErrorChatAlreadyEmpty => "Chat is already empty.";
+  @override
+  String get convoMsgChatCleared => "Chat history cleared.";
+  @override
+  String get convoErrorClearChat => "Failed to clear chat history.";
+  @override
+  String get convoMenuViewProfile => "View Profile";
+  @override
+  String get convoMenuClearChat => "Clear Chat";
+  @override
+  String get convoErrorProfileIdMissing =>
+      "Could not open profile: User ID is missing.";
+  @override
+  String get convoErrorProfileLoad => "Could not load worker profile.";
+  @override
+  String get convoErrorGeneric => "An error occurred.";
+  @override
+  String get convoErrorPhoneNotAvailable =>
+      "User's phone number is not available.";
+  @override
+  String convoErrorPhoneLaunch(String number) =>
+      "Could not make the phone call to $number.";
+  @override
+  String get convoEmptyHumanChat => "Start the conversation!";
+  @override
+  String convoTypingIndicator(String name) => "$name is typing...";
+  @override
+  String get convoTypingIndicatorDefault => "Someone";
+  @override
+  String get convoAiErrorThinking =>
+      "Sorry, an error occurred while I was thinking.";
+  @override
+  String get convoActionReply => "Reply";
+  @override
+  String get convoActionCopy => "Copy";
+  @override
+  String get convoMsgCopied => "Copied to clipboard!";
+  @override
+  String get convoActionDeleteForMe => "Delete for Me";
+  @override
+  String get convoActionDeleteForEveryone => "Delete for Everyone";
+  @override
+  String get convoJobProposalInvalid => "Invalid Job Proposal";
+  @override
+  String get convoJobProposalTitle => "Job Proposal";
+  @override
+  String convoJobProposalBudget(String budget) => "Budget: ETB $budget";
+  @override
+  String get convoReplyToYou => "You";
+  @override
+  String convoReplyingTo(String name) => "Replying to $name";
+  @override
+  String convoPermissionRequired(String permissionName) =>
+      "Permission for $permissionName is required.";
+  @override
+  String get convoPermissionSettings => "SETTINGS";
+  @override
+  String get convoErrorRecorderInit => "Recorder could not be initialized.";
+  @override
+  String get convoRecording => "Recording...";
+  @override
+  String get convoMessageHint => "Message...";
+  @override
+  String get convoAttachGallery => "Gallery";
+  @override
+  String get convoAttachCamera => "Camera";
+  @override
+  String get convoAttachDocument => "Document";
+  @override
+  String get convoAttachJob => "Job";
+  @override
+  String get convoAudioPlaybackError => "Can't play audio";
   String jobApplicationsScreenTitle(String jobTitle) =>
       "Applicants for: $jobTitle";
 }
@@ -2306,30 +2863,30 @@ class AppStringsAm implements AppStrings {
   String get languageToggleTooltip => "ቋንቋ ቀይር";
   @override
   Map<String, List<String>> get jobCategoriesAndSkills => {
-        'የቧንቧ ስራ': [
-          'የውሃ ጠብታ ጥገና',
-          'የቧንቧ ዝርጋታ',
-          'የፍሳሽ ማጽዳት',
-          'የውሃ ቧንቧ ጥገና',
-          'የሽንት ቤት ጥገና',
-          'የውሃ ማሞቂያ'
-        ],
-        'የኤሌክትሪክ ስራ': [
-          'የሽቦ ዝርጋታ',
-          'የሶኬት ጥገና',
-          'የመብራት ተከላ',
-          'ሰርኪዩት ብሬከር',
-          'የማራገቢያ ተከላ',
-          'የቤት እቃ ጥገና'
-        ],
-        'ጽዳት': ['የቤት ጽዳት', 'የቢሮ ጽዳት', 'ጥልቅ ጽዳት', 'የመስኮት ጽዳት', 'ምንጣፍ ጽዳት'],
-        'ቀለም ቅብ': ['የቤት ውስጥ ቀለም', 'የውጭ ቀለም', 'የግድግዳ ዝግጅት', 'የቤት እቃ ቀለም'],
-        'የእንጨት ስራ': ['የቤት እቃ ገጣጠም', 'የበር ጥገና', 'የመደርደሪያ ተከላ', 'የእንጨት ጥገና'],
-        'አትክልተኝነት': ['የሣር ማጨድ', 'መትከል', 'አረም መንቀል', 'የዛፍ ቅርንጫፍ መቁረጥ'],
-        'ዕቃ ማጓጓዝ': ['መጫን/ማውረድ', 'ማሸግ', 'የቤት ዕቃ ማንቀሳቀስ'],
-        'የእጅ ባለሙያ': ['አጠቃላይ ጥገና', 'ቴሌቪዥን መስቀል', 'ፎቶ መስቀል', 'ጥቃቅን ጥገናዎች'],
-        'ሌላ': ['በመግለጫው ውስጥ ይግለጹ']
-      };
+    'የቧንቧ ስራ': [
+      'የውሃ ጠብታ ጥገና',
+      'የቧንቧ ዝርጋታ',
+      'የፍሳሽ ማጽዳት',
+      'የውሃ ቧንቧ ጥገና',
+      'የሽንት ቤት ጥገና',
+      'የውሃ ማሞቂያ',
+    ],
+    'የኤሌክትሪክ ስራ': [
+      'የሽቦ ዝርጋታ',
+      'የሶኬት ጥገና',
+      'የመብራት ተከላ',
+      'ሰርኪዩት ብሬከር',
+      'የማራገቢያ ተከላ',
+      'የቤት እቃ ጥገና',
+    ],
+    'ጽዳት': ['የቤት ጽዳት', 'የቢሮ ጽዳት', 'ጥልቅ ጽዳት', 'የመስኮት ጽዳት', 'ምንጣፍ ጽዳት'],
+    'ቀለም ቅብ': ['የቤት ውስጥ ቀለም', 'የውጭ ቀለም', 'የግድግዳ ዝግጅት', 'የቤት እቃ ቀለም'],
+    'የእንጨት ስራ': ['የቤት እቃ ገጣጠም', 'የበር ጥገና', 'የመደርደሪያ ተከላ', 'የእንጨት ጥገና'],
+    'አትክልተኝነት': ['የሣር ማጨድ', 'መትከል', 'አረም መንቀል', 'የዛፍ ቅርንጫፍ መቁረጥ'],
+    'ዕቃ ማጓጓዝ': ['መጫን/ማውረድ', 'ማሸግ', 'የቤት ዕቃ ማንቀሳቀስ'],
+    'የእጅ ባለሙያ': ['አጠቃላይ ጥገና', 'ቴሌቪዥን መስቀል', 'ፎቶ መስቀል', 'ጥቃቅን ጥገናዎች'],
+    'ሌላ': ['በመግለጫው ውስጥ ይግለጹ'],
+  };
   @override
   String get errorInitializationFailed => "ማስጀመር አልተሳካም";
   @override
@@ -2384,6 +2941,22 @@ class AppStringsAm implements AppStrings {
   String get settingsAccountSubtitle => "የአካውንት ቅንብሮች";
   @override
   String get switchedToClientView => "ወደ ደንበኛ እይታ ተቀይሯል";
+  // lib/services/app_string.dart -> class AppStringsAm
+
+  // --- NEWLY ADDED STRINGS ---
+  @override
+  String get appTagline =>
+      "ከአዲስ አበባ ምርጥ ችሎታ ካላቸው ባለሙያዎች ጋር እናገናኝዎታለን።\nከቧንቧ ሰራተኞች እስከ ቀቢዎች፣ ለማንኛውም ስራ ታማኝ ባለሙያዎችን ያግኙ።";
+  @override
+  String get headline1 => "ችሎታ ያላቸው ባለሙያዎችን ያግኙ።";
+  @override
+  String get headline2 => "ስራዎን በአግባቡ ያስፈጽሙ።";
+  @override
+  String get headline3 => "ታማኝነት እና ጥራት።";
+  @override
+  String get headline4 => "የእርስዎ ፕሮጀክት፣ የእኛ ባለሙያዎች።";
+  @override
+  String get orDivider => "ወይም";
   @override
   String get switchedToWorkerView => "ወደ ባለሙያ እይታ ተቀይሯል";
   @override
@@ -2470,6 +3043,15 @@ class AppStringsAm implements AppStrings {
 
   @override
   String get clear => 'አጥፋ';
+  // Inside the 'class AppStringsAm implements AppStrings {' block
+  @override
+  String get workerDetailLocation => "አካባቢ";
+  @override
+  String get workerDetailMapLaunchError => "የካርታ መተግበሪያውን መክፈት አልተሳካም።";
+  @override
+  String get workerDetailEta => "የሚገመተው የመድረሻ ሰዓት";
+  @override
+  String get workerDetailViewOnMap => "በካርታ ላይ ይመልከቱ";
   @override
   String get ok => 'እሺ';
   @override
@@ -2577,6 +3159,17 @@ class AppStringsAm implements AppStrings {
   @override
   String get jobDateN_A => "ቀን የለም";
   @override
+  String get chatListAppBarTitle => "ቻት"; // Chats
+
+  @override
+  String get chatListFilterAll => "ሁሉም"; // All
+
+  @override
+  String get chatListFilterUnread => "ያልተነበቡ"; // Unread
+
+  @override
+  String get chatListSearchHint => "ቻት ፈልግ"; // Search chat
+  @override
   String get generalN_A => "የለም";
   @override
   String get jobUntitled => "ርዕስ አልባ ስራ";
@@ -2612,6 +3205,14 @@ class AppStringsAm implements AppStrings {
   String get workerDetailLeaveReview => "ግምገማዎን ይተዉ";
   @override
   String get workerDetailHireNow => "አሁን ቀጥር";
+  @override
+  String get workerDetailWeeklyAvailability => "የሳምንት ዝግጁነት";
+  @override
+  String get errorLoadingAvailability => "የዝግጁነት ማቀድ ስህተት";
+  @override
+  String get noAvailabilityData => "የዝግጁነት ተወካይ አልተገኘም";
+  @override
+  String get booked => "ተይዟል";
   @override
   String get workerDetailWorking => "በስራ ላይ";
   @override
@@ -2709,8 +3310,10 @@ class AppStringsAm implements AppStrings {
   String get currency => "ብር";
   @override
   String workerDetailShareMessage(
-          String workerName, String profession, String phone) =>
-      'ይህን ባለሙያ በFixIt ይመልከቱ: $workerName ($profession). ያግኙ: $phone';
+    String workerName,
+    String profession,
+    String phone,
+  ) => 'ይህን ባለሙያ በFixIt ይመልከቱ: $workerName ($profession). ያግኙ: $phone';
 
   // Notifications
   @override
@@ -2840,6 +3443,8 @@ class AppStringsAm implements AppStrings {
   String get jobDetailActionApply => "ለዚህ ስራ ያመልክቱ";
   @override
   String get jobDetailActionApplying => "በማመልከት ላይ...";
+  @override
+  String get all => "ሁሉም";
   @override
   String get jobDetailActionApplied => "ማመልከቻ ገብቷል";
   @override
@@ -3016,6 +3621,8 @@ class AppStringsAm implements AppStrings {
   String get couldNotLoadVideo => "ቪዲዮውን መጫን አልተቻለም።";
   @override
   String get videoLoadFailed => "ቪዲዮ መጫን አልተሳካም።";
+  @override
+  String get workerDetailChat => "ለማውራት";
   @override
   String get cannotPlayVideoNoInternet => "ያለ ኢንተርኔት ቪዲዮ ማጫወት አይቻልም።";
   @override
@@ -3442,6 +4049,21 @@ class AppStringsAm implements AppStrings {
   @override
   String get myJobsDashboard => "የእኔ ስራዎች ዳሽቦርድ";
   @override
+  String get applicationDeletedSuccessfullyText => "መተግበሪያው በተሳካ ሁኔታ ተሰርዟል";
+
+  @override
+  String errorDeletingApplication(String error) => "መተግበሪያ ማጥፋት አልተሳካም: $error";
+
+  @override
+  String get chatText => "ቻት";
+
+  @override
+  String errorDecliningApplication(String error) =>
+      "መተግበሪያ መቀበል አልተሳካም: $error";
+
+  @override
+  String get noApplicationsText => "መተግበሪያ አልተገኘም";
+  @override
   String get assignedJobsTab => "የተመደቡ"; // Tab title
   @override
   String get myApplicationsTab => "ማመልከቻዎቼ"; // Tab title
@@ -3517,6 +4139,8 @@ class AppStringsAm implements AppStrings {
   String jobApplicationsScreenTitle(String jobTitle) => "ለ '$jobTitle' አመልካቾች";
   @override
   String get myWorkDashboardText => "የእኔ የስራ ዳሽቦርድ";
+  @override
+  String get jobDetailAboutTheClient => "አሰር:";
   @override
   String get myJobsDashboardText => "የእኔ ስራዎች ዳሽቦርድ";
   @override
@@ -3794,6 +4418,306 @@ class AppStringsAm implements AppStrings {
   String get professionalSetupAvailabilityTitle => "ሳምንታዊ ተገኝነት";
   @override
   String get professionalSetupAvailabilityTo => "እስከ";
+  // Amharic Strings Implementation
+
+  // --- General Actions ---
+  @override
+  String get cancel => "ይቅር";
+  @override
+  String get delete => "አጥፋ";
+  @override
+  String get reply => "ምላሽ ስጥ";
+
+  // --- Notifications Screen (Main) ---
+  @override
+  String get notifAppBarTitle => "የማሳወቂያ ገቢ መልዕክቶች";
+  @override
+  String notifAppBarTitleSelected(int count) => "$count ተመርጠዋል";
+  @override
+  String get notifTooltipSelectMode => "የመምረጫ ሁነታ";
+  @override
+  String get notifTooltipDeleteAll => "በማህደር ውስጥ ያሉትን ሁሉንም አጥፋ";
+  @override
+  String get notifTabInbox => "ገቢ መልዕክቶች";
+  @override
+  String get notifTabArchived => "በማህደር የተቀመጡ";
+
+  // --- Filter Bar ---
+  @override
+  String get notifFilterTypeAll => "ሁሉም";
+  @override
+  String get notifFilterTypeApplications => "ማመልከቻዎች";
+  @override
+  String get notifFilterTypeUpdates => "ዝመናዎች";
+  @override
+  String get notifFilterTypePayments => "ክፍያዎች";
+  @override
+  String get notifFilterTypeMessages => "መልዕክቶች";
+  @override
+  String get notifFilterStatusAll => "ሁሉም ሁኔታዎች";
+  @override
+  String get notifFilterStatusUnread => "ያልተነበቡ ብቻ";
+  @override
+  String get notifSortDateDesc => "አዲስ በመጀመሪያ";
+  @override
+  String get notifSortDateAsc => "የቆየ በመጀመሪያ";
+  @override
+  String get notifSortPriority => "በቅድሚያ";
+
+  // --- Multi-Select & Batch Actions ---
+  @override
+  String get notifTooltipMarkRead => "እንደተነበበ ምልክት አድርግ";
+  @override
+  String get notifTooltipMarkUnread => "እንዳልተነበበ ምልክት አድርግ";
+  @override
+  String get notifActionArchive => "በማህደር አስቀምጥ";
+  @override
+  String get notifActionUnarchive => "ከማህደር አውጣ";
+  @override
+  String notifActionDeleteCount(int count) => "አጥፋ ($count)";
+  @override
+  String notifMsgMarkReadSuccess(int count) =>
+      "$count ማሳወቂያዎች እንደተነበቡ ምልክት ተደርጎባቸዋል።";
+  @override
+  String get notifMsgMarkReadError => "እንደተነበበ ምልክት ማድረግ አልተቻለም።";
+  @override
+  String notifMsgMarkUnreadSuccess(int count) =>
+      "$count ማሳወቂያዎች እንዳልተነበቡ ምልክት ተደርጎባቸዋል።";
+  @override
+  String get notifMsgMarkUnreadError => "እንዳልተነበበ ምልክት ማድረግ አልተቻለም።";
+  @override
+  String notifMsgArchiveSuccess(int count) => "$count ማሳወቂያዎች በማህደር ተቀምጠዋል።";
+  @override
+  String get notifMsgArchiveActionError => "በማህደር ማስቀመጥ አልተቻለም።";
+  @override
+  String notifMsgUnarchiveSuccess(int count) => "$count ማሳወቂያዎች ከማህደር ወጥተዋል።";
+  @override
+  String get notifMsgUnarchiveActionError => "ከማህደር ማውጣት አልተቻለም።";
+  @override
+  String notifMsgDeleteSuccess(int count) => "$count ማሳወቂያዎች ተሰርዘዋል።";
+  @override
+  String get notifMsgDeleteError => "ማጥፋት አልተቻለም።";
+
+  // --- Dialogs ---
+  @override
+  String notifDeleteAllDialogTitle(String folderName) =>
+      "በ$folderName ውስጥ ያሉትን ሁሉንም ማጥፋት ይፈልጋሉ?";
+  @override
+  String get notifDeleteAllDialogContent =>
+      "ይህ በዚህ ማህደር ውስጥ ያሉትን ሁሉንም ማሳወቂያዎች በቋሚነት ያጠፋል። ይህ ድርጊት ሊቀለበስ አይችልም።";
+  @override
+  String get notifDeleteAllDialogAction => "ሁሉንም አጥፋ";
+  @override
+  String get notifDeleteSingleDialogTitle => "ማሳወቂያውን ማጥፋት ይፈልጋሉ?";
+  @override
+  String get notifDeleteSingleDialogContent => "ይህ ድርጊት ቋሚ ሲሆን ሊቀለበስ አይችልም።";
+  @override
+  String notifMsgFolderEmpty(String folderName) =>
+      "የ$folderName ማህደር አስቀድሞ ባዶ ነው።";
+  @override
+  String notifMsgDeleteAllSuccess(String folderName) =>
+      "በ$folderName ውስጥ ያሉ ሁሉም ማሳወቂያዎች ተሰርዘዋል።";
+  @override
+  String get notifMsgDeleteAllError => "ማሳወቂያዎችን መሰረዝ አልተቻለም።";
+  @override
+  String get notifMsgDeleteSingleError => "ማሳወቂያውን መሰረዝ አልተቻለም።";
+
+  // --- Folder Names (for dialogs/messages) ---
+  @override
+  String get notifFolderNameInbox => "ገቢ መልዕክቶች";
+  @override
+  String get notifFolderNameArchived => "ማህደር";
+
+  // --- Empty/Error States ---
+  @override
+  String get notifListErrorGeneric => "ማሳወቂያዎችን በሚጫንበት ጊዜ ስህተት አጋጥሟል።";
+  @override
+  String get notifEmptyStateTitle => "ይህ ማህደር ባዶ ነው";
+  @override
+  String get notifEmptyStateSubtitle => "እዚህ ምንም ማሳወቂያ የለዎትም።";
+  @override
+  String get notifEmptyStateFilteredTitle => "ምንም ውጤት አልተገኘም";
+  @override
+  String get notifEmptyStateFilteredSubtitle =>
+      "ተጨማሪ ማሳወቂያዎችን ለማየት ማጣሪያዎችዎን ለማስተካከል ይሞክሩ።";
+  @override
+  String get chatListPleaseLogin => "እባክዎ ይግቡ።";
+  @override
+  String get chatListEmptyFiltered => "ከፍለጋዎ ጋር የሚዛመድ ውይይት የለም።";
+  @override
+  String get chatListEmptyTitle => "እስካሁን ምንም የተጠቃሚ ውይይት የለም";
+  @override
+  String get chatListEmptySubtitle => "ከባለሙያ ገጽ ላይ ባለሙያን በማነጋገር አዲስ ውይይት ይጀምሩ።";
+  @override
+  String get chatListAiName => "ምን አዲስ"; // AI Assistant Name
+  @override
+  String get chatListAiSubtitle => "የእርስዎ የግል AI ረዳት...";
+  @override
+  String get chatListDefaultUserName => "ተወያይ";
+  @override
+  String get chatListYouPrefix => "እርስዎ: ";
+  @override
+  String get chatListTyping => "እየጻፈ ነው...";
+  @override
+  String get chatListLastMsgPhoto => "ፎቶ";
+  @override
+  String get chatListLastMsgVoice => "የድምጽ መልዕክት";
+  @override
+  String get chatListTimestampYesterday => "ትላንት";
+  // --- Notification Cards (General & Specific) ---
+  @override
+  String get notifInAppDefaultTitle => "አዲስ ማሳወቂያ";
+  @override
+  String get notifMsgChatError => "ውይይቱን መክፈት አልተቻለም። መረጃው ጠፍቷል።";
+  @override
+  String get notifTooltipDeleteSingle => "ማሳወቂያውን አጥፋ";
+  @override
+  String notifCardMsgFrom(String name) => "ከ$name የተላከ መልዕክት";
+  @override
+  String get notifMsgActionErrorData => "ስህተት፦ አስፈላጊ መረጃዎች ጠፍተዋል።";
+  @override
+  String get notifMsgActionErrorGeneric => "ድርጊቱ አልተሳካም። እባክዎ እንደገና ይሞክሩ።";
+  @override
+  String get notifCardAppTitle => "የሥራ ማመልከቻ";
+  @override
+  String get notifActionDecline => "አትቀበል";
+  @override
+  String get notifActionAccept => "ተቀበል";
+  @override
+  String get notifCardJobInfoUnavailable => "የሥራው መረጃ አይገኝም";
+  @override
+  String get notifJobStatusCompleted => "ሥራው ተጠናቋል";
+  @override
+  String get notifJobStatusAccepted => "ተቀብለዋል";
+  @override
+  String get timelineAssigned => "ግዜ";
+  @override
+  String get notifJobStatusFilled => "በሌላ ተይዟል";
+  @override
+  String get notifCardJobPostedByYou => "አዲስ ሥራ ለጥፈዋል";
+  @override
+  String notifCardJobPostedBy(String name) => "$name አዲስ ሥራ ለጥፏል";
+  @override
+  String get notifCardLocationNotSpecified => "አልተገለጸም";
+  @override
+  String get notifActionViewDetails => "ዝርዝሮችን ይመልከቱ";
+  @override
+  String get notifCardJobDeleted => "ይህ ሥራ የተሰረዘ ሊሆን ይችላል።";
+  @override
+  String get notifCardGenericTitle => "ማሳወቂያ";
+  @override
+  String get notifActionChatWorker => "ከባለሙያው ጋር ይወያዩ";
+  @override
+  String get notifActionChatClient => "ከደንበኛው ጋር ይወያዩ";
+  // --- Conversation Pane & Messages ---
+  @override
+  String get convoDateToday => "ዛሬ";
+  @override
+  String get convoDateYesterday => "ትላንት";
+  @override
+  String get convoAiWelcome =>
+      "ሰላም! እኔ ምን አዲስ ነኝ፣ የእርስዎ የግል AI ረዳት። ዛሬ እንዴት ልረዳዎት እችላለሁ? 😊";
+  @override
+  String get convoAiErrorInit =>
+      "ይቅርታ፣ አሁን ለመገናኘት ችግር አጋጥሞኛል። እባክዎ ቆይተው እንደገና ይሞክሩ።";
+  @override
+  String get convoAiStillInitializing => "AI አሁንም በመጀመር ላይ ነው።...";
+  @override
+  String get convoAiAppBarTitle => "ምን አዲስ ረዳት";
+  @override
+  String get convoAppBarLoading => "በመጫን ላይ...";
+  @override
+  String get convoUserStatusOnline => "በመስመር ላይ";
+  @override
+  String get convoUserStatusOffline => "ከመስመር ውጭ";
+  @override
+  String convoUserStatusLastSeen(String time) => "መጨረሻ የታየው $time";
+  @override
+  String convoNewMessageNotifTitle(String name) => "ከ $name አዲስ መልዕክት";
+  @override
+  String get convoNewMessageNotifTitleDefault => "አዲስ መልዕክት";
+  @override
+  String get convoLastMsgAttachment => "📎 አባሪ";
+  @override
+  String get convoLastMsgJobProposal => "💼 የሥራ ሀሳብ";
+  @override
+  String get convoErrorFileUpload => "ፋይል መስቀል አልተሳካም።";
+  @override
+  String get convoMsgDeletedForMe => "መልዕክቱ ለእርስዎ ተደብቋል።";
+  @override
+  String get convoErrorDeleteForEveryoneTimeLimit => "ለሁሉም ለማጥፋት ጊዜው አልፏል።";
+  @override
+  String get convoMsgDeletedForEveryone => "መልዕክቱ ለሁሉም ተሰርዟል።";
+  @override
+  String get convoErrorChatAlreadyEmpty => "ውይይቱ አስቀድሞ ባዶ ነው።";
+  @override
+  String get convoMsgChatCleared => "የውይይት ታሪክ ጸድቷል።";
+  @override
+  String get convoErrorClearChat => "የውይይት ታሪክን ማጽዳት አልተቻለም።";
+  @override
+  String get convoMenuViewProfile => "መገለጫ ይመልከቱ";
+  @override
+  String get convoMenuClearChat => "ውይይቱን አጽዳ";
+  @override
+  String get convoErrorProfileIdMissing =>
+      "መገለጫ መክፈት አልተቻለም፡ የተጠቃሚ መታወቂያ ጠፍቷል።";
+  @override
+  String get convoErrorProfileLoad => "የባለሙያ መገለጫ መጫን አልተቻለም።";
+  @override
+  String get convoErrorGeneric => "ስህተት አጋጥሟል።";
+  @override
+  String get convoErrorPhoneNotAvailable => "የተጠቃሚው ስልክ ቁጥር የለም።";
+  @override
+  String convoErrorPhoneLaunch(String number) => "ወደ $number ስልክ መደወል አልተቻለም።";
+  @override
+  String get convoEmptyHumanChat => "ውይይቱን ይጀምሩ!";
+  @override
+  String convoTypingIndicator(String name) => "$name እየጻፈ ነው...";
+  @override
+  String get convoTypingIndicatorDefault => "አንድ ሰው";
+  @override
+  String get convoAiErrorThinking => "ይቅርታ፣ በማስብበት ጊዜ ስህተት አጋጥሟል።";
+  @override
+  String get convoActionReply => "ምላሽ ስጥ";
+  @override
+  String get convoActionCopy => "ቅዳ";
+  @override
+  String get convoMsgCopied => "ወደ ቅንጥብ ሰሌዳ ተቀድቷል!";
+  @override
+  String get convoActionDeleteForMe => "ለእኔ አጥፋ";
+  @override
+  String get convoActionDeleteForEveryone => "ለሁሉም አጥፋ";
+  @override
+  String get convoJobProposalInvalid => "ትክክል ያልሆነ የሥራ ሀሳብ";
+  @override
+  String get convoJobProposalTitle => "የሥራ ሀሳብ";
+  @override
+  String convoJobProposalBudget(String budget) => "በጀት: ብር $budget";
+  @override
+  String get convoReplyToYou => "እርስዎ";
+  @override
+  String convoReplyingTo(String name) => "ለ $name ምላሽ በመስጠት ላይ";
+  @override
+  String convoPermissionRequired(String permissionName) =>
+      "የ$permissionName ፍቃድ ያስፈልጋል።";
+  @override
+  String get convoPermissionSettings => "ቅንብሮች";
+  @override
+  String get convoErrorRecorderInit => "መቅጃውን ማስጀመር አልተቻለም።";
+  @override
+  String get convoRecording => "በመቅዳት ላይ...";
+  @override
+  String get convoMessageHint => "መልዕክት...";
+  @override
+  String get convoAttachGallery => "ፎቶዎች";
+  @override
+  String get convoAttachCamera => "ካሜራ";
+  @override
+  String get convoAttachDocument => "ሰነድ";
+  @override
+  String get convoAttachJob => "ሥራ";
+  @override
+  String get convoAudioPlaybackError => "ኦዲዮ ማጫወት አልተቻለም";
 }
 
 // ===========================================================
@@ -3817,7 +4741,8 @@ class AppLocalizations {
       return getStrings(provider.locale);
     } catch (e) {
       debugPrint(
-          "Error getting AppLocalizations via Provider: $e. Using default (English).");
+        "Error getting AppLocalizations via Provider: $e. Using default (English).",
+      );
       return _localizedValues['en']!; // Fallback
     }
   }

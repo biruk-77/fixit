@@ -1,3 +1,4 @@
+// lib/screens/worker_detail_screen.dart
 import 'dart:ui' as ui; // For ImageFilter.blur
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,13 +13,18 @@ import 'package:chewie/chewie.dart';
 import 'package:geolocator/geolocator.dart'; // For location services
 import 'package:url_launcher/url_launcher.dart'; // For launching URLs (phone, maps)
 import 'package:flutter_animate/flutter_animate.dart'; // REQUIRED FOR ALL ANIMATIONS
-
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:polyline_codec/polyline_codec.dart';
+import 'package:http/http.dart' as http;
 import '../models/worker.dart';
 import '../models/user.dart';
+import 'dart:convert'; // <-- ADD THIS LINE
 import '../services/firebase_service.dart';
 import '../services/app_string.dart'; // For localization (assumed to exist and contain methods)
 import './jobs/create_job_screen.dart'; // Corrected path
 import './jobs/quick_job_request_screen.dart'; // Corrected path
+import './chat/conversation_pane.dart';
 
 // --- NEW CUSTOM WIDGETS FOR THIS DESIGN ---
 
@@ -93,7 +99,6 @@ class _SectionContainer extends StatelessWidget {
 class _SkillPill extends StatelessWidget {
   final String skill;
   const _SkillPill({required this.skill});
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -173,6 +178,7 @@ class _StatWheel extends StatelessWidget {
   }
 }
 
+// Certification Pill (More functional than badge)
 class _CertificationPill extends StatelessWidget {
   final String text;
   final IconData icon;
@@ -215,7 +221,7 @@ class _CertificationPill extends StatelessWidget {
             ),
             const SizedBox(height: 5),
             Text(
-              "View", // Simplified text for action
+              "View", // Simplified text for action (consider localizing if needed)
               style: tt.labelSmall?.copyWith(
                 color: cs.primary,
                 fontWeight: FontWeight.bold,
@@ -228,6 +234,7 @@ class _CertificationPill extends StatelessWidget {
   }
 }
 
+// Gallery Carousel with filter and view type toggle
 class _GallerySection extends StatefulWidget {
   final AppStrings appStrings;
   final List<String> allImages;
@@ -249,7 +256,7 @@ enum GalleryViewType { grid, carousel }
 
 class _GallerySectionState extends State<_GallerySection> {
   String _currentFilter = 'All'; // Default filter
-  GalleryViewType _currentViewType = GalleryViewType.grid;
+  GalleryViewType _currentViewType = GalleryViewType.grid; // Default view
 
   @override
   Widget build(BuildContext context) {
@@ -695,169 +702,382 @@ class _VideoPlayerSection extends StatelessWidget {
   }
 }
 
-class _LocationMapWidget extends StatelessWidget {
+// ⬇️ REPLACE YOUR ENTIRE _LocationMapWidget WITH THIS CODE ⬇️
+//
+enum MapStyle { light, dark, satellite }
+
+class _LocationMapWidget extends StatefulWidget {
   final AppStrings appStrings;
   final double workerLat;
   final double workerLng;
   final String? distanceText;
-  final String simulatedEta;
-  // FIX: Added function to receive _checkInternetConnectivity from parent
-  final Future<bool> Function(AppStrings appStrings) checkConnectivity;
+  final double? clientLat;
+  final double? clientLng;
 
   const _LocationMapWidget({
+    super.key,
     required this.appStrings,
     required this.workerLat,
     required this.workerLng,
     this.distanceText,
-    this.simulatedEta =
-        '15 mins', // Reverted to hardcoded string as per user instruction.
-    required this.checkConnectivity, // FIX: Added to constructor
+    required this.clientLat,
+    required this.clientLng,
   });
+
+  @override
+  State<_LocationMapWidget> createState() => _LocationMapWidgetState();
+}
+
+class _LocationMapWidgetState extends State<_LocationMapWidget> {
+  MapStyle _currentStyle = MapStyle.satellite;
+  final String _stadiaApiKey = 'ee647837-42e0-4187-9380-f4d31bc90fe9';
+  final String _openRouteServiceApiKey =
+      'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6IjlkZDE1MzM2N2ZmNzQ4ZDU4ZjI5NDVlY2JmYjhkMWFkIiwiaCI6Im11cm11cjY0In0=';
+
+  List<LatLng> _routePoints = [];
+  String? _updatedDistance;
+  String? _updatedEta;
+  bool _isLoadingRoute = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchRouteAndEta();
+    });
+  }
+
+  Future<void> _fetchRouteAndEta() async {
+    if (widget.clientLat == null || widget.clientLng == null) {
+      if (mounted) setState(() => _isLoadingRoute = false);
+      return;
+    }
+
+    final uri = Uri.parse(
+      'https://api.openrouteservice.org/v2/directions/driving-car/geojson',
+    );
+    final headers = {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Accept':
+          'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+      'Authorization': _openRouteServiceApiKey,
+    };
+    final body = json.encode({
+      "coordinates": [
+        [widget.clientLng, widget.clientLat],
+        [widget.workerLng, widget.workerLat],
+      ],
+    });
+
+    try {
+      final response = await http.post(uri, headers: headers, body: body);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final features = data['features'] as List;
+        if (features.isNotEmpty) {
+          final geometry = features[0]['geometry']['coordinates'] as List;
+          final properties = features[0]['properties'];
+          final summary = properties['summary'];
+          final durationInSeconds = summary['duration'];
+          final distanceInMeters = summary['distance'];
+          final List<LatLng> polylineCoordinates = geometry
+              .map((p) => LatLng(p[1].toDouble(), p[0].toDouble()))
+              .toList();
+          if (mounted) {
+            setState(() {
+              _routePoints = polylineCoordinates;
+              _updatedEta = '${(durationInSeconds / 60).round()} mins';
+              _updatedDistance =
+                  '${(distanceInMeters / 1000).toStringAsFixed(1)} km';
+              _isLoadingRoute = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) setState(() => _isLoadingRoute = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingRoute = false);
+    }
+  }
+
+  String _getMapUrl() {
+    switch (_currentStyle) {
+      case MapStyle.dark:
+        return 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=$_stadiaApiKey';
+      case MapStyle.satellite:
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case MapStyle.light:
+      default:
+        return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    // IMPORTANT: Replace 'YOUR_GOOGLE_MAPS_API_KEY' with your actual Google Maps Static API Key.
-    // Ensure the API key has the "Maps Static API" enabled.
-    final String staticMapUrl =
-        'https://maps.googleapis.com/maps/api/staticmap?center=$workerLat,$workerLng&zoom=14&size=400x250&markers=color:red%7Clabel:W%7C$workerLat,$workerLng&key=YOUR_GOOGLE_MAPS_API_KEY';
+    final markers = <Marker>[
+      Marker(
+        width: 80.0,
+        height: 80.0,
+        point: LatLng(widget.workerLat, widget.workerLng),
+        child: const Icon(Icons.location_on, color: Colors.red, size: 45.0),
+      ),
+    ];
+
+    if (widget.clientLat != null && widget.clientLng != null) {
+      markers.add(
+        Marker(
+          width: 80.0,
+          height: 80.0,
+          point: LatLng(widget.clientLat!, widget.clientLng!),
+          child: Icon(Icons.my_location, color: cs.primary, size: 35.0),
+        ),
+      );
+    }
+
+    // This adds the ETA text as a marker above the worker's location pin
+    if (_updatedEta != null) {
+      markers.add(
+        Marker(
+          width: 120.0, // Give it more space
+          height: 80.0, // Give it more space
+          point: LatLng(widget.workerLat, widget.workerLng),
+          child: Align(
+            alignment:
+                Alignment.bottomCenter, // Position it below the marker point
+            child: Padding(
+              padding: const EdgeInsets.only(
+                bottom: 45.0,
+              ), // Nudge it above the pin icon
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  _updatedEta!,
+                  style: tt.labelMedium?.copyWith(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    MapOptions mapOptions;
+    if (_routePoints.isNotEmpty) {
+      mapOptions = MapOptions(
+        initialCameraFit: CameraFit.bounds(
+          bounds: LatLngBounds.fromPoints(_routePoints),
+          padding: const EdgeInsets.all(50.0),
+        ),
+      );
+    } else {
+      mapOptions = MapOptions(
+        initialCenter: LatLng(widget.workerLat, widget.workerLng),
+        initialZoom: 13.0, // Correct, wider zoom level
+      );
+    }
 
     return _SectionContainer(
-      // FIX: Changed to hardcoded string to avoid AppStrings getter error
-      title: 'Location',
+      title: 'Location & ETA',
       icon: Icons.map_outlined,
+      padding: EdgeInsets.zero,
       child: Column(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
             child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: CachedNetworkImage(
-                imageUrl: staticMapUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: cs.surfaceContainerHigh,
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      color: cs.primary.withOpacity(0.5),
+              aspectRatio: 16 / 10,
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    options: mapOptions,
+                    children: [
+                      TileLayer(
+                        urlTemplate: _getMapUrl(),
+                        subdomains: const ['a', 'b', 'c'],
+                      ),
+                      if (_routePoints.isNotEmpty)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: _routePoints,
+                              color: cs.primary,
+                              strokeWidth: 5,
+                            ),
+                          ],
+                        ),
+                      MarkerLayer(
+                        markers: markers,
+                        rotate: false,
+                      ), // Disable marker rotation for stability
+                    ],
+                  ),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildStyleChip(
+                            context,
+                            Icons.map_outlined,
+                            MapStyle.light,
+                          ),
+                          const SizedBox(width: 5),
+                          _buildStyleChip(
+                            context,
+                            Icons.dark_mode_outlined,
+                            MapStyle.dark,
+                          ),
+                          const SizedBox(width: 5),
+                          _buildStyleChip(
+                            context,
+                            Icons.satellite_alt_outlined,
+                            MapStyle.satellite,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: cs.surfaceContainerHigh,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.map_outlined,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                        // FIX: Changed to hardcoded string to avoid AppStrings getter error
-                        Text(
-                          'Map not available',
-                          style: tt.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                        // FIX: Changed to hardcoded string to avoid AppStrings getter error
-                        Text(
-                          'Check internet or API key',
-                          style: tt.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                  if (_isLoadingRoute)
+                    Container(
+                      color: Colors.black.withOpacity(0.5),
+                      child: Center(
+                        child: CircularProgressIndicator(color: cs.primary),
+                      ),
                     ),
-                  ),
-                ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // FIX: Changed to hardcoded string to avoid AppStrings getter error
-                  Text(
-                    'Distance',
-                    style: tt.labelLarge?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                  Text(
-                    distanceText ?? appStrings.workerDetailDistanceUnknown,
-                    style: tt.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: cs.onSurface,
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildInfoColumn(
+                      'Distance',
+                      _updatedDistance ?? widget.distanceText,
+                      context,
                     ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // FIX: Changed to hardcoded string to avoid AppStrings getter error
-                  Text(
-                    'Estimated ETA',
-                    style: tt.labelLarge?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                  Text(
-                    simulatedEta,
-                    style: tt.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: cs.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final Uri uri = Uri.parse(
-                  'https://www.google.com/maps/dir/?api=1&destination=$workerLat,$workerLng&travelmode=driving',
-                );
-                final AppStrings? currentAppStrings = AppLocalizations.of(
-                  context,
-                );
-                // FIX: Use the passed-in checkConnectivity function
-                if (currentAppStrings != null &&
-                    await checkConnectivity(currentAppStrings)) {
-                  if (!await launchUrl(uri)) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        // FIX: Changed to hardcoded string to avoid AppStrings getter error
-                        content: Text('Failed to launch map'),
-                        backgroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    );
-                  }
-                }
-              },
-              icon: Icon(Icons.directions_outlined, color: cs.primary),
-              // FIX: Changed to hardcoded string to avoid AppStrings getter error
-              label: Text(
-                'View on Map',
-                style: tt.titleMedium?.copyWith(color: cs.primary),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: cs.primary.withOpacity(0.5)),
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+                    _buildInfoColumn('Estimated ETA', _updatedEta, context),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final Uri uri = Uri.parse(
+                        'https://www.google.com/maps/dir/?api=1&destination=${widget.workerLat},${widget.workerLng}&travelmode=driving',
+                      );
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
+                      }
+                    },
+                    icon: Icon(Icons.directions_outlined, color: cs.primary),
+                    label: Text(
+                      'View on Map',
+                      style: tt.titleMedium?.copyWith(color: cs.primary),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: cs.primary.withOpacity(0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoColumn(String title, String? value, BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(title, style: tt.labelLarge?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 4),
+        if (value != null)
+          Text(
+            value,
+            style: tt.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          )
+        else
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: _isLoadingRoute
+                ? const CircularProgressIndicator(strokeWidth: 2)
+                : const Text('-'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStyleChip(BuildContext context, IconData icon, MapStyle style) {
+    final bool isSelected = _currentStyle == style;
+    return GestureDetector(
+      onTap: () => setState(() => _currentStyle = style),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: isSelected
+              ? Theme.of(context).colorScheme.onPrimary
+              : Colors.white,
+          size: 20,
+        ),
       ),
     );
   }
@@ -1711,19 +1931,25 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
       );
     }
   }
+  // ⬇️ REPLACE your old _showErrorSnackbar method with this one ⬇️
 
   void _showErrorSnackbar(String m) {
     if (!mounted) return;
-    final t = Theme.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(m, style: TextStyle(color: t.colorScheme.onError)),
-        backgroundColor: t.colorScheme.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final t = Theme.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(m, style: TextStyle(color: t.colorScheme.onError)),
+          backgroundColor: t.colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    });
   }
 
   void _showSuccessSnackbar(String m) {
@@ -1890,7 +2116,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
 
     // Safe data access for worker properties
     final workerName = widget.worker.name;
-    final workerProfession = widget.worker.profession;
+   
     final workerAbout = widget.worker.about;
     final workerSkills = widget.worker.skills;
     final workerExperience = widget.worker.experience;
@@ -1900,7 +2126,43 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     final workerIntroVideoUrl = widget.worker.introVideoUrl;
 
     return Scaffold(
-      backgroundColor: cs.background, // Use background for base
+      backgroundColor: cs.background,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
+     
+      floatingActionButton:
+          FloatingActionButton.extended(
+            onPressed: () {
+              // This is the navigation logic
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ConversationPane(
+                    // Pass the worker's ID to the conversation screen
+                    otherUserId: widget.worker.id,
+                  ),
+                ),
+              );
+            },
+            
+            label: Text(
+              appStrings
+                  .workerDetailChat, // Assuming you have a string for "Chat"
+              style: tt.titleMedium?.copyWith(
+                color: cs.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            icon: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
+            backgroundColor: cs.primary,
+            elevation: 8.0,
+          ).animate().slideX(
+            begin: 1, // Start off-screen at the bottom
+            duration: 500.milliseconds,
+            delay: 800.milliseconds, // Wait for other animations to start
+            curve: Curves.easeOutCubic,
+          ), // Use background for base
       body: Stack(
         children: [
           // Main Scrollable Content
@@ -2095,15 +2357,15 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
                       // Mini-Map
                       if (widget.worker.latitude != null &&
                           widget.worker.longitude != null)
+                        // THE NEW, FIXED CODE
                         _LocationMapWidget(
                               appStrings: appStrings,
                               workerLat: widget.worker.latitude!,
                               workerLng: widget.worker.longitude!,
                               distanceText: _getDistanceText(appStrings),
-                              // FIX: Reverted to hardcoded string as per user instruction.
-                              simulatedEta: '15 mins',
-                              // FIX: Pass the method here
-                              checkConnectivity: _checkInternetConnectivity,
+
+                              clientLat: _clientLat,
+                              clientLng: _clientLng,
                             )
                             .animate()
                             .fadeIn(
@@ -2312,12 +2574,13 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
                     const SizedBox(height: 12),
                     SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
                           _buildStatChip(
                             Icons.star_rounded,
                             widget.worker.rating.toStringAsFixed(1),
-                            Colors.amber.shade600,
+                            const ui.Color.fromARGB(255, 138, 251, 0),
                             context,
                           ),
                           const SizedBox(width: 10),
@@ -2421,6 +2684,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     );
   }
 
+  // Certifications Section
   Widget _buildCertificationsSection(
     BuildContext context,
     AppStrings appStrings,
@@ -2441,41 +2705,46 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3, // Display 3 images per row
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1.0, // Make them square
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.2, // Adjusted aspect ratio for content
               ),
               itemCount: certifications.length,
               itemBuilder: (context, index) {
-                final imageUrl = certifications[index];
-                return GestureDetector(
-                  onTap: () {
-                    // This reuses your existing function to show the image full-screen
-                    _showFullScreenImage(
-                      context,
-                      index,
-                      certifications,
-                      'cert',
+                final cert = certifications[index];
+                final isImageUrl = Uri.tryParse(cert)?.hasAbsolutePath == true;
+                return _CertificationPill(
+                      text: isImageUrl
+                          ? appStrings.viewImageButton
+                          : appStrings.viewDetailsButton,
+                      icon: isImageUrl
+                          ? Icons.image_outlined
+                          : Icons.description_outlined,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        if (isImageUrl) {
+                          _showFullScreenImage(
+                            context,
+                            index,
+                            certifications,
+                            'cert',
+                          );
+                        } else {
+                          _showTextDialog(
+                            appStrings.workerDetailCertifications,
+                            cert,
+                          );
+                        }
+                      },
+                    )
+                    .animate()
+                    .fade(duration: 500.milliseconds)
+                    .scale(
+                      duration: 500.milliseconds,
+                      delay: 500.milliseconds,
+                      curve: Curves.easeOut,
                     );
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12.0),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          Container(color: cs.surfaceContainer),
-                      errorWidget: (context, url, error) => Container(
-                        color: cs.surfaceContainerHigh,
-                        child: Icon(
-                          Icons.shield_outlined,
-                          color: cs.onSurfaceVariant.withOpacity(0.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
               },
             ),
     );

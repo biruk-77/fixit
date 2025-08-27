@@ -12,7 +12,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  // FIX: Removed unused FirebaseService and used FirebaseAuth directly
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -52,8 +51,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(appStrings.errorGeneric),
-                backgroundColor: Colors.red),
+              content: Text(appStrings.errorGeneric),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       } finally {
@@ -71,10 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(appStrings.forgotPasswordTitle),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(appStrings.forgotPasswordTitle), elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -119,15 +116,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             decoration: InputDecoration(
               labelText: appStrings.loginEmailLabel,
               prefixIcon: const Icon(Icons.email),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return appStrings.loginEmailHint;
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
                 return appStrings.loginErrorInvalidEmail;
               }
               return null;
@@ -139,14 +138,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : Text(
                     appStrings.forgotPasswordButton,
@@ -192,13 +194,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           onPressed: () => Navigator.pop(context),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: Text(
-            appStrings.back,
-            style: const TextStyle(fontSize: 16),
-          ),
+          child: Text(appStrings.back, style: const TextStyle(fontSize: 16)),
         ),
       ],
     );

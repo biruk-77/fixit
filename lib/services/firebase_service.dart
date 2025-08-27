@@ -1,3 +1,6 @@
+import 'dart:async'; // FIX #1: ADD THIS for StreamSubscription
+import 'notification_service.dart'; // FIX #2: ADD THIS for NotificationService
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,7 +12,6 @@ import 'package:file_picker/file_picker.dart'; // For PlatformFile type
 import 'package:mime/mime.dart';
 import '../models/worker.dart';
 import '../models/job.dart';
-
 import '../models/user.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 
@@ -18,10 +20,201 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SupabaseClient _supabaseClient = Supabase.instance.client;
 
+  StreamSubscription? _notificationSubscription;
+  final NotificationService _notificationService = NotificationService();
+  bool _isFirstBatch = true;
+  // NEW AND CORRECT METHOD
+
+  Future<void> setupNotificationListener() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      print("Notification listener setup failed: No user logged in.");
+      return;
+    }
+
+    print(
+      "--- 🔔 Setting up SYSTEM notification listener for user ${user.uid} ---",
+    );
+
+    _isFirstBatch = true;
+    _notificationSubscription?.cancel();
+
+    // --- THIS IS THE FIX ---
+    // We now use our smart helper to get the correct collection reference
+    // for either a client OR a worker.
+    final notificationsCollection = await _getNotificationCollectionRef(
+      user.uid,
+    );
+
+    _notificationSubscription = notificationsCollection
+        .orderBy('createdAt', descending: true)
+        .limit(1) // We only care about the absolute newest notification
+        .snapshots()
+        .listen(
+          (snapshot) {
+            // The first time the listener starts, it gets all existing documents.
+            // We ignore this first batch to avoid sending old notifications again.
+            if (_isFirstBatch) {
+              _isFirstBatch = false;
+              print(
+                "--- ✅ Notification listener initialized. Ignoring first batch. ---",
+              );
+              return;
+            }
+
+            // From now on, we only care about documents that were ADDED.
+            for (var change in snapshot.docChanges) {
+              if (change.type == DocumentChangeType.added) {
+                print(
+                  "--- 🚀 New Notification Received! Triggering system notification. ---",
+                );
+                final notificationData =
+                    change.doc.data() as Map<String, dynamic>;
+                _triggerSystemNotification(notificationData);
+              }
+            }
+          },
+          onError: (error) {
+            print("Error listening to system notifications: $error");
+          },
+        );
+  }
+
+  void _triggerSystemNotification(Map<String, dynamic> notificationData) {
+    final String title = notificationData['title'] ?? 'New Notification';
+    final String body = notificationData['body'] ?? 'You have a new update.';
+
+    String? imageUrl;
+    String? payload;
+    final data = notificationData['data'] as Map<String, dynamic>?;
+    final type = notificationData['type'] as String?;
+
+    if (data != null) {
+      payload = data['jobId'] as String? ?? data['chatRoomId'] as String?;
+
+      // --- NEW LOGIC TO GET THE RIGHT IMAGE URL ---
+      switch (type) {
+        case 'job_application':
+          imageUrl = data['workerImageUrl'] as String?;
+          break;
+        case 'job_accepted':
+          imageUrl = data['clientImageUrl'] as String?;
+          break;
+        // THIS IS THE NEW CASE FOR MESSAGES
+        case 'message_received':
+          imageUrl = data['senderImageUrl'] as String?;
+          break;
+        default: // For new jobs, etc.
+          imageUrl = data['jobImageUrl'] as String?;
+          break;
+      }
+    }
+
+    print(
+      "--- Triggering notification of type '$type' with image URL: $imageUrl ---",
+    );
+
+    // --- THIS IS THE KEY CHANGE ---
+    // We check if the notification is a chat message and pass the flag.
+    final bool isChatMessage = (type == 'message_received');
+
+    _notificationService.showRichNotification(
+      title: title,
+      body: body,
+      imageUrl: imageUrl,
+      payload: payload ?? "default_payload",
+      isChatMessage: isChatMessage, // Pass the new flag here
+    );
+  }
+
+  void cancelNotificationListener() {
+    print("--- 🔕 Cancelling system notification listener ---");
+    _notificationSubscription?.cancel();
+    _notificationSubscription = null;
+  }
+
   String? get currentUserId => _auth.currentUser?.uid;
 
   static Future<void> initialize() async {
     await Firebase.initializeApp();
+  }
+
+  Future<List<Job>> getPendingJobsForWorker(String workerId) async {
+    try {
+      // We query the worker's own 'jobs' subcollection for pending requests.
+      // This is where createJobRequest places the new job.
+      QuerySnapshot snapshot = await _firestore
+          .collection('professionals')
+          .doc(workerId)
+          .collection(
+            'jobs',
+          ) // Or 'requests', depending on your createJobRequest logic. 'jobs' is used in your code.
+          .where('status', isEqualTo: 'pending')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      print('Found ${snapshot.docs.length} PENDING jobs for worker $workerId');
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Job.fromJson(data);
+      }).toList();
+    } catch (e) {
+      print('Error getting pending jobs for worker: $e');
+      return [];
+    }
+  }
+
+  // NEW METHOD 2: For the "Active Work" Tab (Tab 2)
+  // This fetches jobs that are ACCEPTED, IN_PROGRESS, etc.
+  Future<List<Job>> getActiveWorkForWorker(String workerId) async {
+    try {
+      QuerySnapshot snapshot = await _firestore
+          .collection('professionals')
+          .doc(workerId)
+          .collection('jobs')
+          .where(
+            'status',
+            whereIn: [
+              'accepted',
+              'in_progress',
+              'started working',
+              'completed',
+            ],
+          )
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      print('Found ${snapshot.docs.length} ACTIVE jobs for worker $workerId');
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return Job.fromJson(data);
+      }).toList();
+    } catch (e) {
+      print('Error getting active work for worker: $e');
+      return [];
+    }
+  }
+
+  Stream<DocumentSnapshot> streamUserPresence(String userId) {
+    return _firestore.collection('presence').doc(userId).snapshots();
+  }
+
+  Future<void> updateUserPresence(String status) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await _firestore.collection('presence').doc(user.uid).set({
+        'status': status,
+        'last_seen': FieldValue.serverTimestamp(),
+      });
+      print("User presence updated to: $status");
+    } catch (e) {
+      print("Error updating user presence: $e");
+    }
   }
 
   Future<void> logTransaction(Map<String, dynamic> data) async {
@@ -131,6 +324,24 @@ class FirebaseService {
     } catch (e) {
       print('Error creating sample professionals: $e');
     }
+  }
+
+  Future<Map<DateTime, bool>> getWeeklyAvailability(String workerId) async {
+    final Map<DateTime, bool> availabilityMap = {};
+    final today = DateTime.now();
+
+    for (int i = 0; i < 7; i++) {
+      final date = today.add(Duration(days: i));
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      try {
+        final isAvailable = await checkDayAvailability(workerId, dateOnly);
+        availabilityMap[dateOnly] = isAvailable;
+      } catch (e) {
+        print('Error fetching availability for $dateOnly: $e');
+        availabilityMap[dateOnly] = false; // Assume not available on error
+      }
+    }
+    return availabilityMap;
   }
 
   // In getWorkerJobs()
@@ -270,6 +481,7 @@ class FirebaseService {
     }
   }
 
+  // GOOD 👍
   Future<Worker?> getWorker(String userId) async {
     try {
       final doc = await _firestore
@@ -277,7 +489,9 @@ class FirebaseService {
           .doc(userId)
           .get();
       if (doc.exists) {
-        return Worker.fromJson(doc.data() as Map<String, dynamic>);
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // <-- FIX IS HERE
+        return Worker.fromJson(data);
       }
       return null;
     } catch (e) {
@@ -449,7 +663,6 @@ class FirebaseService {
       print(
         '    2. You have a Storage Policy that allows INSERT for authenticated users.',
       );
-      return null;
     } catch (e) {
       print('An unknown error occurred during Supabase upload: $e');
       return null;
@@ -702,9 +915,9 @@ class FirebaseService {
   }
 
   Future<void> declineJobApplication(
-    String clientId,
     String jobId,
     String workerId,
+    String clientId,
   ) async {
     final batch = _firestore.batch();
     try {
@@ -764,7 +977,79 @@ class FirebaseService {
     }
   }
 
-  // Get job by ID
+  Future<void> changeAssignedWorker({
+    required String jobId,
+    required String clientId,
+    required String currentlyAssignedWorkerId,
+  }) async {
+    print('Starting process to change worker for job: $jobId');
+    final batch = _firestore.batch();
+
+    try {
+      // Define all the document references we need to modify
+      final jobRef = _firestore.collection('jobs').doc(jobId);
+      final clientJobRef = _firestore
+          .collection('users')
+          .doc(clientId)
+          .collection('jobs')
+          .doc(jobId);
+      final workerRef = _firestore
+          .collection('professionals')
+          .doc(currentlyAssignedWorkerId);
+      final workerAssignedJobRef = _firestore
+          .collection('professionals')
+          .doc(currentlyAssignedWorkerId)
+          .collection('assigned_jobs')
+          .doc(jobId);
+
+      // 1. Update the main job document: Reset status and remove workerId
+      batch.update(jobRef, {
+        'status': 'open', // Set the status back to open
+        'workerId': FieldValue.delete(), // Remove the workerId field completely
+        'assignedAt': FieldValue.delete(), // Remove the assignment timestamp
+      });
+
+      // 2. Update the client's subcollection job document as well
+      batch.update(clientJobRef, {
+        'status': 'open',
+        'workerId': FieldValue.delete(),
+        'assignedAt': FieldValue.delete(),
+      });
+
+      // 3. Remove the job from the previously assigned worker's records
+      // a) Remove from their 'assigned_jobs' subcollection
+      batch.delete(workerAssignedJobRef);
+
+      // b) Remove from the 'assignedJobs' array in their main profile document
+      batch.update(workerRef, {
+        'assignedJobs': FieldValue.arrayRemove([jobId]),
+      });
+
+      // Commit all changes at once. If any part fails, none will be applied.
+      await batch.commit();
+      print(
+        'Successfully unassigned worker $currentlyAssignedWorkerId from job $jobId.',
+      );
+
+      // 4. NOTIFY the worker that they have been unassigned
+      final jobDoc = await _firestore.collection('jobs').doc(jobId).get();
+      final jobTitle = jobDoc.data()?['title'] ?? 'a job';
+
+      await createNotification(
+        userId: currentlyAssignedWorkerId,
+        title: 'Job Assignment Changed',
+        body:
+            'The client has selected a different worker for the job: "$jobTitle".',
+        type: 'assignment_changed',
+        data: {'jobId': jobId, 'clientId': clientId},
+      );
+      print('Notification sent to the unassigned worker.');
+    } catch (e) {
+      print('Error changing assigned worker: $e');
+      rethrow; // Rethrow the error so the UI can handle it
+    }
+  }
+
   Future<Job?> getJobById(String jobId) async {
     try {
       DocumentSnapshot jobDoc = await _firestore
@@ -777,23 +1062,10 @@ class FirebaseService {
       Map<String, dynamic> jobData = jobDoc.data() as Map<String, dynamic>;
       jobData['id'] = jobId; // Add the document ID to the data
 
-      // Convert to Job model
-      return Job(
-        id: jobId,
-        clientId: jobData['clientId'] ?? '',
-        seekerId:
-            jobData['clientId'] ??
-            '', // Use clientId as seekerId for compatibility
-        title: jobData['title'] ?? 'Untitled Job',
-        description: jobData['description'] ?? '',
-        location: jobData['location'] ?? '',
-        budget: (jobData['budget'] as num?)?.toDouble() ?? 0.0,
-        createdAt:
-            (jobData['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        status: jobData['status'] ?? 'pending',
-        workerId: jobData['workerId'],
-        applications: List<String>.from(jobData['applications'] ?? []),
-      );
+      // FIX: Use the fromJson factory. It knows how to handle all fields,
+      // including the new required ones like 'category' and 'skill',
+      // and will provide default values if they are missing.
+      return Job.fromJson(jobData);
     } catch (e) {
       print('Error getting job by ID: $e');
       return null;
@@ -837,18 +1109,41 @@ class FirebaseService {
   // User related methods
   Future<AppUser?> getUser(String userId) async {
     try {
-      DocumentSnapshot doc = await _firestore
+      // First, check if the user is a client in the 'users' collection
+      DocumentSnapshot userDoc = await _firestore
           .collection('users')
           .doc(userId)
           .get();
-      if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
+
+      if (userDoc.exists) {
+        print("✅ Found user '$userId' in the 'users' (client) collection.");
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        data['id'] = userDoc.id;
         return AppUser.fromJson(data);
       }
+
+      // If not found, check if the user is a worker in the 'professionals' collection
+      DocumentSnapshot workerDoc = await _firestore
+          .collection('professionals')
+          .doc(userId)
+          .get();
+
+      if (workerDoc.exists) {
+        print(
+          "✅ Found user '$userId' in the 'professionals' (worker) collection.",
+        );
+        Map<String, dynamic> data = workerDoc.data() as Map<String, dynamic>;
+        data['id'] = workerDoc.id;
+        return AppUser.fromJson(data);
+      }
+
+      // If the user is not found in either collection
+      print(
+        "⚠️ User '$userId' not found in 'users' or 'professionals' collections.",
+      );
       return null;
     } catch (e) {
-      print('Error fetching user: $e');
+      print('🔥 Error fetching user profile for ID $userId: $e');
       return null;
     }
   }
@@ -1113,20 +1408,23 @@ class FirebaseService {
     }
   }
 
-  // Sign in with email and password
   Future<UserCredential> signInWithEmailAndPassword(
     String email,
     String password,
   ) async {
     try {
-      // Trim whitespace from email and password
       email = email.trim();
       password = password.trim();
 
-      return await _auth.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // FIX: Call the listener setup after a successful sign-in.
+      await setupNotificationListener();
+
+      return userCredential;
     } catch (e) {
       print('Error signing in: $e');
       rethrow;
@@ -1156,6 +1454,9 @@ class FirebaseService {
   // Sign out
   Future<void> signOut() async {
     try {
+      // FIX: Cancel the listener before signing out to prevent errors.
+      cancelNotificationListener();
+
       await _auth.signOut();
     } catch (e) {
       print('Error signing out: $e');
@@ -1447,108 +1748,69 @@ class FirebaseService {
     }
   }
 
-  // Apply for a job
+  @override
+  // CORRECTED CODE
   Future<void> applyForJob(String jobId, String workerId) async {
-    // Get the current worker user ID (redundant if workerId is passed, but good practice)
-    final User? currentUser = _auth.currentUser;
-    if (currentUser == null || currentUser.uid != workerId) {
-      throw 'User not logged in or worker ID mismatch';
-    }
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || currentUser.uid != workerId) throw 'Auth error';
 
     final jobRef = _firestore.collection('jobs').doc(jobId);
-
     try {
-      // --- Get the clientId (seekerId) from the main job document ---
       final jobSnapshot = await jobRef.get();
-      if (!jobSnapshot.exists) {
-        throw 'Job document not found in main collection.';
-      }
-      final jobData = jobSnapshot.data();
-      // Determine the correct client ID field ('seekerId' or 'clientId')
-      final clientId = jobData?['seekerId'] ?? jobData?['clientId'];
-      if (clientId == null || clientId is! String || clientId.isEmpty) {
-        print(
-          'Error in applyForJob: Could not find valid seekerId/clientId in job document $jobId',
-        );
-        print('Job Data: $jobData');
-        throw 'Could not find client ID for the job.';
-      }
-      // --- End Get Client ID ---
+      if (!jobSnapshot.exists) throw 'Job not found.';
 
-      // Reference to the job document inside the user's subcollection
-      final userJobRef = _firestore
-          .collection('users')
-          .doc(clientId) // Use the fetched clientId
-          .collection('jobs')
-          .doc(jobId);
+      final jobData = jobSnapshot.data()!;
+      final clientId = jobData['seekerId'] ?? jobData['clientId'];
+      if (clientId == null || clientId.isEmpty) throw 'Client ID missing.';
 
-      // --- Use a Batch Write for atomic update ---
+      // ===================== THIS IS THE CRITICAL FIX for rich notifications =====================
+      // We MUST fetch the worker's profile to get their image URL.
+      final workerProfile = await getWorkerById(workerId);
+      if (workerProfile == null) throw 'Worker profile not found.';
+      // =========================================================================================
+
+      final jobImage = (jobData['attachments'] as List?)?.isNotEmpty == true
+          ? jobData['attachments'][0]
+          : null;
+
       WriteBatch batch = _firestore.batch();
-
-      // 1. Update the main /jobs/{jobId} document
       batch.update(jobRef, {
         'applications': FieldValue.arrayUnion([workerId]),
       });
 
-      // 2. Update the /users/{clientId}/jobs/{jobId} document
-      // Important: Check if the user's job subcollection document exists first
-      final userJobSnapshot = await userJobRef.get();
-      if (userJobSnapshot.exists) {
-        print("Updating user's job subcollection document...");
+      final userJobRef = _firestore
+          .collection('users')
+          .doc(clientId)
+          .collection('jobs')
+          .doc(jobId);
+      if ((await userJobRef.get()).exists) {
         batch.update(userJobRef, {
           'applications': FieldValue.arrayUnion([workerId]),
         });
-      } else {
-        // This case might happen if the initial copy failed or structure changed.
-        // Decide how to handle: Log an error, or maybe create/set it here?
-        // Setting it might overwrite other fields if the structure diverged.
-        print(
-          "Warning: Job document not found in user subcollection /users/$clientId/jobs/$jobId. Only updating main job doc.",
-        );
-        // OPTIONALLY: You could try setting it, but be careful:
-        // final initialJobData = { ... create a minimal job map or fetch again ... };
-        // initialJobData['applications'] = [workerId];
-        // batch.set(userJobRef, initialJobData);
       }
 
-      // Commit the batch
       await batch.commit();
-      print('Application added to both job locations successfully.');
-      // --- End Batch Write ---
-    } catch (e, s) {
-      print('Error applying for job (batch update): $e\n$s');
-      // Rethrow or handle the error appropriately
-      rethrow;
-    }
-  }
+      print('✅ Application submitted successfully.');
 
-  // Add job id to user's job applications
-  Future<void> addApplicationToUser(String jobId) async {
-    try {
-      final User? user = _auth.currentUser;
-      if (user == null) throw 'User not logged in';
-
-      final jobDoc = await _firestore.collection('jobs').doc(jobId).get();
-      final clientId = jobDoc.data()?['seekerId'];
-      print('Client ID: $clientId');
-
-      if (clientId == null) print('Client ID not found in job document');
-
-      final userDoc = await _firestore.collection('users').doc(clientId).get();
-      if (userDoc.exists) {
-        await _firestore
-            .collection('users')
-            .doc(clientId)
-            .collection('jobs')
-            .doc(jobId)
-            .set({
-              'applications': FieldValue.arrayUnion([user.uid]),
-            }, SetOptions(merge: true));
-      } else {
-        print('Client not found. Cannot add job id to their job applications');
-      }
+      // --- This part now creates both the Firestore and System notification ---
+      await createNotification(
+        userId: clientId,
+        title: "New Application Received! ✨",
+        body:
+            "${workerProfile.name} has applied for '${jobData['title'] ?? 'your job'}'.",
+        type: 'job_application',
+        data: {
+          'jobId': jobId,
+          'jobTitle': jobData['title'],
+          'jobImageUrl': jobImage,
+          'workerId': workerId,
+          'workerName': workerProfile.name,
+          // --- PASS THE WORKER'S IMAGE URL HERE ---
+          'workerImageUrl': workerProfile.profileImage,
+        },
+      );
     } catch (e) {
-      print('Error adding job id to user\'s job applications: $e');
+      print("Error in applyForJob: $e");
       rethrow;
     }
   }
@@ -1798,8 +2060,7 @@ class FirebaseService {
         });
   }
 
-  /// Updates the status of a job across client and professional collections
-  Future<bool> updateJobStatus(
+  Future<bool> updateJobStatus1(
     String jobId,
     String? professionalId,
     String clientId,
@@ -1856,6 +2117,7 @@ class FirebaseService {
             .doc(workerId)
             .collection('jobs')
             .doc(jobId),
+        _firestore.collection('jobs').doc(jobId),
       ];
 
       // Update existing documents in batch
@@ -1903,6 +2165,155 @@ class FirebaseService {
     }
   }
 
+  /// Updates the status of a job across ALL relevant collections to prevent data inconsistency.
+  Future<bool> updateJobStatus(
+    String jobId,
+    String? professionalId,
+    String clientId,
+    String status,
+  ) async {
+    final batch = _firestore.batch(); // Initialize Firestore batch
+    try {
+      print('✅ Updating job status for job: $jobId to "$status"');
+      print('👨‍💻 Client ID: $clientId');
+      print('👨‍💼 Professional ID from firebase : $professionalId');
+
+      // --- Step 1: Reliably determine the Worker ID ---
+      // Prioritize the ID passed into the function, but fall back to the one in the document.
+      final rootJobDoc = await _firestore.collection('jobs').doc(jobId).get();
+      if (!rootJobDoc.exists) {
+        print(
+          '🛑 CRITICAL ERROR: Main job document $jobId not found. Aborting update.',
+        );
+        return false;
+      }
+      final workerId =
+          professionalId ?? rootJobDoc.data()?['workerId'] as String?;
+
+      if (workerId == null || workerId.isEmpty) {
+        print(
+          '⚠️ No valid workerId found for job $jobId. Will only update client and root docs.',
+        );
+      } else {
+        print('👷 Worker ID resolved: $workerId');
+      }
+
+      // --- Step 2: Define ALL document references that need to be updated ---
+
+      // The Single Source of Truth (most important one!)
+      final rootJobRef = _firestore.collection('jobs').doc(jobId);
+
+      // Client's duplicated copies
+      final clientJobRef = _firestore
+          .collection('users')
+          .doc(clientId)
+          .collection('jobs')
+          .doc(jobId);
+
+      // Worker's duplicated copies (only if workerId exists)
+      DocumentReference? workerJobRef;
+      DocumentReference? workerRequestRef;
+
+      final allRefs = [
+        rootJobRef,
+        clientJobRef,
+      ].where((ref) => ref != null).toList(); // Create a list, removing nulls
+
+      final dataToUpdate = {
+        'status': status,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      for (final docRef in allRefs) {
+        final docSnap = await docRef!.get();
+        if (docSnap.exists) {
+          print('✅ Adding to batch: ${docRef.path}');
+          batch.update(docRef, dataToUpdate);
+        } else {
+          print('⚠️ Skipping non-existent doc: ${docRef.path}');
+        }
+      }
+
+      // --- Step 4: Commit all changes at once ---
+      await batch.commit();
+      print(
+        '🎉 Successfully updated job $jobId to status: "$status" across all locations!',
+      );
+      final jobRef = _firestore.collection('jobs').doc(jobId);
+      final jobDoc = await jobRef.get();
+      final jobTitle = jobDoc.data()?['title'] ?? 'a job';
+      final clientProfile = await getUser(clientId);
+      final clientName = clientProfile?.name ?? 'The Client';
+      // --- Step 5: Send Notifications ---
+      // This runs AFTER the data is successfully updated.
+      await createNotification(
+        userId: clientId,
+        title: 'Job Status Updated',
+        body:
+            'The status of your job "$jobTitle" has been updated to "$status".',
+        type: 'job_status_update',
+        data: {'jobId': jobId, 'status': status},
+      );
+
+      // Notify the worker
+      if (workerId != null && workerId.isNotEmpty) {
+        await createNotification(
+          userId: workerId,
+          title: 'Job Status Updated',
+          body: 'The status for job "$jobTitle" has been updated to "$status".',
+          type: 'job_status_update',
+          data: {'jobId': jobId, 'status': status},
+        );
+      }
+
+      return true;
+    } catch (e) {
+      print('🔥 FATAL ERROR during updateJobStatus: $e');
+      return false;
+    }
+  }
+
+  // ... inside FirebaseService class ...
+
+  Future<void> createApplicationNotification({
+    required String jobId,
+    required String workerId,
+    required String clientId,
+  }) async {
+    try {
+      final workerProfile = await getWorker(workerId);
+      final jobDoc = await _firestore.collection('jobs').doc(jobId).get();
+
+      if (workerProfile == null || !jobDoc.exists) {
+        print("Could not create notification: Worker or Job not found.");
+        return;
+      }
+
+      final jobTitle = jobDoc.data()?['title'] ?? 'your job';
+      final workerName = workerProfile.name;
+
+      await createNotification(
+        userId: clientId,
+        title: "New Application Received! ✨",
+        body: "$workerName has applied for the job: '$jobTitle'.",
+        type: 'job_application',
+        data: {
+          'jobId': jobId,
+          'workerId': workerId,
+          // --- ADD THE RICH DATA HERE ---
+          'workerImageUrl': workerProfile.profileImage,
+          'workerRating': workerProfile.rating,
+          'workerExperience': workerProfile.experience,
+          'budget': jobDoc.data()?['budget'],
+          'location': jobDoc.data()?['location'],
+        },
+      );
+      print("🔔 Application notification sent to client $clientId.");
+    } catch (e) {
+      print("🔥 Error creating application notification: $e");
+    }
+  }
+
   Future<bool> checkDayAvailability(String workerId, DateTime date) async {
     try {
       final dateString =
@@ -1943,127 +2354,168 @@ class FirebaseService {
     required String title,
     required String body,
     required String type,
-    required Map<String, dynamic> data,
+    Map<String, dynamic> data = const {},
   }) async {
     try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .add({
-            'userId': userId,
-            'title': title,
-            'body': body,
-            'type': type,
-            'data': data,
-            'isRead': false,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-    } catch (e) {
-      print('Error creating notification: $e');
-    }
-    _createNotification(
-      userId: userId,
-      title: title,
-      body: body,
-      type: type,
-      data: data,
-    );
-  }
+      // 1. Get the correct notification directory for this specific user.
+      final notificationsCollection = await _getNotificationCollectionRef(
+        userId,
+      );
 
-  @Deprecated('Use createNotification instead')
-  Future<void> _createNotification({
-    required String userId,
-    required String title,
-    required String body,
-    required String type,
-    required Map<String, dynamic> data,
-  }) async {
-    try {
-      await _firestore.collection('notifications').add({
+      final notificationData = {
         'userId': userId,
         'title': title,
         'body': body,
         'type': type,
         'data': data,
         'isRead': false,
+        'isArchived': false,
+        'priority': _getPriorityForType(type),
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      // 2. Add the notification to the correct place (either users/... or professionals/...).
+      await notificationsCollection.add(notificationData);
+
+      print(
+        "✅ Notification created for user $userId of type $type in their correct directory.",
+      );
     } catch (e) {
-      print('Error creating notification: $e');
+      print('🔥 Error creating notification: $e');
     }
   }
 
-  // Get user notifications
-  Stream<List<Map<String, dynamic>>> getUserNotificationsStream() {
+  Stream<List<Map<String, dynamic>>> getArchivedNotificationsStream() {
     final User? user = _auth.currentUser;
-    if (user == null) {
-      print("⚠️ No authenticated user found for notification stream.");
-      return Stream.value([]); // Return empty stream if logged out
-    }
+    if (user == null) return Stream.value([]);
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('notifications')
+        .where('isArchived', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
 
-    final String userId = user.uid; // Store UID for clearer path reference
+  Future<CollectionReference> _getNotificationCollectionRef(
+    String userId,
+  ) async {
+    // Check if the user exists in the 'professionals' collection
+    final profDoc = await _firestore
+        .collection('professionals')
+        .doc(userId)
+        .get();
 
-    try {
-      print(
-        "👂 Listening for notifications for user $userId at users/$userId/notifications",
-      );
+    if (profDoc.exists) {
+      // If they are a professional, return the subcollection from there.
+      print("User $userId is a Professional. Using 'professionals' directory.");
+      return _firestore
+          .collection('professionals')
+          .doc(userId)
+          .collection('notifications');
+    } else {
+      // Otherwise, assume they are a client in the 'users' collection.
+      print("User $userId is a Client. Using 'users' directory.");
       return _firestore
           .collection('users')
-          .doc(userId) // Document of the current user
-          .collection(
-            'notifications',
-          ) // Their specific notification subcollection
-          .orderBy('createdAt', descending: true) // Show newest first
-          .snapshots() // Real-time stream
-          .map((snapshot) {
-            print(
-              "📬 Received notification snapshot with ${snapshot.docs.length} docs for user $userId.",
-            );
-            // IMPORTANT: Ensure the conversion handles null data gracefully if needed.
-            // Using `doc.data()!` asserts non-null, which might crash if a doc is empty.
-            // Safer: Check existence or use `?` and default values.
-            return snapshot.docs
-                .where((doc) => doc.exists) // Filter out potential issues
-                .map((doc) {
-                  final data = doc.data(); // Now safe to cast
-                  data['id'] =
-                      doc.id; // *Important:* Add the document ID to the map
-                  return data;
-                })
-                .toList();
-          })
-          .handleError((error) {
-            print("🔥 Error in notification stream for user $userId: $error");
-            return <
-              Map<String, dynamic>
-            >[]; // Return empty list on error to prevent UI crash
-          });
-    } catch (e) {
-      print('🔥 Error setting up notification stream for user $userId: $e');
-      return Stream.error(e); // Propagate error to StreamBuilder
+          .doc(userId)
+          .collection('notifications');
     }
   }
 
+  /// Assigns a priority level to a notification type for sorting.
+  int _getPriorityForType(String type) {
+    switch (type) {
+      case 'job_application':
+      case 'payment_required':
+        return 3; // High priority
+      case 'job_accepted':
+      case 'message_received':
+        return 2; // Medium priority
+      default:
+        return 1; // Low priority
+    }
+  }
+
+  Future<void> re_createNotification(
+    String notificationId,
+    Map<String, dynamic> notificationData,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('notifications')
+        .doc(notificationId)
+        .set(notificationData);
+  }
+
+  @Deprecated('Use createNotification instead')
+  Stream<List<Map<String, dynamic>>> getUserNotificationsStream() {
+    final User? user = _auth.currentUser;
+    if (user == null) return Stream.value([]);
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('notifications')
+        .where('isArchived', isEqualTo: false) // This is the key change
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
+
+  Future<Stream<List<Map<String, dynamic>>>> getNotificationsStream({
+    bool isArchived = false,
+  }) async {
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      // Return a future that resolves to an empty stream if no user is logged in.
+      return Future.value(Stream.value([]));
+    }
+
+    // This correctly finds if the user is in 'professionals' or 'users'
+    final notificationsCollection = await _getNotificationCollectionRef(
+      user.uid,
+    );
+
+    return notificationsCollection
+        .where('isArchived', isEqualTo: isArchived)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>; // Explicit cast
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
+
+  @override
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception('No authenticated user');
-      final userId = user.uid;
-      final notificationsRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('notifications');
-      final query = await notificationsRef
-          .where(FieldPath.documentId, isEqualTo: notificationId)
-          .get();
-      if (query.docs.isNotEmpty) {
-        await notificationsRef.doc(notificationId).update({'isRead': true});
-      } else {
-        print(
-          'Notification with id $notificationId not found for user $userId',
-        );
-      }
+
+      // FIX: Get the correct notifications collection for the current user.
+      final notificationsRef = await _getNotificationCollectionRef(user.uid);
+
+      // Directly update the document using the correct reference.
+      await notificationsRef.doc(notificationId).update({'isRead': true});
     } catch (e) {
       print('Error marking notification as read: $e');
     }
@@ -2320,6 +2772,49 @@ class FirebaseService {
     }
   }
 
+  @override
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('No authenticated user');
+
+      // FIX: Get the correct notifications collection for the current user.
+      final notificationsCollection = await _getNotificationCollectionRef(
+        user.uid,
+      );
+
+      await notificationsCollection.doc(notificationId).delete();
+    } catch (e) {
+      print('Error deleting notification: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> deleteAllNotifications() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('No authenticated user');
+
+      // FIX: Get the correct notifications collection for the current user.
+      final notificationsCollection = await _getNotificationCollectionRef(
+        user.uid,
+      );
+
+      final snapshot = await notificationsCollection.get();
+
+      WriteBatch batch = _firestore.batch();
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error deleting all notifications: $e');
+      rethrow;
+    }
+  }
+
   // Get job applicants
   Future<List<Map<String, dynamic>>> getJobApplicants(String jobId) async {
     try {
@@ -2415,59 +2910,125 @@ class FirebaseService {
     return slots?.map((slot) => slot as bool).toList() ?? List.filled(9, true);
   }
 
+  @override
   Future<void> acceptJobApplication(
     String jobId,
     String workerId,
     String clientId,
   ) async {
-    // Create a batch write to ensure all operations succeed or fail together
-    final batch = _firestore.batch();
-    print('this is from acceptjobapplication  ::: id of client $clientId');
+    WriteBatch batch = _firestore.batch();
 
-    // 1. Update the main job document
     final jobRef = _firestore.collection('jobs').doc(jobId);
-    batch.update(jobRef, {
+    final updateData = {
       'status': 'assigned',
       'workerId': workerId,
       'assignedAt': FieldValue.serverTimestamp(),
-    }); // Use merge to update or create if doesn't exist
+    };
+    batch.update(jobRef, updateData);
 
-    // 2. Add to worker's assigned jobs subcollection
-    final workerJobRef = _firestore
-        .collection('professionals')
-        .doc(workerId)
-        .collection('assigned_jobs')
-        .doc(jobId);
-    final userjobRef = _firestore
+    final userJobRef = _firestore
         .collection('users')
         .doc(clientId)
         .collection('jobs')
         .doc(jobId);
+    if ((await userJobRef.get()).exists) batch.update(userJobRef, updateData);
+
+    final workerJobRef = _firestore
+        .collection('professionals')
+        .doc(workerId)
+        .collection('jobs')
+        .doc(jobId);
     batch.set(workerJobRef, {
+      ...updateData,
       'jobId': jobId,
-      'status': 'assigned',
-      'assignedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    batch.set(userjobRef, {
-      'jobId': jobId,
-      'status': 'assigned',
-      'assignedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // 3. Update worker's document with assigned jobs array
-    final workerRef = _firestore.collection('professionals').doc(workerId);
-    batch.update(workerRef, {
+    batch.update(_firestore.collection('professionals').doc(workerId), {
       'assignedJobs': FieldValue.arrayUnion([jobId]),
-      'updatedAt': FieldValue.serverTimestamp(),
     });
 
     try {
+      final jobDoc = await jobRef.get();
+      final clientDoc = await getUser(
+        clientId,
+      ); // Using `getUser` which returns AppUser
+      if (!jobDoc.exists || clientDoc == null) throw "Job or Client not found";
+
+      final jobData = jobDoc.data()!;
+      final jobImage = (jobData['attachments'] as List?)?.isNotEmpty == true
+          ? jobData['attachments'][0]
+          : null;
+
+      // Create notification for the WORKER
+      final workerNotificationRef = _firestore
+          .collection('users')
+          .doc(workerId)
+          .collection('notifications')
+          .doc();
+      batch.set(workerNotificationRef, {
+        'userId': workerId,
+        'title': "You've been Hired! 🎉",
+        'body':
+            "${clientDoc.name} has accepted your application for '${jobData['title'] ?? 'a job'}'.",
+        'type': 'job_accepted',
+        'data': {
+          'jobId': jobId,
+          'jobTitle': jobData['title'],
+          'jobImageUrl': jobImage,
+          'clientId': clientId,
+          'clientName': clientDoc.name,
+          'clientImageUrl': clientDoc.profileImage,
+        },
+        'isRead': false,
+        'isArchived': false,
+        'priority': 3,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
       await batch.commit();
-      print('Job $jobId successfully assigned to worker $workerId');
     } catch (e) {
-      print('Error assigning job: $e');
-      throw 'Failed to assign job: $e';
+      rethrow;
     }
+  }
+
+  @override
+  Future<void> batchUpdateNotifications(
+    List<String> notificationIds,
+    Map<String, dynamic> data,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    // FIX: Get the correct notifications collection for the current user (worker or client).
+    final notificationsCollection = await _getNotificationCollectionRef(
+      user.uid,
+    );
+
+    WriteBatch batch = _firestore.batch();
+    for (String id in notificationIds) {
+      // Use the correct collection reference to find the document.
+      final docRef = notificationsCollection.doc(id);
+      batch.update(docRef, data);
+    }
+    await batch.commit();
+  }
+
+  /// Performs a batch delete on multiple notifications.
+  Future<void> batchDeleteNotifications(List<String> notificationIds) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    // FIX: Get the correct notifications collection for the current user.
+    final notificationsCollection = await _getNotificationCollectionRef(
+      user.uid,
+    );
+
+    WriteBatch batch = _firestore.batch();
+    for (String id in notificationIds) {
+      // Use the correct collection reference to find the document.
+      final docRef = notificationsCollection.doc(id);
+      batch.delete(docRef);
+    }
+    await batch.commit();
   }
 
   Future<List<Job>> getworkersactivejob(String userID) async {

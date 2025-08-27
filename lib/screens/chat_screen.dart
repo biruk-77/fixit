@@ -1,208 +1,175 @@
+// lib/screens/chat_screen.dart
+// --- DEFINITIVE, ANIMATED & RESPONSIVE CHAT HUB ---
+
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/chat_message.dart';
-import '../models/user.dart';
-import '../services/firebase_service.dart';
+import 'chat/chat_list_pane.dart';
+import 'chat/conversation_pane.dart';
 
-class ChatScreen extends StatefulWidget {
-  final String currentUserId;
-  final String otherUserId;
-  final String? jobId;
-
-  const ChatScreen({
-    super.key,
-    required this.currentUserId,
-    required this.otherUserId,
-    this.jobId,
-  });
+class UnifiedChatScreen extends StatefulWidget {
+  final String? initialSelectedUserId;
+  const UnifiedChatScreen({super.key, this.initialSelectedUserId});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  State<UnifiedChatScreen> createState() => _UnifiedChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final FirebaseService _firebaseService = FirebaseService();
-  AppUser? _otherUser;
-  bool _isLoading = true;
+class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
+  String? _selectedUserId;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
-    _loadOtherUser();
+    _selectedUserId = widget.initialSelectedUserId;
   }
 
-  Future<void> _loadOtherUser() async {
-    final user = await _firebaseService.getUser(widget.otherUserId);
-    if (mounted) {
+  void _onChatSelected(String userId) {
+    // For wide screens, just update the state to rebuild the ConversationPane
+    if (MediaQuery.of(context).size.width >= 700) {
+      // Using a slightly wider breakpoint
       setState(() {
-        _otherUser = user;
-        _isLoading = false;
+        _selectedUserId = userId;
       });
+    } else {
+      // For narrow screens, push a new route for the conversation
+      _navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => ConversationPane(otherUserId: userId),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: _isLoading
-            ? const Text('Loading...')
-            : Text(_otherUser?.name ?? 'Chat'),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('chats')
-                  .where('jobId', isEqualTo: widget.jobId)
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWideScreen = constraints.maxWidth >= 700;
 
-                if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                final messages = snapshot.data!.docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  data['id'] = doc.id;
-                  return ChatMessage.fromJson(data);
-                }).toList();
-
-                return ListView.builder(
-                  reverse: true,
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message.senderId == widget.currentUserId;
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
-                        vertical: 4.0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: isMe
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
-                        children: [
-                          Container(
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 10.0,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? Theme.of(context).primaryColor
-                                  : Colors.grey[300],
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              message.message,
-                              style: TextStyle(
-                                color: isMe ? Colors.white : Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
+        if (isWideScreen) {
+          // --- WIDE SCREEN LAYOUT (TABLET/DESKTOP) ---
+          return Scaffold(
+            body: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      border: InputBorder.none,
-                    ),
-                    maxLines: null,
+                SizedBox(
+                  width: 380,
+                  child: ChatListPane(
+                    selectedUserId: _selectedUserId,
+                    onChatSelected: _onChatSelected,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
+                const VerticalDivider(width: 1, thickness: 1),
+                Expanded(
+                  child: _selectedUserId == null
+                      ? const _NoChatSelectedPlaceholder()
+                      : ConversationPane(
+                          key: ValueKey(_selectedUserId),
+                          otherUserId: _selectedUserId!,
+                        ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
+          );
+        } else {
+          // --- NARROW SCREEN LAYOUT (MOBILE) ---
+          return Navigator(
+            key: _navigatorKey,
+            initialRoute: widget.initialSelectedUserId != null
+                ? '/conversation'
+                : '/',
+            onGenerateRoute: (settings) {
+              WidgetBuilder builder;
+              String? routeName = settings.name;
+
+              // If launching directly into a conversation from a notification
+              if (routeName == '/conversation' ||
+                  (routeName == '/' && widget.initialSelectedUserId != null)) {
+                // Determine the user ID from either initial widget param or route arguments
+                final userId =
+                    widget.initialSelectedUserId ??
+                    settings.arguments as String?;
+                if (userId != null) {
+                  builder = (context) => ConversationPane(
+                    key: ValueKey(userId),
+                    otherUserId: userId,
+                  );
+                } else {
+                  // Fallback if no ID is found
+                  builder = (context) => const _NoChatSelectedPlaceholder();
+                }
+              } else {
+                // Default route: show the chat list
+                builder = (context) => ChatListPane(
+                  onChatSelected:
+                      _onChatSelected, // This was the original location, it's correct here
+                );
+              }
+
+              // --- THIS IS THE FIX ---
+              // We use a custom PageRouteBuilder for a smooth slide transition.
+              return PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    builder(context),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      // Only animate if we are navigating somewhere (not the initial route)
+                      if (settings.name == '/') return child;
+
+                      const begin = Offset(1.0, 0.0);
+                      const end = Offset.zero;
+                      const curve = Curves.ease;
+                      var tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
+
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
+                settings: settings,
+              );
+            },
+          );
+        }
+      },
     );
   }
+}
 
-  Future<void> _sendMessage() async {
-    final message = _messageController.text.trim();
-    if (message.isEmpty) return;
-
-    try {
-      final chatMessage = ChatMessage(
-        id: '', // will be set by Firebase
-        senderId: widget.currentUserId,
-        receiverId: widget.otherUserId,
-        message: message,
-        timestamp: DateTime.now(),
-        isRead: false,
-        jobId: widget.jobId,
-      );
-
-      await FirebaseFirestore.instance
-          .collection('chats')
-          .add(chatMessage.toJson());
-
-      // Send notification to receiver
-      await _firebaseService.createNotification(
-        userId: widget.otherUserId,
-        title: 'New Message',
-        body: message,
-        type: 'chat_message',
-        data: {
-          'senderId': widget.currentUserId,
-          'jobId': widget.jobId,
-        },
-      );
-
-      _messageController.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending message: $e')),
-      );
-    }
-  }
-
+class _NoChatSelectedPlaceholder extends StatelessWidget {
+  const _NoChatSelectedPlaceholder();
   @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(), // An empty app bar for consistent layout
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 80,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              "Select a conversation",
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your messages will appear here.",
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.color?.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

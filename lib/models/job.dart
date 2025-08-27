@@ -20,6 +20,10 @@ class Job {
   final double? workerRating;
   final String? workerPhone;
   final bool isRequest;
+  final String category;
+  final String skill;
+  final bool isUrgent;
+
   final String? workerExperience;
   // --- FIXED: Added attachments field ---
   final List<String> attachments; // Store URLs from Storage
@@ -46,6 +50,9 @@ class Job {
     this.workerPhone,
     this.isRequest = false,
     this.workerExperience,
+    required this.category,
+    required this.skill,
+    this.isUrgent = false,
     // --- FIXED: Added attachments to constructor, provide default ---
     this.attachments = const [], // Default to empty list if not provided
     // --- FIXED: Changed scheduledDate type ---
@@ -74,14 +81,19 @@ class Job {
       description: data['description'] ?? '',
       location: data['location'] ?? '',
       budget: (data['budget'] ?? 0.0).toDouble(),
-      createdAt: parseTimestamp(data['createdAt'] as Timestamp?) ??
+      createdAt:
+          parseTimestamp(data['createdAt'] as Timestamp?) ??
           DateTime.now(), // Use helper
       status: data['status']?.toString().toLowerCase() ?? 'open',
       workerId: data['workerId']?.toString(),
       applications: List<String>.from(data['applications'] ?? []),
+      category: data['category'] ?? 'Other',
+      skill: data['skill'] ?? 'Not specified',
+      isUrgent: data['isUrgent'] ?? false,
       // --- FIXED: Parsing for attachments ---
       attachments: List<String>.from(
-          data['attachments'] ?? []), // Expecting a list of strings (URLs)
+        data['attachments'] ?? [],
+      ), // Expecting a list of strings (URLs)
       clientName: data['clientName']?.toString() ?? 'Unknown Client',
       workerName: data['workerName']?.toString() ?? 'Unknown Professional',
       workerImage: data['workerImage']?.toString(),
@@ -91,8 +103,9 @@ class Job {
       isRequest: data['isRequest'] == true,
       workerExperience: data['workerExperience']?.toString(),
       // --- FIXED: Parsing for scheduledDate ---
-      scheduledDate:
-          parseTimestamp(data['scheduledDate'] as Timestamp?), // Use helper
+      scheduledDate: parseTimestamp(
+        data['scheduledDate'] as Timestamp?,
+      ), // Use helper
     );
   }
 
@@ -111,6 +124,12 @@ class Job {
       'status': status,
       'workerId': workerId, // Will store null if null
       'applications': applications,
+      'category': category,
+      'skill': skill,
+      'isUrgent': isUrgent,
+      'category': category,
+      'skill': skill,
+      'isUrgent': isUrgent,
       // --- FIXED: Added attachments ---
       'attachments': attachments,
       'clientName': clientName,
@@ -122,8 +141,9 @@ class Job {
       'isRequest': isRequest,
       'workerExperience': workerExperience,
       // --- FIXED: Store Timestamp or null ---
-      'scheduledDate':
-          scheduledDate != null ? Timestamp.fromDate(scheduledDate!) : null,
+      'scheduledDate': scheduledDate != null
+          ? Timestamp.fromDate(scheduledDate!)
+          : null,
     };
   }
 
@@ -131,9 +151,8 @@ class Job {
   factory Job.fromJson(Map<String, dynamic> json) => Job.fromFirestore(json);
   Map<String, dynamic> toJson() => toFirestore();
 
-  // Create a copy with updated values
+ 
   Job copyWith({
-    String? clientId,
     String? id,
     String? seekerId,
     String? title,
@@ -142,25 +161,24 @@ class Job {
     double? budget,
     DateTime? createdAt,
     String? status,
-    // Use Object? to allow explicitly setting workerId to null
-    Object? workerId = const _Undefined(),
     List<String>? applications,
-    // --- FIXED: Added attachments ---
     List<String>? attachments,
     String? clientName,
+    String? category,
+    String? skill,
+    bool? isUrgent,
+    bool? isRequest,
     String? workerName,
-    // Use Object? for nullable fields to allow setting them to null
+    Object? workerId = const _Undefined(),
+    Object? scheduledDate = const _Undefined(),
     Object? workerImage = const _Undefined(),
     Object? workerProfession = const _Undefined(),
     Object? workerRating = const _Undefined(),
     Object? workerPhone = const _Undefined(),
-    bool? isRequest,
     Object? workerExperience = const _Undefined(),
-    // --- FIXED: Changed scheduledDate type ---
-    Object? scheduledDate = const _Undefined(),
+    String? clientId,
   }) {
-    return Job(
-      clientId: clientId ?? this.clientId,
+     return Job(
       id: id ?? this.id,
       seekerId: seekerId ?? this.seekerId,
       title: title ?? this.title,
@@ -169,32 +187,22 @@ class Job {
       budget: budget ?? this.budget,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
-      // Handle explicit null for workerId
-      workerId: workerId is _Undefined ? this.workerId : workerId as String?,
       applications: applications ?? this.applications,
-      // --- FIXED: Added attachments ---
       attachments: attachments ?? this.attachments,
       clientName: clientName ?? this.clientName,
-      workerName: workerName ?? this.workerName,
-      // Handle explicit null for nullable fields
-      workerImage:
-          workerImage is _Undefined ? this.workerImage : workerImage as String?,
-      workerProfession: workerProfession is _Undefined
-          ? this.workerProfession
-          : workerProfession as String?,
-      workerRating: workerRating is _Undefined
-          ? this.workerRating
-          : workerRating as double?,
-      workerPhone:
-          workerPhone is _Undefined ? this.workerPhone : workerPhone as String?,
+      category: category ?? this.category,
+      skill: skill ?? this.skill,
+      isUrgent: isUrgent ?? this.isUrgent,
       isRequest: isRequest ?? this.isRequest,
-      workerExperience: workerExperience is _Undefined
-          ? this.workerExperience
-          : workerExperience as String?,
-      // --- FIXED: Changed scheduledDate type and handle explicit null ---
-      scheduledDate: scheduledDate is _Undefined
-          ? this.scheduledDate
-          : scheduledDate as DateTime?,
+      workerName: workerName ?? this.workerName,
+      workerId: workerId is _Undefined ? this.workerId : workerId as String?,
+      scheduledDate: scheduledDate is _Undefined ? this.scheduledDate : scheduledDate as DateTime?,
+      workerImage: workerImage is _Undefined ? this.workerImage : workerImage as String?,
+      workerProfession: workerProfession is _Undefined ? this.workerProfession : workerProfession as String?,
+      workerRating: workerRating is _Undefined ? this.workerRating : workerRating as double?,
+      workerPhone: workerPhone is _Undefined ? this.workerPhone : workerPhone as String?,
+      workerExperience: workerExperience is _Undefined ? this.workerExperience : workerExperience as String?,
+      clientId: clientId ?? this.clientId,
     );
   }
 
@@ -259,9 +267,7 @@ class Job {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Job &&
-          runtimeType == other.runtimeType &&
-          id == other.id; // Usually comparing by ID is sufficient
+      other is Job && runtimeType == other.runtimeType && id == other.id; // Usually comparing by ID is sufficient
 
   @override
   int get hashCode => id.hashCode;

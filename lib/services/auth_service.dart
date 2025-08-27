@@ -2,12 +2,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'firebase_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final FirebaseService _firebaseService = FirebaseService();
+  // -----------------------
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  // This stream is for your AuthWrapper to listen to login/logout changes.
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Get current user
   User? getCurrentUser() {
@@ -35,6 +41,7 @@ class AuthService {
           .signInWithEmailAndPassword(email: email, password: password);
 
       print('Successfully signed in user: ${userCredential.user?.uid}');
+      await _firebaseService.setupNotificationListener();
       return userCredential;
     } catch (e) {
       print('Error signing in: $e');
@@ -48,43 +55,39 @@ class AuthService {
   Future<bool> signInSilentlyWithGoogle() async {
     try {
       print("Attempting Google Silent Sign In...");
+
+      // =========================================================================
+      // ========== FIX #3: Use the new `attemptLightweightAuthentication` ==========
+      // =========================================================================
       final GoogleSignInAccount? googleUser = await _googleSignIn
-          .signInSilently();
+          .attemptLightweightAuthentication();
 
       if (googleUser == null) {
         print("No existing Google user found silently.");
-        return false; // No user signed in previously or they signed out
+        return false;
       }
 
       print("Found Google user silently: ${googleUser.email}");
-
-      // Optional: Authenticate with Firebase silently if needed
-      // You might not need to do this if Firebase Auth state persistence works reliably.
-      // If you *do* need it:
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: kIsWeb ? null : googleAuth.idToken,
         idToken: googleAuth.idToken,
       );
-      await _auth.signInWithCredential(credential);
-      print("Firebase silent sign-in successful.");
 
-      // Check if Firebase already has a user (more reliable)
+      await _auth.signInWithCredential(credential);
+
       if (_auth.currentUser != null) {
-        print("Firebase user already authenticated: ${_auth.currentUser!.uid}");
+        print("Firebase silent sign-in successful: ${_auth.currentUser!.uid}");
+        await _firebaseService.setupNotificationListener();
         return true;
       } else {
-        print(
-          "Google user found, but no Firebase user. Manual login required.",
-        );
-        // Attempting Firebase sign-in here might be redundant if persistence is on.
-        // You could try signing in with the credential obtained above if needed.
-        return false; // Indicate manual login might be needed if Firebase isn't sync'd
+        print("Silent sign-in failed to produce a Firebase user.");
+        return false;
       }
     } catch (e, s) {
       print("Error during Google Silent Sign In: $e\n$s");
-      return false; // Treat errors as not signed in
+      return false;
     }
   }
 
@@ -181,44 +184,106 @@ class AuthService {
   }
 
   Future<void> createUserProfile({
-    required String userId, // <<< MAKE SURE THIS IS REQUIRED
+    required String userId,
     required String name,
     required String email,
     required String phone,
-    required String userType,
+    required String userType, // 'client' or 'worker'
     String? profession,
     String? photoUrl,
   }) async {
-    // ... (Your implementation that checks existence and sets data) ...
     try {
       final docRefUser = _firestore.collection('users').doc(userId);
       final docRefProf = _firestore.collection('professionals').doc(userId);
+
+      // Check both locations to see if a profile already exists
       final docSnapUser = await docRefUser.get();
       final docSnapProf = await docRefProf.get();
 
       if (docSnapUser.exists || docSnapProf.exists) {
         print("User profile already exists for $userId. Skipping creation.");
-        return;
+        return; // Exit the function if a profile is found
       }
 
-      Map<String, dynamic> userData = {/* ... your user data map ... */};
-      userData['id'] = userId; // Make sure ID is set
-      userData['profileImage'] = photoUrl ?? ''; // Use photoUrl
+      print("Creating new profile for user $userId...");
 
+      // --- THIS IS THE NEW PART ---
+      // We'll use a batch write to create the profile AND the first notification atomically.
+      WriteBatch batch = _firestore.batch();
+
+      // Prepare the common user data
+      Map<String, dynamic> userData = {
+        'id': userId,
+        'name': name,
+        'email': email,
+        'phoneNumber': phone,
+        'profileImage': photoUrl ?? '',
+        'role': userType, // 'client' or 'worker'
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Prepare the welcome notification data
+      Map<String, dynamic> welcomeNotification = {
+        'userId': userId,
+        'title': 'Welcome to Fixit! 🎉',
+        'body': 'We\'re so glad to have you. Explore the app to get started.',
+        'type': 'welcome_message',
+        'data': {
+          'jobId': '', // No specific job for a welcome message
+          // You could add a deep link to a 'getting_started' page later
+          'page': 'home',
+        },
+        'isRead': false,
+        'isArchived': false,
+        'priority': 1, // Low priority
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // Determine where to create the profile and notification
       if (userType == 'client') {
-        // ... add client specific fields ...
-        await docRefUser.set(userData);
-        print('Client profile created for user $userId');
+        // Add client-specific fields
+        userData.addAll({
+          'jobsPosted': 0,
+          'completedJobs': 0,
+          'favoriteWorkers': [],
+        });
+
+        // 1. Set the main user document in the batch
+        batch.set(docRefUser, userData);
+
+        // 2. Set the welcome notification in the subcollection
+        final notificationRef = docRefUser.collection('notifications').doc();
+        batch.set(notificationRef, welcomeNotification);
+
+        print('Client profile and welcome notification prepared for batch.');
       } else {
-        // worker
-        // ... add worker specific fields ...
-        userData['profession'] = profession ?? '';
-        userData['profileComplete'] = false; // Needs setup
-        await docRefProf.set(userData);
-        print('Worker base profile created for user $userId');
+        // 'worker'
+        // Add worker-specific fields
+        userData.addAll({
+          'profession': profession ?? '',
+          'profileComplete': false, // Worker needs to complete setup
+          'rating': 0.0,
+          'reviewCount': 0,
+          'completedJobs': 0,
+        });
+
+        // 1. Set the main professional document in the batch
+        batch.set(docRefProf, userData);
+
+        // 2. Set the welcome notification in the subcollection
+        final notificationRef = docRefProf.collection('notifications').doc();
+        batch.set(notificationRef, welcomeNotification);
+
+        print('Worker profile and welcome notification prepared for batch.');
       }
+
+      // --- Commit the batch ---
+      await batch.commit();
+      print(
+        '✅ Successfully created profile and welcome notification for user $userId.',
+      );
     } catch (e) {
-      print('Error creating/checking user profile: $e');
+      print('🔥 Error creating user profile and initial notification: $e');
       rethrow;
     }
   }
@@ -248,43 +313,48 @@ class AuthService {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // =========================================================================
+      // ========== FIX #2: Use the new `authenticate` method ==========
+      // =========================================================================
+      final GoogleSignInAccount? googleUser = await _googleSignIn
+          .authenticate();
+
       if (googleUser == null) {
-        print('Google Sign In cancelled.');
+        print('Google Sign In cancelled by user.');
         return null;
       }
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: kIsWeb ? null : googleAuth.idToken,
         idToken: googleAuth.idToken,
       );
-      print('Signing in to Firebase with Google...');
-      final UserCredential userCredential = await signInWithCredential(
+
+      print('Signing in to Firebase with Google credential...');
+      final UserCredential userCredential = await _auth.signInWithCredential(
         credential,
-      ); // <-- Use the corrected method
+      );
+
       print('Firebase Google Sign In OK: ${userCredential.user?.uid}');
+
       if (userCredential.user != null) {
         await createUserProfile(
-          // Ensure profile exists/is created after Google Sign in
           userId: userCredential.user!.uid,
           name: userCredential.user!.displayName ?? 'Google User',
           email: userCredential.user!.email ?? '',
-          phone:
-              userCredential.user!.phoneNumber ??
-              '', // Usually empty from Google
+          phone: userCredential.user!.phoneNumber ?? '',
           userType: 'client',
           photoUrl: userCredential.user!.photoURL,
-        ); // Default Google user to client
+        );
+        await _firebaseService.setupNotificationListener();
       }
       return userCredential;
     } catch (e, s) {
-      print('Google Sign In Error: $e\n$s');
+      print('❌ Google Sign In Error: $e\n$s');
       rethrow;
     }
   }
-
-  // Create user profile in Firestore
 
   // Get current user profile
   Future<AppUser?> getCurrentUserProfile() async {
@@ -302,7 +372,7 @@ class AuthService {
           .collection('professionals')
           .doc(user.uid)
           .get();
-      if (professionalDoc.exists && professionalDoc.data() != null) {
+      if (professionalDoc.exists) {
         final data = professionalDoc.data()!;
         data['id'] = user.uid; // Ensure ID is set
         print('Found professional profile for ${user.uid}');
@@ -314,7 +384,7 @@ class AuthService {
           .collection('users')
           .doc(user.uid)
           .get();
-      if (clientDoc.exists && clientDoc.data() != null) {
+      if (clientDoc.exists) {
         final data = clientDoc.data()!;
         data['id'] = user.uid; // Ensure ID is set
         print('Found client profile for ${user.uid}');
@@ -334,6 +404,8 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await _auth.signOut();
+      _firebaseService.cancelNotificationListener();
+      await _googleSignIn.signOut();
       print('User signed out');
     } catch (e) {
       print('Error signing out: $e');

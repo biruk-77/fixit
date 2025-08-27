@@ -1,3 +1,5 @@
+// lib/main.dart
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -6,12 +8,13 @@ import 'package:flutter_telebirr/flutter_telebirr.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
+import 'screens/home/home_layout.dart';
 import 'screens/jobs/create_job_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/job_history_screen.dart';
+
 import 'screens/professional_setup_screen.dart';
 import 'screens/jobs/job_dashboard_screen.dart';
 import 'screens/professional_setup_edit.dart';
@@ -19,13 +22,22 @@ import 'services/auth_service.dart';
 import 'services/app_string.dart';
 
 import 'theme/light_colors.dart';
-
+import 'services/notification_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'services/firebase_service.dart';
+import 'models/job.dart';
+import 'screens/jobs/job_detail_screen.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// --- FIX: Create an instance of FirebaseService to be used for presence ---
+final FirebaseService _firebaseService = FirebaseService();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   await Supabase.initialize(
     url: 'https://sitvpubcpqjsypqmnfem.supabase.co',
     anonKey:
@@ -42,6 +54,7 @@ void main() async {
     mode: Mode.test,
     testUrl: "...",
   );
+  await NotificationService().init();
 
   runApp(
     MultiProvider(
@@ -54,18 +67,83 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+// --- FIX: Add `with WidgetsBindingObserver` to manage app lifecycle ---
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    _setupNotificationTapHandling();
+    // --- FIX: Register the observer ---
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    // --- FIX: Unregister the observer ---
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // --- FIX: Add the lifecycle state change handler for presence ---
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    final isLoggedIn = _firebaseService.isUserLoggedIn();
+    if (!isLoggedIn) return; // Don't do anything if no user is logged in
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App is in the foreground
+        _firebaseService.updateUserPresence('online');
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden: // for web/desktop
+        // App is in the background or closed
+        _firebaseService.updateUserPresence('offline');
+        break;
+    }
+  }
+
+  void _setupNotificationTapHandling() {
+    NotificationService().onNotificationTapped.stream.listen((String? payload) {
+      if (payload != null && payload.isNotEmpty) {
+        print("✅ System notification tapped with payload (jobId): $payload");
+        FirebaseService().getJobById(payload).then((Job? job) {
+          if (job != null) {
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(
+                builder: (context) => JobDetailScreen(job: job),
+              ),
+            );
+          } else {
+            print(
+              "❌ Tapped notification for a job that could not be found (ID: $payload)",
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // ... rest of your build method is unchanged ...
     final themeProvider = context.watch<ThemeProvider>();
     final localeProvider = context.watch<LocaleProvider>();
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'FixIt', // Can be localized later
-
+      title: 'FixIt',
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -73,19 +151,14 @@ class MyApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('am', ''), // Amharic
-        Locale('om', ''), // Oromo
+        Locale('en', ''),
+        Locale('am', ''),
+        Locale('om', ''),
       ],
       locale: localeProvider.locale,
-      // ----------------------------------------------------
-
-      // --- Theme Setup ---
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
       themeMode: themeProvider.themeMode,
-
-      // -----------------
       initialRoute: '/',
       routes: {
         '/': (context) => const AuthWrapper(),
@@ -96,7 +169,6 @@ class MyApp extends StatelessWidget {
         '/jobs': (context) => const JobDashboardScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/post-job': (context) => const CreateJobScreen(),
-        '/history': (context) => const JobHistoryScreen(),
       },
     );
   }
@@ -111,7 +183,8 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
-    final appStrings = AppLocalizations.of(context); // Get strings safely
+    final appStrings = AppLocalizations.of(context);
+    final _firebaseService = FirebaseService();
 
     return FutureBuilder<bool>(
       future: Future(() => authService.isUserLoggedIn()),
@@ -131,6 +204,7 @@ class AuthWrapper extends StatelessWidget {
           // Consider showing a generic error screen
           return const LoginScreen();
         }
+        _firebaseService.setupNotificationListener();
         final bool isLoggedIn = snapshot.data ?? false;
         print("AuthWrapper: User logged in = $isLoggedIn");
         return isLoggedIn ? const MainScreen() : const LoginScreen();
@@ -302,7 +376,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _initializeScreensAndNavItems() {
     final appStrings = AppLocalizations.of(context);
-    _userType ??= 'client'; 
+    _userType ??= 'client';
     if (appStrings == null) {
       print(
         "MainScreen Warning: AppLocalizations was null during init. Using fallbacks.",
@@ -314,7 +388,7 @@ class _MainScreenState extends State<MainScreen> {
     // Use localized strings now that they are available
     if (_userType == 'professional') {
       _screens = [
-        const HomeScreen(),
+        const HomeLayout(),
         const ProfileScreen(),
         const JobDashboardScreen(),
         const ProfessionalHubScreen(),
@@ -334,7 +408,7 @@ class _MainScreenState extends State<MainScreen> {
     } else {
       // Client
       _screens = [
-        const HomeScreen(),
+        const HomeLayout(),
         const CreateJobScreen(),
         const ProfileScreen(),
         const JobDashboardScreen(),
@@ -355,7 +429,7 @@ class _MainScreenState extends State<MainScreen> {
 
     if (mounted && _selectedIndex >= _screens.length) {
       _selectedIndex = 0;
-    } 
+    }
     print(
       "MainScreen: Initialized UI for $_userType with locale ${appStrings.locale.languageCode}.",
     );
@@ -365,7 +439,7 @@ class _MainScreenState extends State<MainScreen> {
     _userType ??= 'client';
     if (_userType == 'professional') {
       _screens = [
-        const HomeScreen(),
+        const HomeLayout(),
         const ProfileScreen(),
         const JobDashboardScreen(),
         const ProfessionalSetupScreen(),
@@ -379,7 +453,7 @@ class _MainScreenState extends State<MainScreen> {
       _screenTitles = ['Job Feed', 'My Profile', 'My Jobs', 'Profile Setup'];
     } else {
       _screens = [
-        const HomeScreen(),
+        const HomeLayout(),
         const CreateJobScreen(),
         const ProfileScreen(),
         const JobDashboardScreen(),
@@ -394,7 +468,7 @@ class _MainScreenState extends State<MainScreen> {
     }
     print("MainScreen: Initialized UI for $_userType with FALLBACK keys.");
     if (mounted && _selectedIndex >= _screens.length) {
-      _selectedIndex = 0; 
+      _selectedIndex = 0;
     }
   }
 

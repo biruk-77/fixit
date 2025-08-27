@@ -28,7 +28,8 @@ import 'worker_detail_screen.dart';
 import 'jobs/create_job_screen.dart';
 import 'jobs/job_detail_screen.dart';
 import 'notifications_screen.dart';
-import 'job_history_screen.dart';
+import 'chat_screen.dart';
+
 import 'professional_setup_screen.dart';
 import '../services/ai_chat_service.dart';
 
@@ -88,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen>
     'Handyman',
     'Tech Repair',
     'Tutoring',
-    'Other'
+    'Other',
   ];
   List<String> _availableCategories = ['All'];
   String _filterSelectedJobStatus = 'All';
@@ -130,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen>
     [Color(0xFF1A2980), Color(0xFF26D0CE)], // galaxy ocean
     [
       Color(0xFF1D2B64),
-      Color(0xFFF8CDDA)
+      Color(0xFFF8CDDA),
     ], // elegant indigo (fades to pink mist)
     [Color(0xFF0F0C29), Color(0xFF302B63)], // purple abyss
     [Color(0xFF000000), Color(0xFF434343)], // true black to soft black
@@ -159,7 +160,9 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
 
     _fabAnimationController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _scrollController.addListener(_scrollListener);
     _searchController.addListener(_onSearchChanged);
     _determineUserTypeAndLoadData();
@@ -215,7 +218,8 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (permission == LocationPermission.deniedForever) {
       print(
-          "Location permissions are permanently denied, we cannot request permissions.");
+        "Location permissions are permanently denied, we cannot request permissions.",
+      );
       return;
     }
 
@@ -229,37 +233,55 @@ class _HomeScreenState extends State<HomeScreen>
           _userLongitude = position.longitude;
         });
         print(
-            "DEBUG: User location fetched: Lat: $_userLatitude, Lon: $_userLongitude");
+          "DEBUG: User location fetched: Lat: $_userLatitude, Lon: $_userLongitude",
+        );
       }
     } catch (e) {
       print("Error getting location: $e");
       if (mounted) {
         _showErrorSnackbar(
-            "Could not get your location. Distances won't be available.");
+          "Could not get your location. Distances won't be available.",
+        );
       }
     }
   }
 
-  void _listenForNotifications() {
-    // Stop any previous listener
-    _notificationsSubscription?.cancel();
+  Future<void> _listenForNotifications() async {
+    // Stop any previous listener to avoid memory leaks
+    await _notificationsSubscription?.cancel();
 
-    // Start listening to the stream from your FirebaseService
-    _notificationsSubscription =
-        _firebaseService.getUserNotificationsStream().listen((notifications) {
-      if (mounted) {
-        // Count notifications where 'isRead' is false
-        final unreadCount = notifications.where((notif) {
-          final isRead = notif['isRead'] as bool?;
-          return isRead == false; // Only count unread items
-        }).length;
+    // Use the CORRECT, asynchronous method to get the stream
+    final stream = await _firebaseService.getNotificationsStream(
+      isArchived: false,
+    );
 
-        // Update the state to rebuild the AppBar badge
-        setState(() {
-          _unreadNotificationsCount = unreadCount;
-        });
-      }
-    });
+    // Now, listen to the stream we correctly fetched
+    if (mounted) {
+      _notificationsSubscription = stream.listen(
+        (notifications) {
+          if (mounted) {
+            // Count notifications where 'isRead' is false
+            final unreadCount = notifications.where((notif) {
+              final isRead = notif['isRead'] as bool?;
+              return isRead == false; // Only count unread items
+            }).length;
+
+            // Update the state to rebuild the AppBar badge
+            setState(() {
+              _unreadNotificationsCount = unreadCount;
+            });
+          }
+        },
+        onError: (error) {
+          print("Error listening to notifications for badge: $error");
+          if (mounted) {
+            setState(() {
+              _unreadNotificationsCount = 0; // Reset on error
+            });
+          }
+        },
+      );
+    }
   }
 
   void _startBackgroundAnimation() {
@@ -298,15 +320,17 @@ class _HomeScreenState extends State<HomeScreen>
     final bool isTimerActive =
         _gradientTimer != null && _gradientTimer!.isActive;
     // Get the current list being used by the timer, if any
-    final List<List<Color>> currentActiveGradients = _gradientTimer == null ||
+    final List<List<Color>> currentActiveGradients =
+        _gradientTimer == null ||
             _currentGradientIndex >=
-                _gentleAnimatedBgGradientsDark.length // Fallback
+                _gentleAnimatedBgGradientsDark
+                    .length // Fallback
         ? (isDarkMode
-            ? _gentleAnimatedBgGradientsDark
-            : _gentleAnimatedBgGradientsLight)
+              ? _gentleAnimatedBgGradientsDark
+              : _gentleAnimatedBgGradientsLight)
         : (Theme.of(context).brightness == Brightness.dark
-            ? _gentleAnimatedBgGradientsDark
-            : _gentleAnimatedBgGradientsLight); // More precise check
+              ? _gentleAnimatedBgGradientsDark
+              : _gentleAnimatedBgGradientsLight); // More precise check
 
     final List<List<Color>> desiredGradients = isDarkMode
         ? _gentleAnimatedBgGradientsDark
@@ -342,7 +366,8 @@ class _HomeScreenState extends State<HomeScreen>
       _aiSuggestionDebounce!.cancel();
     _aiSuggestionDebounce = Timer(const Duration(milliseconds: 750), () {
       final text = _searchController.text.trim();
-      final isQuestion = text.isNotEmpty &&
+      final isQuestion =
+          text.isNotEmpty &&
           (text.endsWith('?') ||
               text.toLowerCase().startsWith('how') ||
               text.toLowerCase().startsWith('what') ||
@@ -387,8 +412,9 @@ class _HomeScreenState extends State<HomeScreen>
       } else {
         setStateIfMounted(() {
           _currentUser = userProfile;
-          _userType =
-              userProfile.role?.toLowerCase() == 'worker' ? 'worker' : 'client';
+          _userType = userProfile.role?.toLowerCase() == 'worker'
+              ? 'worker'
+              : 'client';
         });
       }
       _filterSelectedLocation = _tempSelectedLocation = 'All';
@@ -399,9 +425,10 @@ class _HomeScreenState extends State<HomeScreen>
       print('FATAL ERROR: Determining user type failed: $e\n$s');
       if (mounted) {
         _showErrorSnackbar(
-            AppLocalizations.of(context)?.snackErrorLoadingProfile ??
-                'Error loading profile.',
-            isCritical: true);
+          AppLocalizations.of(context)?.snackErrorLoadingProfile ??
+              'Error loading profile.',
+          isCritical: true,
+        );
       }
       if (mounted) {
         setStateIfMounted(() {
@@ -433,8 +460,10 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e, s) {
       print('ERROR: Refreshing data failed: $e\n$s');
       if (mounted) {
-        _showErrorSnackbar(AppLocalizations.of(context)?.snackErrorLoading ??
-            'Failed to refresh.');
+        _showErrorSnackbar(
+          AppLocalizations.of(context)?.snackErrorLoading ??
+              'Failed to refresh.',
+        );
       }
     } finally {
       await Future.delayed(const Duration(milliseconds: 400));
@@ -458,14 +487,17 @@ class _HomeScreenState extends State<HomeScreen>
     final strings = AppLocalizations.of(context);
     if (strings == null) {
       print(
-          "Error: AppLocalizations not found in context during profile load.");
+        "Error: AppLocalizations not found in context during profile load.",
+      );
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: const Text(
-                  'Error: Localization service not available.'), // Fallback text
-              backgroundColor: Theme.of(context).colorScheme.error),
+            content: const Text(
+              'Error: Localization service not available.',
+            ), // Fallback text
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
       return;
@@ -489,14 +521,15 @@ class _HomeScreenState extends State<HomeScreen>
             strings.snackErrorLoadingProfile ?? 'Error loading profile:';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('$errorMsg $e'),
-              backgroundColor: Theme.of(context).colorScheme.error),
+            content: Text('$errorMsg $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }
   }
 
-// Replace your existing _onSearchChanged method with this new one
+  // Replace your existing _onSearchChanged method with this new one
 
   Future<void> _loadWorkers() async {
     if (!mounted) return;
@@ -531,9 +564,11 @@ class _HomeScreenState extends State<HomeScreen>
           _dynamicLocations.add(worker.location!);
         }
         if (worker.profession != null && worker.profession!.isNotEmpty) {
-          bool isBaseCategory = _baseCategories.any((b) =>
-              b != 'All' &&
-              worker.profession!.toLowerCase().contains(b.toLowerCase()));
+          bool isBaseCategory = _baseCategories.any(
+            (b) =>
+                b != 'All' &&
+                worker.profession!.toLowerCase().contains(b.toLowerCase()),
+          );
           if (!isBaseCategory &&
               !_baseCategories.contains(worker.profession!) && // Added !
               worker.profession!.trim().isNotEmpty) {
@@ -543,11 +578,13 @@ class _HomeScreenState extends State<HomeScreen>
       }
       final sortedLocations = _dynamicLocations.toList()..sort();
       final sortedCategories = dynamicCategories.toList()
-        ..sort((a, b) => a == 'All'
-            ? -1
-            : b == 'All'
-                ? 1
-                : a.compareTo(b));
+        ..sort(
+          (a, b) => a == 'All'
+              ? -1
+              : b == 'All'
+              ? 1
+              : a.compareTo(b),
+        );
       List<Worker> sortedByRating = List.from(workers)
         ..sort((a, b) => (b.rating ?? 0.0).compareTo(a.rating ?? 0.0));
       final featured = sortedByRating.take(5).toList();
@@ -563,9 +600,10 @@ class _HomeScreenState extends State<HomeScreen>
       print("DEBUG: Error loading workers: $e\n$s");
       if (mounted) {
         _showErrorSnackbar(
-            AppLocalizations.of(context)?.snackErrorLoading ??
-                "Error fetching professionals.",
-            isCritical: true);
+          AppLocalizations.of(context)?.snackErrorLoading ??
+              "Error fetching professionals.",
+          isCritical: true,
+        );
       }
       setStateIfMounted(() {
         _workers = [];
@@ -595,11 +633,12 @@ class _HomeScreenState extends State<HomeScreen>
       final jobs = await _firebaseService.getJobs();
       if (!mounted) return;
       print("DEBUG: Fetched ${jobs.length} jobs.");
-      List<Job> openJobs = jobs
-          .where((j) => j.status?.toLowerCase() == 'open')
-          .toList()
-        ..sort((a, b) =>
-            (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+      List<Job> openJobs =
+          jobs.where((j) => j.status?.toLowerCase() == 'open').toList()..sort(
+            (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+              a.createdAt ?? DateTime(0),
+            ),
+          );
       final featured = openJobs.take(5).toList();
       setStateIfMounted(() {
         _jobs = jobs;
@@ -610,9 +649,10 @@ class _HomeScreenState extends State<HomeScreen>
       print("DEBUG: Error loading jobs: $e\n$s");
       if (mounted) {
         _showErrorSnackbar(
-            AppLocalizations.of(context)?.snackErrorLoading ??
-                "Error fetching jobs.",
-            isCritical: true);
+          AppLocalizations.of(context)?.snackErrorLoading ??
+              "Error fetching jobs.",
+          isCritical: true,
+        );
       }
       setStateIfMounted(() {
         _jobs = [];
@@ -631,25 +671,30 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
     final List<Worker> filtered = _workers.where((worker) {
-      final locationMatch = (_filterSelectedLocation == allKey ||
+      final locationMatch =
+          (_filterSelectedLocation == allKey ||
           (worker.location?.toLowerCase() ?? '') ==
               _filterSelectedLocation.toLowerCase());
-      final categoryMatch = (_filterSelectedCategory == allKey ||
-          (worker.profession?.toLowerCase() ?? '')
-              .contains(_filterSelectedCategory.toLowerCase()));
+      final categoryMatch =
+          (_filterSelectedCategory == allKey ||
+          (worker.profession?.toLowerCase() ?? '').contains(
+            _filterSelectedCategory.toLowerCase(),
+          ));
       final searchMatch = query.isEmpty
           ? true
           : ((worker.name?.toLowerCase() ?? '').contains(query) ||
-              (worker.profession?.toLowerCase() ?? '').contains(query) ||
-              (worker.location?.toLowerCase() ?? '').contains(query) ||
-              (worker.skills?.any((s) => (s?.toLowerCase() ?? '')
-                      .contains(query)) ?? // Added null-aware
-                  false) ||
-              (worker.about?.toLowerCase() ?? '').contains(query));
+                (worker.profession?.toLowerCase() ?? '').contains(query) ||
+                (worker.location?.toLowerCase() ?? '').contains(query) ||
+                (worker.skills?.any(
+                      (s) => (s?.toLowerCase() ?? '').contains(query),
+                    ) ?? // Added null-aware
+                    false) ||
+                (worker.about?.toLowerCase() ?? '').contains(query));
       return locationMatch && categoryMatch && searchMatch;
     }).toList();
     print(
-        "DEBUG: Workers filtered: ${filtered.length} results for query '$query', loc '$_filterSelectedLocation', cat '$_filterSelectedCategory'");
+      "DEBUG: Workers filtered: ${filtered.length} results for query '$query', loc '$_filterSelectedLocation', cat '$_filterSelectedCategory'",
+    );
     setStateIfMounted(() {
       _filteredWorkers = filtered;
     });
@@ -664,18 +709,20 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
     final List<Job> filtered = _jobs.where((job) {
-      final statusMatch = (_filterSelectedJobStatus == allKey ||
+      final statusMatch =
+          (_filterSelectedJobStatus == allKey ||
           (job.status?.toLowerCase() ?? '') ==
               _filterSelectedJobStatus.toLowerCase());
       final searchMatch = query.isEmpty
           ? true
           : ((job.title?.toLowerCase() ?? '').contains(query) ||
-              (job.description?.toLowerCase() ?? '').contains(query) ||
-              (job.location?.toLowerCase() ?? '').contains(query));
+                (job.description?.toLowerCase() ?? '').contains(query) ||
+                (job.location?.toLowerCase() ?? '').contains(query));
       return statusMatch && searchMatch;
     }).toList();
     print(
-        "DEBUG: Jobs filtered: ${filtered.length} results for query '$query', status '$_filterSelectedJobStatus'");
+      "DEBUG: Jobs filtered: ${filtered.length} results for query '$query', status '$_filterSelectedJobStatus'",
+    );
     setStateIfMounted(() {
       _filteredJobs = filtered;
     });
@@ -684,37 +731,49 @@ class _HomeScreenState extends State<HomeScreen>
   // --- Navigation ---
   void _navigateToCreateJob({String? preselectedWorkerId}) {
     Navigator.push(
-            context,
-            _createFadeRoute(
-                CreateJobScreen(preselectedWorkerId: preselectedWorkerId)))
-        .then((jobCreated) {
+      context,
+      _createFadeRoute(
+        CreateJobScreen(preselectedWorkerId: preselectedWorkerId),
+      ),
+    ).then((jobCreated) {
       if (jobCreated == true) _refreshData();
     });
   }
 
+  void _navigateToUnifiedChatScreen({String? initialSelectedUserId}) {
+    Navigator.push(
+      context,
+      _createFadeRoute(
+        UnifiedChatScreen(initialSelectedUserId: initialSelectedUserId),
+      ),
+    );
+  }
+
   void _navigateToWorkerDetails(Worker worker) {
     Navigator.push(
-        context, _createFadeRoute(WorkerDetailScreen(worker: worker)));
+      context,
+      _createFadeRoute(WorkerDetailScreen(worker: worker)),
+    );
   }
 
   void _navigateToJobDetails(Job job) {
-    Navigator.push(context, _createFadeRoute(JobDetailScreen(job: job)))
-        .then((_) => _refreshData());
+    Navigator.push(
+      context,
+      _createFadeRoute(JobDetailScreen(job: job)),
+    ).then((_) => _refreshData());
   }
 
   void _navigateToCreateProfile() {
-    Navigator.push(context, _createFadeRoute(const ProfessionalSetupScreen()))
-        .then((profileUpdated) {
+    Navigator.push(
+      context,
+      _createFadeRoute(const ProfessionalSetupScreen()),
+    ).then((profileUpdated) {
       if (profileUpdated == true) _determineUserTypeAndLoadData();
     });
   }
 
   void _navigateToNotifications() {
     Navigator.push(context, _createFadeRoute(const NotificationsScreen()));
-  }
-
-  void _navigateToHistory() {
-    Navigator.push(context, _createFadeRoute(const JobHistoryScreen()));
   }
 
   Route _createFadeRoute(Widget page) {
@@ -760,15 +819,17 @@ class _HomeScreenState extends State<HomeScreen>
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final isDarkMode = theme.brightness == Brightness.dark;
-    final appStrings =
-        AppLocalizations.of(context); // Get localized strings safely
+    final appStrings = AppLocalizations.of(
+      context,
+    ); // Get localized strings safely
 
     // Ensure appStrings is available before building the UI
     if (appStrings == null) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: Center(
-            child: CircularProgressIndicator(color: colorScheme.primary)),
+          child: CircularProgressIndicator(color: colorScheme.primary),
+        ),
       );
     }
 
@@ -780,18 +841,25 @@ class _HomeScreenState extends State<HomeScreen>
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: Center(
-            child: CircularProgressIndicator(color: colorScheme.primary)),
+          child: CircularProgressIndicator(color: colorScheme.primary),
+        ),
       );
     }
 
     print(
-        "DEBUG: HomeScreen build | userType: $_userType | FW: ${_filteredWorkers.length} | FJ: ${_filteredJobs.length} | isDark: $isDarkMode | Locale: ${appStrings.locale.languageCode}");
+      "DEBUG: HomeScreen build | userType: $_userType | FW: ${_filteredWorkers.length} | FJ: ${_filteredJobs.length} | isDark: $isDarkMode | Locale: ${appStrings.locale.languageCode}",
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
-      appBar:
-          _buildAppBar(theme, colorScheme, textTheme, isDarkMode, appStrings),
+      appBar: _buildAppBar(
+        theme,
+        colorScheme,
+        textTheme,
+        isDarkMode,
+        appStrings,
+      ),
       body: Stack(
         // <-- WRAP WITH A STACK
         children: [
@@ -800,21 +868,29 @@ class _HomeScreenState extends State<HomeScreen>
             theme,
             isDarkMode,
             child: SafeArea(
-                top: false,
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top +
-                          (kToolbarHeight + 10)),
-                  child: _buildBodyContent(
-                      theme, colorScheme, textTheme, isDarkMode, appStrings),
-                )),
+              top: false,
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top:
+                      MediaQuery.of(context).padding.top +
+                      (kToolbarHeight + 10),
+                ),
+                child: _buildBodyContent(
+                  theme,
+                  colorScheme,
+                  textTheme,
+                  isDarkMode,
+                  appStrings,
+                ),
+              ),
+            ),
           ),
 
           // --- ADD THE NEW OVERLAYS ---
 
           // The AI Chat Floating Button
-          _buildChatToggleButton(colorScheme),
+          _buildChatToggleButton(colorScheme, userType: _userType),
 
           if (_isAiServiceInitialized) // This check is important!
             AnimatedPositioned(
@@ -840,38 +916,51 @@ class _HomeScreenState extends State<HomeScreen>
         ],
       ),
       floatingActionButton: _buildAnimatedFloatingActionButton(
-          theme, colorScheme, textTheme, appStrings),
+        theme,
+        colorScheme,
+        textTheme,
+        appStrings,
+      ),
     );
   }
 
-  Widget _buildChatToggleButton(ColorScheme colorScheme) {
+  Widget _buildChatToggleButton(ColorScheme colorScheme, {String? userType}) {
     return Positioned(
       top: 180, // Adjust as needed
       right: 16,
       child: ScaleTransition(
         scale: _fabAnimationController, // Re-use existing FAB animation
         child: FloatingActionButton(
-          mini: true, // Make it a bit smaller
+          heroTag: null,
+          mini: true,
           onPressed: !_isAiServiceInitialized
-              ? null
-              : () {
+              ? _navigateToUnifiedChatScreen
+              : userType == 'client'
+              ? () {
                   setState(() {
                     _isChatPanelVisible = !_isChatPanelVisible;
                   });
-                },
-          backgroundColor:
-              !_isAiServiceInitialized ? Colors.grey : colorScheme.secondary,
-          tooltip: "AI Assistant",
+                }
+              : _navigateToUnifiedChatScreen,
+          backgroundColor: !_isAiServiceInitialized
+              ? const ui.Color.fromARGB(255, 88, 242, 6)
+              : colorScheme.secondary,
+          tooltip: userType == 'client' ? "AI Assistant" : "Chat",
           elevation: 4.0,
           foregroundColor: colorScheme.onSecondary,
-          child: const Icon(Icons.auto_awesome),
+          child: userType == 'client'
+              ? const Icon(Icons.auto_awesome)
+              : const Icon(Icons.chat_bubble_outline_rounded),
         ),
       ),
     );
   }
 
   Widget _buildAiSearchSuggestion(
-      ColorScheme colorScheme, TextTheme textTheme, AppStrings appStrings) {
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    AppStrings appStrings,
+  ) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       transitionBuilder: (child, animation) {
@@ -886,12 +975,16 @@ class _HomeScreenState extends State<HomeScreen>
           : Padding(
               padding: const EdgeInsets.only(top: 12.0),
               child: OutlinedButton.icon(
-                icon: Icon(Icons.auto_awesome,
-                    size: 18, color: colorScheme.secondary),
+                icon: Icon(
+                  Icons.auto_awesome,
+                  size: 18,
+                  color: colorScheme.secondary,
+                ),
                 label: Text(
                   'askAiAboutIt', // Use localized string
-                  style: textTheme.labelLarge
-                      ?.copyWith(color: colorScheme.secondary),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.secondary,
+                  ),
                 ),
                 onPressed: () {
                   setState(() {
@@ -900,19 +993,27 @@ class _HomeScreenState extends State<HomeScreen>
                   });
                 },
                 style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                        color: colorScheme.secondary.withOpacity(0.5)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8)),
+                  side: BorderSide(
+                    color: colorScheme.secondary.withOpacity(0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                ),
               ),
             ),
     );
   }
 
-  Widget _buildAnimatedBackground(ThemeData theme, bool isDarkMode,
-      {required Widget child}) {
+  Widget _buildAnimatedBackground(
+    ThemeData theme,
+    bool isDarkMode, {
+    required Widget child,
+  }) {
     final List<List<Color>> activeGradients = isDarkMode
         ? _gentleAnimatedBgGradientsDark
         : _gentleAnimatedBgGradientsLight;
@@ -930,14 +1031,20 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode, AppStrings appStrings) {
+  PreferredSizeWidget _buildAppBar(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+    AppStrings appStrings,
+  ) {
     final appBarTheme = theme.appBarTheme;
     // AppBar background color based on theme with opacity
     Color appBarBg = (appBarTheme.backgroundColor ?? colorScheme.surface)
         .withOpacity(0.85 * _appBarOpacity);
     // Determine icon color for AppBar actions
-    Color iconColor = theme.appBarTheme.iconTheme?.color ??
+    Color iconColor =
+        theme.appBarTheme.iconTheme?.color ??
         (isDarkMode ? colorScheme.onSurface : colorScheme.onPrimary);
 
     return PreferredSize(
@@ -948,8 +1055,9 @@ class _HomeScreenState extends State<HomeScreen>
         child: ClipRect(
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(
-                sigmaX: 5.0 * (1 - _appBarOpacity),
-                sigmaY: 5.0 * (1 - _appBarOpacity)),
+              sigmaX: 5.0 * (1 - _appBarOpacity),
+              sigmaY: 5.0 * (1 - _appBarOpacity),
+            ),
             child: AppBar(
               backgroundColor: appBarBg, // Use calculated background
               elevation: appBarTheme.elevation ?? 0,
@@ -957,7 +1065,12 @@ class _HomeScreenState extends State<HomeScreen>
               titleSpacing: 16.0,
               title: _buildGreeting(textTheme, colorScheme, appStrings),
               actions: _buildAppBarActions(
-                  theme, colorScheme, appStrings, isDarkMode, iconColor),
+                theme,
+                colorScheme,
+                appStrings,
+                isDarkMode,
+                iconColor,
+              ),
               iconTheme: appBarTheme.iconTheme, // Use theme's icon theme
             ),
           ),
@@ -967,12 +1080,16 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildGreeting(
-      TextTheme textTheme, ColorScheme colorScheme, AppStrings appStrings) {
+    TextTheme textTheme,
+    ColorScheme colorScheme,
+    AppStrings appStrings,
+  ) {
     String title = _userType == 'client'
         ? appStrings.findExpertsTitle
         : appStrings.yourJobFeedTitle;
-    String? firstName =
-        _currentUser?.name?.split(' ').first; // Null-aware access
+    String? firstName = _currentUser?.name
+        ?.split(' ')
+        .first; // Null-aware access
     String welcomeMessage = firstName != null && firstName.isNotEmpty
         ? appStrings.helloUser(firstName)
         : title;
@@ -983,28 +1100,31 @@ class _HomeScreenState extends State<HomeScreen>
       color: textTheme.headlineSmall?.color ?? colorScheme.onSurface,
       shadows: [
         Shadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 6,
-            offset: const Offset(0, 2))
+          color: Colors.black.withOpacity(0.3),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
       ],
     );
     return FadeInLeft(
       delay: const Duration(milliseconds: 200),
       duration: _animationDuration,
-      child: Text(
-        welcomeMessage,
-        style: greetingStyle,
-      ),
+      child: Text(welcomeMessage, style: greetingStyle),
     );
   }
 
-  List<Widget> _buildAppBarActions(ThemeData theme, ColorScheme colorScheme,
-      AppStrings appStrings, bool isDarkMode, Color iconColor) {
+  List<Widget> _buildAppBarActions(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    AppStrings appStrings,
+    bool isDarkMode,
+    Color iconColor,
+  ) {
     // Pass iconColor
 
     List<Color> notificationGradient = [
       colorScheme.error,
-      colorScheme.errorContainer ?? colorScheme.error.withOpacity(0.7)
+      colorScheme.errorContainer ?? colorScheme.error.withOpacity(0.7),
     ];
     return [
       FadeInRight(
@@ -1014,35 +1134,30 @@ class _HomeScreenState extends State<HomeScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildAppBarAction(
-                theme,
-                colorScheme,
-                notificationGradient,
-                Icons.notifications_active_outlined,
-                _navigateToNotifications,
-                iconColor,
-                notificationCount:
-                    _unreadNotificationsCount, // <-- USE THE REAL COUNT HERE
-                tooltip: appStrings.notificationTitle),
-            _buildAppBarAction(
-                theme,
-                colorScheme,
-                notificationGradient,
-                Icons.history_edu_outlined,
-                _navigateToHistory,
-                iconColor, // Pass iconColor
-                tooltip: appStrings.navHistory),
+              theme,
+              colorScheme,
+              notificationGradient,
+              Icons.notifications_active_outlined,
+              _navigateToNotifications,
+              iconColor,
+              notificationCount:
+                  _unreadNotificationsCount, // <-- USE THE REAL COUNT HERE
+              tooltip: appStrings.notificationTitle,
+            ),
             IconButton(
               icon: Icon(
                 isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round,
                 color: iconColor, // Use provided iconColor
               ),
               tooltip: isDarkMode
-                  ? appStrings.themeTooltipLight // Use appStrings
-                  : appStrings.themeTooltipDark, // Use appStrings
+                  ? appStrings.themeTooltipLight
+                  : appStrings.themeTooltipDark,
               onPressed: () {
                 try {
-                  Provider.of<ThemeProvider>(context, listen: false)
-                      .toggleTheme();
+                  Provider.of<ThemeProvider>(
+                    context,
+                    listen: false,
+                  ).toggleTheme();
                 } catch (e) {
                   print("Error accessing ThemeProvider: $e");
                   rethrow; // Use appStrings
@@ -1050,13 +1165,17 @@ class _HomeScreenState extends State<HomeScreen>
               },
             ),
             IconButton(
-              icon: Icon(Icons.language,
-                  color: iconColor), // Use provided iconColor
+              icon: Icon(
+                Icons.language,
+                color: iconColor,
+              ), // Use provided iconColor
               tooltip: appStrings.languageToggleTooltip, // Use appStrings
               onPressed: () {
                 try {
-                  final localeProvider =
-                      Provider.of<LocaleProvider>(context, listen: false);
+                  final localeProvider = Provider.of<LocaleProvider>(
+                    context,
+                    listen: false,
+                  );
                   final currentLocale = localeProvider.locale;
                   final nextLocale = currentLocale.languageCode == 'en'
                       ? const Locale('am')
@@ -1074,32 +1193,35 @@ class _HomeScreenState extends State<HomeScreen>
               },
             ),
             IconButton(
-              icon: Icon(Icons.logout,
-                  color: iconColor), // Use provided iconColor
+              icon: Icon(
+                Icons.logout,
+                color: iconColor,
+              ), // Use provided iconColor
               onPressed: showOverallLoader ? null : _signOut,
               tooltip: appStrings.generalLogout, // Use appStrings
             ),
             const SizedBox(width: 8),
           ],
         ),
-      )
+      ),
     ];
   }
 
   Widget _buildAppBarAction(
-      ThemeData theme,
-      ColorScheme colorScheme,
-      List<Color> notificationGradient,
-      IconData icon,
-      VoidCallback onPressed,
-      Color iconColor, // Added iconColor parameter
-      {int? notificationCount,
-      required String tooltip}) {
+    ThemeData theme,
+    ColorScheme colorScheme,
+    List<Color> notificationGradient,
+    IconData icon,
+    VoidCallback onPressed,
+    Color iconColor, { // Added iconColor parameter
+    int? notificationCount,
+    required String tooltip,
+  }) {
     final badgeTextColor =
         ThemeData.estimateBrightnessForColor(colorScheme.error) ==
-                Brightness.dark
-            ? Colors.white
-            : Colors.black;
+            Brightness.dark
+        ? Colors.white
+        : Colors.black;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: Center(
@@ -1118,24 +1240,30 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                          gradient:
-                              LinearGradient(colors: notificationGradient),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: colorScheme.surface.withOpacity(0.8),
-                              width: 1.5)),
-                      constraints:
-                          const BoxConstraints(minWidth: 20, minHeight: 20),
+                        gradient: LinearGradient(colors: notificationGradient),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colorScheme.surface.withOpacity(0.8),
+                          width: 1.5,
+                        ),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
                       child: Text(
                         '$notificationCount',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                                color: badgeTextColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10) ??
+                        style:
+                            theme.textTheme.labelSmall?.copyWith(
+                              color: badgeTextColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ) ??
                             TextStyle(
-                                color: badgeTextColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold),
+                              color: badgeTextColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -1155,34 +1283,57 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildBodyContent(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode, AppStrings appStrings) {
+  Widget _buildBodyContent(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+    AppStrings appStrings,
+  ) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 600),
       switchInCurve: Curves.easeOutQuart,
       switchOutCurve: Curves.easeInQuart,
       transitionBuilder: (child, animation) {
-        final oA = Tween<Offset>(
-                begin: const Offset(0.0, 0.2), end: Offset.zero)
-            .animate(
-                CurvedAnimation(parent: animation, curve: Curves.easeOutQuart));
+        final oA =
+            Tween<Offset>(
+              begin: const Offset(0.0, 0.2),
+              end: Offset.zero,
+            ).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutQuart),
+            );
         final sA = Tween<double>(begin: 0.95, end: 1.0).animate(
-            CurvedAnimation(parent: animation, curve: Curves.easeOutQuart));
+          CurvedAnimation(parent: animation, curve: Curves.easeOutQuart),
+        );
         return FadeTransition(
-            opacity: animation,
-            child: ScaleTransition(
-                scale: sA, child: SlideTransition(position: oA, child: child)));
+          opacity: animation,
+          child: ScaleTransition(
+            scale: sA,
+            child: SlideTransition(position: oA, child: child),
+          ),
+        );
       },
       child: _isLoading
           ? _buildShimmerLoading(theme, colorScheme, isDarkMode)
           : _buildMainContent(
-              theme, colorScheme, textTheme, isDarkMode, appStrings),
+              theme,
+              colorScheme,
+              textTheme,
+              isDarkMode,
+              appStrings,
+            ),
     );
   }
 
-  Widget _buildMainContent(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode, AppStrings appStrings) {
-    bool isEmpty = (_userType == 'client' && _filteredWorkers.isEmpty) ||
+  Widget _buildMainContent(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+    AppStrings appStrings,
+  ) {
+    bool isEmpty =
+        (_userType == 'client' && _filteredWorkers.isEmpty) ||
         (_userType == 'worker' && _filteredJobs.isEmpty);
     return LiquidPullToRefresh(
       key: ValueKey<String>("content_loaded_${_userType}_${theme.brightness}"),
@@ -1196,31 +1347,57 @@ class _HomeScreenState extends State<HomeScreen>
         controller: _scrollController,
         slivers: [
           SliverToBoxAdapter(
-              key: const ValueKey("search_filter_header"),
-              child: FadeInDown(
-                  duration: _animationDuration,
-                  child: _buildSearchAndFilterHeader(
-                      theme, colorScheme, textTheme, isDarkMode, appStrings))),
+            key: const ValueKey("search_filter_header"),
+            child: FadeInDown(
+              duration: _animationDuration,
+              child: _buildSearchAndFilterHeader(
+                theme,
+                colorScheme,
+                textTheme,
+                isDarkMode,
+                appStrings,
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
-              key: const ValueKey("featured_section"),
-              child: _buildFeaturedSection(
-                  theme, colorScheme, textTheme, isDarkMode, appStrings)),
+            key: const ValueKey("featured_section"),
+            child: _buildFeaturedSection(
+              theme,
+              colorScheme,
+              textTheme,
+              isDarkMode,
+              appStrings,
+            ),
+          ),
           isEmpty
               ? SliverFillRemaining(
                   key: const ValueKey("empty_state_sliver"),
                   hasScrollBody: false,
                   child: _buildEmptyStateWidget(
-                      theme, colorScheme, textTheme, appStrings),
+                    theme,
+                    colorScheme,
+                    textTheme,
+                    appStrings,
+                  ),
                 )
-              : _buildContentGridSliver(theme, colorScheme, textTheme,
-                  isDarkMode), // Cards handle their own context
+              : _buildContentGridSliver(
+                  theme,
+                  colorScheme,
+                  textTheme,
+                  isDarkMode,
+                ), // Cards handle their own context
         ],
       ),
     );
   }
 
-  Widget _buildSearchAndFilterHeader(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode, AppStrings appStrings) {
+  Widget _buildSearchAndFilterHeader(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+    AppStrings appStrings,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 24.0),
       // WRAP THE ROW WITH A COLUMN
@@ -1230,8 +1407,13 @@ class _HomeScreenState extends State<HomeScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                  child: _buildSearchBar(
-                      theme, colorScheme, textTheme, appStrings)),
+                child: _buildSearchBar(
+                  theme,
+                  colorScheme,
+                  textTheme,
+                  appStrings,
+                ),
+              ),
               const SizedBox(width: 12),
               _buildFilterButton(theme, colorScheme, textTheme, isDarkMode),
             ],
@@ -1243,24 +1425,33 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildSearchBar(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, AppStrings appStrings) {
+  Widget _buildSearchBar(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    AppStrings appStrings,
+  ) {
     final inputTheme = theme.inputDecorationTheme;
     final iconColor = theme.iconTheme.color ?? colorScheme.onSurfaceVariant;
     return Container(
       decoration: BoxDecoration(
-          color: inputTheme.fillColor ??
-              colorScheme.surfaceVariant
-                  .withOpacity(0.8), // Changed from surfaceContainerHighest
-          borderRadius: BorderRadius.circular(30.0),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(
-                    theme.brightness == Brightness.dark ? 0.5 : 0.1),
-                blurRadius: 12,
-                spreadRadius: -4,
-                offset: const Offset(0, 4))
-          ]),
+        color:
+            inputTheme.fillColor ??
+            colorScheme.surfaceVariant.withOpacity(
+              0.8,
+            ), // Changed from surfaceContainerHighest
+        borderRadius: BorderRadius.circular(30.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(
+              theme.brightness == Brightness.dark ? 0.5 : 0.1,
+            ),
+            blurRadius: 12,
+            spreadRadius: -4,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: TextField(
         controller: _searchController,
         style: textTheme.bodyLarge?.copyWith(fontSize: 15),
@@ -1268,15 +1459,19 @@ class _HomeScreenState extends State<HomeScreen>
           hintText: _userType == 'client'
               ? appStrings.searchHintProfessionals
               : appStrings.searchHintJobs,
-          hintStyle: inputTheme.hintStyle ??
+          hintStyle:
+              inputTheme.hintStyle ??
               textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.7)),
+                color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 18, right: 12),
             child: Icon(Icons.search_rounded, color: iconColor, size: 22),
           ),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 0, minHeight: 0),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 0,
+            minHeight: 0,
+          ),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: Icon(Icons.clear_rounded, color: iconColor, size: 20),
@@ -1296,16 +1491,22 @@ class _HomeScreenState extends State<HomeScreen>
               inputTheme.enabledBorder ?? inputTheme.border ?? InputBorder.none,
           focusedBorder:
               inputTheme.focusedBorder ?? inputTheme.border ?? InputBorder.none,
-          contentPadding: inputTheme.contentPadding ??
+          contentPadding:
+              inputTheme.contentPadding ??
               const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         ),
       ),
     );
   }
 
-  Widget _buildFilterButton(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode) {
-    bool filtersActive = (_userType == 'client' &&
+  Widget _buildFilterButton(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+  ) {
+    bool filtersActive =
+        (_userType == 'client' &&
             (_filterSelectedLocation != 'All' ||
                 _filterSelectedCategory != 'All')) ||
         (_userType == 'worker' && _filterSelectedJobStatus != 'All');
@@ -1314,35 +1515,37 @@ class _HomeScreenState extends State<HomeScreen>
     List<Color> defaultGradient = isDarkMode
         ? [
             colorScheme.surfaceVariant,
-            colorScheme.surface
+            colorScheme.surface,
           ] // Changed from surfaceContainerHighest
         : [
             theme.cardColor.withOpacity(0.8),
-            theme.canvasColor.withOpacity(0.8)
+            theme.canvasColor.withOpacity(0.8),
           ];
     List<Color> activeGradient = [
       colorScheme.secondary,
-      colorScheme.secondaryContainer ?? colorScheme.secondary.withOpacity(0.7)
+      colorScheme.secondaryContainer ?? colorScheme.secondary.withOpacity(0.7),
     ];
     return AnimatedContainer(
       duration: _animationDuration,
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: filtersActive ? activeGradient : defaultGradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        gradient: LinearGradient(
+          colors: filtersActive ? activeGradient : defaultGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: filtersActive
+                ? colorScheme.secondary.withOpacity(isDarkMode ? 0.4 : 0.3)
+                : Colors.black.withOpacity(isDarkMode ? 0.5 : 0.1),
+            blurRadius: filtersActive ? 10 : 12,
+            spreadRadius: filtersActive ? 1 : -4,
+            offset: Offset(0, filtersActive ? 3 : 4),
           ),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-                color: filtersActive
-                    ? colorScheme.secondary.withOpacity(isDarkMode ? 0.4 : 0.3)
-                    : Colors.black.withOpacity(isDarkMode ? 0.5 : 0.1),
-                blurRadius: filtersActive ? 10 : 12,
-                spreadRadius: filtersActive ? 1 : -4,
-                offset: Offset(0, filtersActive ? 3 : 4))
-          ]),
+        ],
+      ),
       child: Material(
         color: Colors.transparent,
         shape: const CircleBorder(),
@@ -1366,29 +1569,40 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildFeaturedSection(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode, AppStrings appStrings) {
-    bool hasFeatured = (_userType == 'client' && _featuredWorkers.isNotEmpty) ||
+  Widget _buildFeaturedSection(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+    AppStrings appStrings,
+  ) {
+    bool hasFeatured =
+        (_userType == 'client' && _featuredWorkers.isNotEmpty) ||
         (_userType == 'worker' && _featuredJobs.isNotEmpty);
     if (!hasFeatured) return const SizedBox.shrink();
     String title = _userType == 'client'
         ? appStrings.featuredPros
         : appStrings.featuredJobs;
-    int itemCount =
-        _userType == 'client' ? _featuredWorkers.length : _featuredJobs.length;
+    int itemCount = _userType == 'client'
+        ? _featuredWorkers.length
+        : _featuredJobs.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 12.0),
           child: FadeInLeft(
-              duration: _animationDuration,
-              delay: const Duration(milliseconds: 100),
-              child: Text(title,
-                  style: GoogleFonts.poppins(
-                      fontSize: textTheme.titleMedium?.fontSize,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface.withOpacity(0.7)))),
+            duration: _animationDuration,
+            delay: const Duration(milliseconds: 100),
+            child: Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: textTheme.titleMedium?.fontSize,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+          ),
         ),
         SizedBox(
           height: 180,
@@ -1427,14 +1641,20 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildContentGridSliver(ThemeData theme, ColorScheme colorScheme,
-      TextTheme textTheme, bool isDarkMode) {
+  Widget _buildContentGridSliver(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    bool isDarkMode,
+  ) {
     int crossAxisCount = MediaQuery.of(context).size.width > 700 ? 3 : 2;
-    int itemCount =
-        _userType == 'client' ? _filteredWorkers.length : _filteredJobs.length;
+    int itemCount = _userType == 'client'
+        ? _filteredWorkers.length
+        : _filteredJobs.length;
     return SliverPadding(
       key: ValueKey(
-          'content_grid_data_${_userType}_${itemCount}_${theme.brightness}'),
+        'content_grid_data_${_userType}_${itemCount}_${theme.brightness}',
+      ),
       padding: const EdgeInsets.only(left: 12, right: 12, bottom: 100, top: 4),
       sliver: AnimationLimiter(
         child: SliverMasonryGrid.count(
@@ -1443,7 +1663,8 @@ class _HomeScreenState extends State<HomeScreen>
           crossAxisSpacing: 14,
           childCount: itemCount,
           itemBuilder: (context, index) {
-            int delayMs = ((index ~/ crossAxisCount) * 100 +
+            int delayMs =
+                ((index ~/ crossAxisCount) * 100 +
                 (index % crossAxisCount) * 50);
             return AnimationConfiguration.staggeredGrid(
               position: index,
@@ -1461,7 +1682,8 @@ class _HomeScreenState extends State<HomeScreen>
                           onTap: () =>
                               _navigateToWorkerDetails(_filteredWorkers[index]),
                           onBookNow: () => _navigateToCreateJob(
-                              preselectedWorkerId: _filteredWorkers[index].id),
+                            preselectedWorkerId: _filteredWorkers[index].id,
+                          ),
                         )
                       : UltimateGridJobCard(
                           // Now correctly using UltimateGridJobCard
@@ -1479,42 +1701,74 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildShimmerLoading(
-      ThemeData theme, ColorScheme colorScheme, bool isDarkMode) {
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+  ) {
     int crossAxisCount = MediaQuery.of(context).size.width > 700 ? 3 : 2;
     Color shimmerBase = isDarkMode ? (Colors.grey[850]!) : (Colors.grey[300]!);
-    Color shimmerHighlight =
-        isDarkMode ? (Colors.grey[700]!) : (Colors.grey[100]!);
+    Color shimmerHighlight = isDarkMode
+        ? (Colors.grey[700]!)
+        : (Colors.grey[100]!);
     // Get a fallback AppStrings if the real one isn't ready yet for the header
     final appStrings = AppLocalizations.of(context) ?? AppStringsEn();
     return CustomScrollView(
-        key: ValueKey('shimmer_grid_${theme.brightness}'),
-        physics: const NeverScrollableScrollPhysics(),
-        slivers: [
-          SliverToBoxAdapter(
-              child: FadeOut(
-                  child: _buildSearchAndFilterHeader(theme, colorScheme,
-                      theme.textTheme, isDarkMode, appStrings))),
-          SliverToBoxAdapter(
-              child: _buildFeaturedShimmer(theme, colorScheme, isDarkMode,
-                  shimmerBase, shimmerHighlight)),
-          SliverPadding(
-            padding:
-                const EdgeInsets.only(left: 12, right: 12, bottom: 100, top: 4),
-            sliver: SliverMasonryGrid.count(
-              crossAxisCount: crossAxisCount,
-              mainAxisSpacing: 14,
-              crossAxisSpacing: 14,
-              itemBuilder: (context, index) => _buildGridShimmerItem(
-                  theme, colorScheme, isDarkMode, shimmerBase, shimmerHighlight,
-                  index: index),
-              childCount: 6, // Show a fixed number of shimmer items
+      key: ValueKey('shimmer_grid_${theme.brightness}'),
+      physics: const NeverScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: FadeOut(
+            child: _buildSearchAndFilterHeader(
+              theme,
+              colorScheme,
+              theme.textTheme,
+              isDarkMode,
+              appStrings,
             ),
           ),
-        ]);
+        ),
+        SliverToBoxAdapter(
+          child: _buildFeaturedShimmer(
+            theme,
+            colorScheme,
+            isDarkMode,
+            shimmerBase,
+            shimmerHighlight,
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(
+            left: 12,
+            right: 12,
+            bottom: 100,
+            top: 4,
+          ),
+          sliver: SliverMasonryGrid.count(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: 14,
+            crossAxisSpacing: 14,
+            itemBuilder: (context, index) => _buildGridShimmerItem(
+              theme,
+              colorScheme,
+              isDarkMode,
+              shimmerBase,
+              shimmerHighlight,
+              index: index,
+            ),
+            childCount: 6, // Show a fixed number of shimmer items
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildFeaturedShimmer(ThemeData theme, ColorScheme colorScheme,
-      bool isDarkMode, Color shimmerBase, Color shimmerHighlight) {
+  Widget _buildFeaturedShimmer(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+    Color shimmerBase,
+    Color shimmerHighlight,
+  ) {
     final textTheme = theme.textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -1522,48 +1776,58 @@ class _HomeScreenState extends State<HomeScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 12.0),
-              child: Shimmer.fromColors(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 12.0),
+            child: Shimmer.fromColors(
+              baseColor: shimmerBase,
+              highlightColor: shimmerHighlight,
+              period: _shimmerDuration,
+              child: Container(
+                width: 150,
+                height: textTheme.titleMedium?.fontSize ?? 16,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 180,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 3, // Show a fixed number of shimmer items
+              padding: const EdgeInsets.only(left: 10),
+              itemBuilder: (context, index) {
+                return Shimmer.fromColors(
                   baseColor: shimmerBase,
                   highlightColor: shimmerHighlight,
                   period: _shimmerDuration,
                   child: Container(
-                      width: 150,
-                      height: textTheme.titleMedium?.fontSize ?? 16,
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(4))))),
-          SizedBox(
-            height: 180,
-            child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 3, // Show a fixed number of shimmer items
-                padding: const EdgeInsets.only(left: 10),
-                itemBuilder: (context, index) {
-                  return Shimmer.fromColors(
-                    baseColor: shimmerBase,
-                    highlightColor: shimmerHighlight,
-                    period: _shimmerDuration,
-                    child: Container(
-                      width: MediaQuery.of(context).size.width * 0.65,
-                      height: 170,
-                      margin: const EdgeInsets.symmetric(horizontal: 6.0),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                    width: MediaQuery.of(context).size.width * 0.65,
+                    height: 170,
+                    margin: const EdgeInsets.symmetric(horizontal: 6.0),
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  );
-                }),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGridShimmerItem(ThemeData theme, ColorScheme colorScheme,
-      bool isDarkMode, Color shimmerBase, Color shimmerHighlight,
-      {required int index}) {
+  Widget _buildGridShimmerItem(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+    Color shimmerBase,
+    Color shimmerHighlight, {
+    required int index,
+  }) {
     // These values are rough estimates for shimmer box heights
     double cardHeight;
     double imageHeight;
@@ -1577,7 +1841,8 @@ class _HomeScreenState extends State<HomeScreen>
       imageHeight = 100;
       titleHeight = 18;
       lineHeight = 12;
-      cardHeight = imageHeight +
+      cardHeight =
+          imageHeight +
           titleHeight +
           (lineHeight * 5) +
           buttonHeight +
@@ -1595,9 +1860,12 @@ class _HomeScreenState extends State<HomeScreen>
     // Adjust cardHeight based on index to simulate staggered grid different heights
     if (index % 3 == 0)
       cardHeight += 20;
-    else if (index % 3 == 1) cardHeight -= 15;
-    cardHeight =
-        cardHeight.clamp(200, 290); // Min/max height to prevent extreme values
+    else if (index % 3 == 1)
+      cardHeight -= 15;
+    cardHeight = cardHeight.clamp(
+      200,
+      290,
+    ); // Min/max height to prevent extreme values
 
     final pC = shimmerBase.withOpacity(0.9);
 
@@ -1805,25 +2073,26 @@ class _HomeScreenState extends State<HomeScreen>
         opacity: _fabAnimationController,
         child: FloatingActionButton.extended(
           onPressed: isClient
-              ? () => _navigateToCreateJob()
+              ? () => _navigateToUnifiedChatScreen()
               : _navigateToCreateProfile,
           backgroundColor: fabBackgroundColor,
           foregroundColor: fabForegroundColor,
           elevation: fabTheme.elevation ?? 6.0,
           highlightElevation: fabTheme.highlightElevation ?? 12.0,
-          shape: fabTheme.shape ??
+          shape:
+              fabTheme.shape ??
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           icon: Padding(
             padding: const EdgeInsets.only(right: 6.0),
             child: Icon(
               isClient
-                  ? Icons.post_add_rounded
+                  ? Icons.chat_bubble_outline_rounded
                   : Icons.person_pin_circle_rounded,
               size: 24,
             ),
           ),
           label: Text(
-            isClient ? appStrings.fabPostJob : appStrings.fabMyProfile,
+            isClient ? appStrings.workerDetailChat : appStrings.fabMyProfile,
             style: textTheme.labelLarge?.copyWith(
               fontSize: 16,
               color: fabForegroundColor,
@@ -1831,7 +2100,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ), // Localized
           tooltip: isClient
-              ? appStrings.fabPostJobTooltip
+              ? appStrings.workerDetailChat
               : appStrings.fabMyProfileTooltip, // Localized
         ),
       ),
@@ -1843,9 +2112,7 @@ class _HomeScreenState extends State<HomeScreen>
     ColorScheme colorScheme,
     TextTheme textTheme,
   ) {
-    final appStrings = AppLocalizations.of(
-      context,
-    );
+    final appStrings = AppLocalizations.of(context);
     if (appStrings == null) return;
 
     if (_userType == 'client') {
@@ -1864,9 +2131,7 @@ class _HomeScreenState extends State<HomeScreen>
         final modalTheme = Theme.of(modalContext);
         final modalColorScheme = modalTheme.colorScheme;
         final modalTextTheme = modalTheme.textTheme;
-        final modalAppStrings = AppLocalizations.of(
-          modalContext,
-        )!;
+        final modalAppStrings = AppLocalizations.of(modalContext)!;
 
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
@@ -1910,8 +2175,8 @@ class _HomeScreenState extends State<HomeScreen>
                             child: Text(
                               modalAppStrings.filterOptionsTitle,
                               style: modalTextTheme.titleLarge?.copyWith(
-                                  fontFamily: GoogleFonts.poppins()
-                                      .fontFamily), // Use GoogleFonts
+                                fontFamily: GoogleFonts.poppins().fontFamily,
+                              ), // Use GoogleFonts
                             ),
                           ),
                           Divider(
@@ -2074,9 +2339,7 @@ class _HomeScreenState extends State<HomeScreen>
       selectedValue = 'All';
     }
     final chipTheme = theme.chipTheme;
-    final appStrings = AppLocalizations.of(
-      context,
-    )!;
+    final appStrings = AppLocalizations.of(context)!;
 
     return Wrap(
       spacing: 10.0,
@@ -2086,7 +2349,7 @@ class _HomeScreenState extends State<HomeScreen>
         Color bgColor = isSelected
             ? (chipTheme.selectedColor ?? colorScheme.primary)
             : (chipTheme.backgroundColor ??
-                colorScheme.surfaceVariant); // Use surfaceVariant
+                  colorScheme.surfaceVariant); // Use surfaceVariant
         Color labelColor = isSelected
             ? (chipTheme.secondaryLabelStyle?.color ?? colorScheme.onPrimary)
             : (chipTheme.labelStyle?.color ?? colorScheme.onSurfaceVariant);
@@ -2104,16 +2367,19 @@ class _HomeScreenState extends State<HomeScreen>
           onSelected: (selected) {
             if (selected) onSelected(item);
           },
-          backgroundColor: chipTheme.backgroundColor ??
+          backgroundColor:
+              chipTheme.backgroundColor ??
               colorScheme.surfaceVariant, // Use surfaceVariant
           selectedColor: chipTheme.selectedColor ?? colorScheme.primary,
           labelStyle: (chipTheme.labelStyle ?? textTheme.labelMedium)?.copyWith(
             color: labelColor,
             fontFamily: GoogleFonts.poppins().fontFamily, // Use GoogleFonts
           ),
-          labelPadding: chipTheme.padding ??
+          labelPadding:
+              chipTheme.padding ??
               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: chipTheme.shape ??
+          shape:
+              chipTheme.shape ??
               RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: borderSide,
@@ -2164,14 +2430,18 @@ class _HomeScreenState extends State<HomeScreen>
               if (mounted) _showSuccessSnackbar(appStrings.filtersResetSuccess);
             },
             style: outlinedButtonStyle,
-            child: Text(appStrings.filterResetButton,
-                style: GoogleFonts.poppins()), // Use GoogleFonts
+            child: Text(
+              appStrings.filterResetButton,
+              style: GoogleFonts.poppins(),
+            ), // Use GoogleFonts
           ),
           const Spacer(),
           ElevatedButton.icon(
             icon: const Icon(Icons.check_rounded, size: 18),
-            label: Text(appStrings.filterApplyButton,
-                style: GoogleFonts.poppins()), // Use GoogleFonts
+            label: Text(
+              appStrings.filterApplyButton,
+              style: GoogleFonts.poppins(),
+            ), // Use GoogleFonts
             onPressed: () {
               setState(() {
                 if (_userType == 'client') {
@@ -2198,25 +2468,35 @@ class _HomeScreenState extends State<HomeScreen>
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final tt = theme.textTheme;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        Icon(isCritical ? Icons.error_outline : Icons.warning_amber_rounded,
-            color: cs.onError, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Text(message,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isCritical ? Icons.error_outline : Icons.warning_amber_rounded,
+              color: cs.onError,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
                 style: tt.bodyMedium?.copyWith(
-                    color: cs.onError,
-                    fontFamily:
-                        GoogleFonts.poppins().fontFamily))) // Use GoogleFonts
-      ]),
-      backgroundColor: cs.error,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-      elevation: 6,
-      duration: Duration(seconds: isCritical ? 6 : 4),
-    ));
+                  color: cs.onError,
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                ),
+              ),
+            ), // Use GoogleFonts
+          ],
+        ),
+        backgroundColor: cs.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        elevation: 6,
+        duration: Duration(seconds: isCritical ? 6 : 4),
+      ),
+    );
   }
 
   void _showSuccessSnackbar(String message) {
@@ -2227,27 +2507,38 @@ class _HomeScreenState extends State<HomeScreen>
     final successColor = theme.brightness == Brightness.dark
         ? Colors.green[400]!
         : Colors.green[700]!;
-    final onSuccessColor =
-        theme.brightness == Brightness.dark ? Colors.black : Colors.white;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        Icon(Icons.check_circle_outline_rounded,
-            color: onSuccessColor, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Text(message,
+    final onSuccessColor = theme.brightness == Brightness.dark
+        ? Colors.black
+        : Colors.white;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              Icons.check_circle_outline_rounded,
+              color: onSuccessColor,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
                 style: tt.bodyMedium?.copyWith(
-                    color: onSuccessColor,
-                    fontFamily:
-                        GoogleFonts.poppins().fontFamily))) // Use GoogleFonts
-      ]),
-      backgroundColor: successColor,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(16),
-      elevation: 6,
-      duration: const Duration(seconds: 2),
-    ));
+                  color: onSuccessColor,
+                  fontFamily: GoogleFonts.poppins().fontFamily,
+                ),
+              ),
+            ), // Use GoogleFonts
+          ],
+        ),
+        backgroundColor: successColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+        elevation: 6,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 } // End of _HomeScreenState
 
@@ -2300,8 +2591,9 @@ class UltimateGridWorkerCard extends StatelessWidget {
     double r = worker.rating ?? 0.0;
     Color rC = r >= 3.5 ? cs.secondary : cs.onSurface.withOpacity(0.6);
     Color aC = cs.secondary;
-    final appStrings =
-        AppLocalizations.of(context)!; // This correctly returns AppStrings
+    final appStrings = AppLocalizations.of(
+      context,
+    )!; // This correctly returns AppStrings
 
     String? displayImageUrl = worker.profileImage;
 
@@ -2413,7 +2705,9 @@ class UltimateGridWorkerCard extends StatelessWidget {
                             const SizedBox(height: 4),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: rC.withOpacity(0.8),
                                 borderRadius: BorderRadius.circular(10),
@@ -2421,11 +2715,13 @@ class UltimateGridWorkerCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star_rounded,
-                                      color: rC.computeLuminance() > 0.5
-                                          ? Colors.black
-                                          : Colors.white,
-                                      size: 16),
+                                  Icon(
+                                    Icons.star_rounded,
+                                    color: rC.computeLuminance() > 0.5
+                                        ? Colors.black
+                                        : Colors.white,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     r.toStringAsFixed(1),
@@ -2450,12 +2746,23 @@ class UltimateGridWorkerCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildProfessionAndPrice(
-                            context, theme, cs, tt, appStrings),
+                          context,
+                          theme,
+                          cs,
+                          tt,
+                          appStrings,
+                        ),
                         const SizedBox(height: 8),
                         _buildStatsWrap(context, theme, cs, tt, aC, appStrings),
                         const SizedBox(height: 8),
                         _buildActionButtons(
-                            context, theme, cs, tt, aC, appStrings),
+                          context,
+                          theme,
+                          cs,
+                          tt,
+                          aC,
+                          appStrings,
+                        ),
                       ],
                     ),
                   ),
@@ -2469,8 +2776,13 @@ class UltimateGridWorkerCard extends StatelessWidget {
   }
 
   // CORRECTED: Changed parameter type from AppLocalizations to AppStrings
-  Widget _buildProfessionAndPrice(BuildContext context, ThemeData t,
-      ColorScheme cs, TextTheme tt, AppStrings appStrings) {
+  Widget _buildProfessionAndPrice(
+    BuildContext context,
+    ThemeData t,
+    ColorScheme cs,
+    TextTheme tt,
+    AppStrings appStrings,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -2503,9 +2815,7 @@ class UltimateGridWorkerCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: cs.tertiary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: cs.tertiary.withOpacity(0.6),
-            ),
+            border: Border.all(color: cs.tertiary.withOpacity(0.6)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
@@ -2554,8 +2864,9 @@ class UltimateGridWorkerCard extends StatelessWidget {
           _buildStatItem(
             t,
             Icons.social_distance_outlined,
-            appStrings
-                .workerCardDistanceAway(worker.distance!.toStringAsFixed(1)),
+            appStrings.workerCardDistanceAway(
+              worker.distance!.toStringAsFixed(1),
+            ),
             cs.onSurface.withOpacity(0.7),
           ),
       ],
@@ -2606,9 +2917,10 @@ class UltimateGridWorkerCard extends StatelessWidget {
             foregroundColor: MaterialStateProperty.all(oAC),
             textStyle: MaterialStateProperty.all(
               tt.labelLarge?.copyWith(
-                  fontSize: 13.5,
-                  color: oAC,
-                  fontFamily: GoogleFonts.poppins().fontFamily),
+                fontSize: 13.5,
+                color: oAC,
+                fontFamily: GoogleFonts.poppins().fontFamily,
+              ),
             ),
             padding: MaterialStateProperty.all(
               const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
@@ -2628,8 +2940,11 @@ class UltimateGridWorkerCard extends StatelessWidget {
 class UltimateGridJobCard extends StatelessWidget {
   final Job job;
   final VoidCallback onTap;
-  const UltimateGridJobCard(
-      {super.key, required this.job, required this.onTap});
+  const UltimateGridJobCard({
+    super.key,
+    required this.job,
+    required this.onTap,
+  });
 
   Color _getStatusColor(String? s, ColorScheme cs, bool isDark) {
     switch (s?.toLowerCase()) {
@@ -2691,7 +3006,10 @@ class UltimateGridJobCard extends StatelessWidget {
     final appStrings = AppLocalizations.of(context)!;
 
     Color statusColor = _getStatusColor(
-        job.status, cs, isDark); // Use cs from Theme.of(context)
+      job.status,
+      cs,
+      isDark,
+    ); // Use cs from Theme.of(context)
     IconData statusIcon = _getStatusIcon(job.status);
     String statusText = _getStatusText(job.status, appStrings);
     String timeAgo = _getTimeAgo(job.createdAt, appStrings);
@@ -2701,9 +3019,11 @@ class UltimateGridJobCard extends StatelessWidget {
     Color cardBg = theme.cardColor;
 
     // Use first attachment as potential preview image, null if no attachments
-    String? previewImageUrl =
-        job.attachments.isNotEmpty ? job.attachments.first : null;
-    bool hasImage = previewImageUrl != null &&
+    String? previewImageUrl = job.attachments.isNotEmpty
+        ? job.attachments.first
+        : null;
+    bool hasImage =
+        previewImageUrl != null &&
         (previewImageUrl.toLowerCase().contains('.jpg') ||
             previewImageUrl.toLowerCase().contains('.jpeg') ||
             previewImageUrl.toLowerCase().contains('.png') ||
@@ -2713,8 +3033,10 @@ class UltimateGridJobCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(20.0),
-        border:
-            Border.all(color: cs.outlineVariant.withOpacity(0.3), width: 0.8),
+        border: Border.all(
+          color: cs.outlineVariant.withOpacity(0.3),
+          width: 0.8,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.15 : 0.05),
@@ -2743,9 +3065,9 @@ class UltimateGridJobCard extends StatelessWidget {
                       child: Text(
                         job.title ?? appStrings.jobUntitled,
                         style: tt.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: GoogleFonts.poppins()
-                                .fontFamily), // Use Google Fonts
+                          fontWeight: FontWeight.w600,
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                        ), // Use Google Fonts
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -2754,13 +3076,15 @@ class UltimateGridJobCard extends StatelessWidget {
                       avatar: Icon(statusIcon, size: 14, color: statusColor),
                       label: Text(statusText),
                       labelStyle: tt.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: statusColor,
-                          fontFamily: GoogleFonts.poppins()
-                              .fontFamily), // Use Google FontsR
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                        fontFamily: GoogleFonts.poppins().fontFamily,
+                      ), // Use Google FontsR
                       backgroundColor: cs.surfaceVariant.withOpacity(0.8),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       visualDensity: VisualDensity.compact,
                       side: BorderSide.none,
                     ),
@@ -2778,11 +3102,14 @@ class UltimateGridJobCard extends StatelessWidget {
                         placeholder: (c, u) =>
                             Container(color: cs.surfaceContainer),
                         errorWidget: (c, u, e) => Container(
-                            color: cs.surfaceContainer,
-                            child: Center(
-                                child: Icon(Icons.image_not_supported_outlined,
-                                    color:
-                                        cs.onSurfaceVariant.withOpacity(0.5)))),
+                          color: cs.surfaceContainer,
+                          child: Center(
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              color: cs.onSurfaceVariant.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -2799,8 +3126,12 @@ class UltimateGridJobCard extends StatelessWidget {
                     _buildMetaItem(theme, Icons.attach_money, budget),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: _buildMetaItem(theme, Icons.location_on_outlined,
-                            job.location ?? appStrings.generalN_A)),
+                      child: _buildMetaItem(
+                        theme,
+                        Icons.location_on_outlined,
+                        job.location ?? appStrings.generalN_A,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -2808,14 +3139,19 @@ class UltimateGridJobCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.bottomRight,
                   child: TextButton(
-                      onPressed: onTap,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        visualDensity: VisualDensity.compact,
+                    onPressed: onTap,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
                       ),
-                      child: Text(appStrings.jobCardView,
-                          style: GoogleFonts.poppins())), // Use GoogleFonts
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: Text(
+                      appStrings.jobCardView,
+                      style: GoogleFonts.poppins(),
+                    ),
+                  ), // Use GoogleFonts
                 ),
               ],
             ),
@@ -2829,16 +3165,18 @@ class UltimateGridJobCard extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon,
-            size: 14,
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8)),
+        Icon(
+          icon,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+        ),
         Flexible(
           child: Text(
             text,
             style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFamily:
-                    GoogleFonts.poppins().fontFamily), // Use GoogleFonts
+              color: theme.colorScheme.onSurfaceVariant,
+              fontFamily: GoogleFonts.poppins().fontFamily,
+            ), // Use GoogleFonts
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -2893,13 +3231,13 @@ class FeaturedWorkerCard extends StatelessWidget {
     Color rC = r >= 4.0
         ? cs.secondary
         : (r >= 3.0
-            ? (cs.tertiaryContainer ?? cs.primaryContainer)
-            : cs.errorContainer ?? cs.error);
+              ? (cs.tertiaryContainer ?? cs.primaryContainer)
+              : cs.errorContainer ?? cs.error);
     Color rTC = r >= 4.0
         ? cs.onSecondary
         : (r >= 3.0
-            ? (cs.onTertiaryContainer ?? cs.onPrimaryContainer)
-            : cs.onErrorContainer ?? cs.onError);
+              ? (cs.onTertiaryContainer ?? cs.onPrimaryContainer)
+              : cs.onErrorContainer ?? cs.onError);
     final appStrings = AppLocalizations.of(context)!;
 
     String? displayImageUrl = worker.profileImage;
@@ -2907,18 +3245,23 @@ class FeaturedWorkerCard extends StatelessWidget {
     return Container(
       width: MediaQuery.of(context).size.width * 0.6,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [
-          theme.cardColor,
-          theme.cardColor.withOpacity(isDark ? 0.85 : 0.95)
-        ], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [
+            theme.cardColor,
+            theme.cardColor.withOpacity(isDark ? 0.85 : 0.95),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16.0),
         border: Border.all(color: cs.outline.withOpacity(0.2), width: 0.8),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-              blurRadius: 10,
-              spreadRadius: -4,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+            blurRadius: 10,
+            spreadRadius: -4,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Material(
@@ -2948,17 +3291,21 @@ class FeaturedWorkerCard extends StatelessWidget {
                             imageUrl: displayImageUrl ?? '',
                             fit: BoxFit.cover,
                             placeholder: (c, u) => Container(
-                                color: cs.surfaceContainerHighest,
-                                child: Icon(Icons.person_outline_rounded,
-                                    size: 40,
-                                    color:
-                                        cs.onSurfaceVariant.withOpacity(0.5))),
+                              color: cs.surfaceContainerHighest,
+                              child: Icon(
+                                Icons.person_outline_rounded,
+                                size: 40,
+                                color: cs.onSurfaceVariant.withOpacity(0.5),
+                              ),
+                            ),
                             errorWidget: (c, u, e) => Container(
-                                color: cs.surfaceContainerHighest,
-                                child: Icon(Icons.broken_image_outlined,
-                                    size: 40,
-                                    color:
-                                        cs.onSurfaceVariant.withOpacity(0.5))),
+                              color: cs.surfaceContainerHighest,
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                size: 40,
+                                color: cs.onSurfaceVariant.withOpacity(0.5),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -3009,8 +3356,8 @@ class FeaturedWorkerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Details Section below the image
 
+              // Details Section below the image
               Expanded(
                 flex: 2, // Give less flex to details, making image bigger
                 child: Padding(
@@ -3030,14 +3377,18 @@ class FeaturedWorkerCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(_getProfessionIcon(worker.profession),
-                                      size: 15, color: cs.secondary),
+                                  Icon(
+                                    _getProfessionIcon(worker.profession),
+                                    size: 15,
+                                    color: cs.secondary,
+                                  ),
                                   Flexible(
                                     child: Text(
                                       worker.profession ??
                                           appStrings.generalN_A,
                                       style: tt.bodySmall?.copyWith(
-                                          color: cs.onSurface.withOpacity(0.7)),
+                                        color: cs.onSurface.withOpacity(0.7),
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -3047,7 +3398,9 @@ class FeaturedWorkerCard extends StatelessWidget {
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: rC.withOpacity(0.8),
                                 borderRadius: BorderRadius.circular(6),
@@ -3055,12 +3408,18 @@ class FeaturedWorkerCard extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star_rate_rounded,
-                                      color: rTC, size: 13),
-                                  Text(r.toStringAsFixed(1),
-                                      style: tt.labelSmall?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: rTC)),
+                                  Icon(
+                                    Icons.star_rate_rounded,
+                                    color: rTC,
+                                    size: 13,
+                                  ),
+                                  Text(
+                                    r.toStringAsFixed(1),
+                                    style: tt.labelSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: rTC,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -3077,12 +3436,17 @@ class FeaturedWorkerCard extends StatelessWidget {
                             ),
                           ),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.attach_money,
-                                  size: 14, color: cs.tertiary),
+                              Icon(
+                                Icons.attach_money,
+                                size: 14,
+                                color: cs.tertiary,
+                              ),
                               Flexible(
                                 child: Text(
                                   '${worker.priceRange ?? appStrings.workermoneyempty} birr',
@@ -3104,7 +3468,8 @@ class FeaturedWorkerCard extends StatelessWidget {
                             Icons
                                 .social_distance_outlined, // Or Icons.near_me_outlined
                             appStrings.workerCardDistanceAway(
-                                worker.distance!.toStringAsFixed(1)),
+                              worker.distance!.toStringAsFixed(1),
+                            ),
                             cs.onSurface.withOpacity(0.7),
                           ),
                       ],
@@ -3183,17 +3548,22 @@ class FeaturedJobCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final appStrings = AppLocalizations.of(context)!;
 
-    Color statusColor =
-        _getStatusColor(job.status, cs, theme.brightness == Brightness.dark);
+    Color statusColor = _getStatusColor(
+      job.status,
+      cs,
+      theme.brightness == Brightness.dark,
+    );
     String timeAgo = _getTimeAgo(job.createdAt, appStrings);
     String budget = job.budget != null
         ? appStrings.jobBudgetETB(job.budget.toStringAsFixed(0))
         : appStrings.generalN_A;
     Color cardBg = theme.cardColor;
 
-    String? previewImageUrl =
-        job.attachments.isNotEmpty ? job.attachments.first : null;
-    bool hasImage = previewImageUrl != null &&
+    String? previewImageUrl = job.attachments.isNotEmpty
+        ? job.attachments.first
+        : null;
+    bool hasImage =
+        previewImageUrl != null &&
         (previewImageUrl.toLowerCase().contains('.jpg') ||
             previewImageUrl.toLowerCase().contains('.jpeg') ||
             previewImageUrl.toLowerCase().contains('.png') ||
@@ -3204,8 +3574,10 @@ class FeaturedJobCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(16.0),
-        border:
-            Border.all(color: cs.outlineVariant.withOpacity(0.3), width: 0.8),
+        border: Border.all(
+          color: cs.outlineVariant.withOpacity(0.3),
+          width: 0.8,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.2 : 0.06),
@@ -3234,9 +3606,9 @@ class FeaturedJobCard extends StatelessWidget {
                       child: Text(
                         job.title ?? appStrings.jobUntitled,
                         style: tt.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontFamily: GoogleFonts.poppins()
-                                .fontFamily), // Use Google Fonts
+                          fontWeight: FontWeight.w600,
+                          fontFamily: GoogleFonts.poppins().fontFamily,
+                        ), // Use Google Fonts
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -3245,30 +3617,35 @@ class FeaturedJobCard extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: CachedNetworkImage(
-                            imageUrl: previewImageUrl!,
+                          imageUrl: previewImageUrl!,
+                          height: 40,
+                          width: 40,
+                          fit: BoxFit.cover,
+                          placeholder: (c, u) => Container(
                             height: 40,
                             width: 40,
-                            fit: BoxFit.cover,
-                            placeholder: (c, u) => Container(
-                                height: 40,
-                                width: 40,
-                                color: cs.surfaceContainerHigh),
-                            errorWidget: (c, u, e) => Container(
-                                height: 40,
-                                width: 40,
-                                color: cs.surfaceContainerHigh,
-                                child: Icon(Icons.image_not_supported_outlined,
-                                    size: 18,
-                                    color:
-                                        cs.onSurfaceVariant.withOpacity(0.5)))),
-                      )
-                    ]
+                            color: cs.surfaceContainerHigh,
+                          ),
+                          errorWidget: (c, u, e) => Container(
+                            height: 40,
+                            width: 40,
+                            color: cs.surfaceContainerHigh,
+                            child: Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 18,
+                              color: cs.onSurfaceVariant.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 Text(
                   job.description ?? appStrings.jobNoDescription,
-                  style: tt.bodySmall
-                      ?.copyWith(color: cs.onSurfaceVariant.withOpacity(0.9)),
+                  style: tt.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withOpacity(0.9),
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -3278,10 +3655,12 @@ class FeaturedJobCard extends StatelessWidget {
                   children: [
                     _buildMetaItemFeatured(context, Icons.attach_money, budget),
                     Flexible(
-                        child: _buildMetaItemFeatured(
-                            context,
-                            Icons.location_on_outlined,
-                            job.location ?? appStrings.generalN_A)),
+                      child: _buildMetaItemFeatured(
+                        context,
+                        Icons.location_on_outlined,
+                        job.location ?? appStrings.generalN_A,
+                      ),
+                    ),
                   ],
                 ),
                 _buildMetaItemFeatured(context, Icons.access_time, timeAgo),
@@ -3294,21 +3673,26 @@ class FeaturedJobCard extends StatelessWidget {
   }
 
   Widget _buildMetaItemFeatured(
-      BuildContext context, IconData icon, String text) {
+    BuildContext context,
+    IconData icon,
+    String text,
+  ) {
     final theme = Theme.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon,
-            size: 13,
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8)),
+        Icon(
+          icon,
+          size: 13,
+          color: theme.colorScheme.onSurfaceVariant.withOpacity(0.8),
+        ),
         Flexible(
           child: Text(
             text,
             style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontFamily:
-                    GoogleFonts.poppins().fontFamily), // Use GoogleFonts
+              color: theme.colorScheme.onSurfaceVariant,
+              fontFamily: GoogleFonts.poppins().fontFamily,
+            ), // Use GoogleFonts
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

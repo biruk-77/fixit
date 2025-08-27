@@ -7,16 +7,24 @@
     <!-- Allows the app to request the device's precise location (GPS) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Allows the app to request the device's approximate location (network-based) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
     <!-- ADDED PERMISSIONS END -->
 
     <application
         android:label="flutter_application_1"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
+        android:requestLegacyExternalStorage="true">
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/app_notification_icon" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
