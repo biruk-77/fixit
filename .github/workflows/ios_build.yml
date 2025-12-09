@@ -1,0 +1,52 @@
+name: FixIt iOS Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build_ios:
+    name: Build iOS (No Signing)
+    runs-on: macos-latest # 🍎 Required for iOS builds
+
+    steps:
+      # 1. Checkout Code
+      - uses: actions/checkout@v4
+
+      # 2. Setup Java (Required for Flutter tools)
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Setup Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          architecture: x64 # Required for macOS runners
+
+      # 4. Install Dependencies
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 5. Build iOS App (No Code Signing)
+      # This checks if your app compiles without needing Apple Developer Certs
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
+
+      # 6. Compress App (Optional - to download it)
+      - name: Compress App
+        run: |
+          cd build/ios/iphoneos
+          tar -czf Runner.app.tar.gz Runner.app
+
+      # 7. Upload Artifact
+      - name: Upload iOS Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-unsigned
+          path: build/ios/iphoneos/Runner.app.tar.gz
