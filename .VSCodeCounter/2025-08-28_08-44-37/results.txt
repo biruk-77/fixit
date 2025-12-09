@@ -1,0 +1,81 @@
+Date : 2025-08-28 08:44:37
+Directory : c:\Users\biruk\Desktop\flutter-projects\finalend\lib
+Total : 43 files,  40130 codes, 1495 comments, 2416 blanks, all 44041 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Dart     |         43 |     40,130 |      1,495 |      2,416 |     44,041 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                     | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                        |         43 |     40,130 |      1,495 |      2,416 |     44,041 |
+| . (Files)                                                                                                |          2 |        565 |         40 |         51 |        656 |
+| models                                                                                                   |          6 |        691 |         43 |         64 |        798 |
+| providers                                                                                                |          2 |        137 |         49 |         26 |        212 |
+| screens                                                                                                  |         26 |     29,960 |        890 |      1,605 |     32,455 |
+| screens (Files)                                                                                          |          8 |     14,619 |        556 |        751 |     15,926 |
+| screens\auth                                                                                             |          4 |      2,506 |         73 |        123 |      2,702 |
+| screens\chat                                                                                             |          2 |      3,146 |         34 |        222 |      3,402 |
+| screens\home                                                                                             |          2 |      1,607 |         22 |         69 |      1,698 |
+| screens\jobs                                                                                             |          4 |      6,405 |        138 |        283 |      6,826 |
+| screens\payment                                                                                          |          4 |        750 |         41 |         87 |        878 |
+| screens\professional                                                                                     |          1 |          0 |          0 |          2 |          2 |
+| screens\widgets                                                                                          |          1 |        927 |         26 |         68 |      1,021 |
+| services                                                                                                 |          6 |      8,229 |        419 |        632 |      9,280 |
+| theme                                                                                                    |          1 |        548 |         54 |         38 |        640 |
++----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                                                 | language | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\firebase_options.dart                               | Dart     |         74 |         12 |          7 |         93 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\main.dart                                           | Dart     |        491 |         28 |         44 |        563 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\chat_message.dart                            | Dart     |        103 |          5 |          9 |        117 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\chat_messageai.dart                          | Dart     |         11 |          1 |          5 |         17 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\job.dart                                     | Dart     |        242 |         20 |         18 |        280 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\review.dart                                  | Dart     |         40 |          0 |          4 |         44 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\user.dart                                    | Dart     |        159 |          6 |         14 |        179 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\models\worker.dart                                  | Dart     |        136 |         11 |         14 |        161 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\providers\locale_provider.dart                      | Dart     |         84 |         43 |         17 |        144 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\providers\theme_provider.dart                       | Dart     |         53 |          6 |          9 |         68 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\auth\forgot_password_screen.dart            | Dart     |        191 |          3 |         13 |        207 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\auth\login_screen.dart                      | Dart     |        818 |         24 |         58 |        900 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\auth\register_screen.dart                   | Dart     |      1,482 |         45 |         51 |      1,578 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\auth\skills.dart                            | Dart     |         15 |          1 |          1 |         17 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\chat\chat_list_pane.dart                    | Dart     |        629 |          5 |         49 |        683 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\chat\conversation_pane.dart                 | Dart     |      2,517 |         29 |        173 |      2,719 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\chat_screen.dart                            | Dart     |        148 |         14 |         14 |        176 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\home\home_layout.dart                       | Dart     |         15 |          9 |          4 |         28 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\home\home_screen_web.dart                   | Dart     |      1,592 |         13 |         65 |      1,670 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\home_screen.dart                            | Dart     |      3,467 |         82 |        155 |      3,704 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\jobs\create_job_screen.dart                 | Dart     |      1,668 |         20 |         56 |      1,744 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\jobs\job_dashboard_screen.dart              | Dart     |      2,520 |         92 |        123 |      2,735 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\jobs\job_detail_screen.dart                 | Dart     |      1,702 |         13 |         75 |      1,790 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\jobs\quick_job_request_screen.dart          | Dart     |        515 |         13 |         29 |        557 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\notifications_screen.dart                   | Dart     |      2,217 |         21 |        119 |      2,357 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\payment\config.dart                         | Dart     |         14 |          2 |          2 |         18 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\payment\managepayment.dart                  | Dart     |         53 |         22 |         10 |         85 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\payment\payment_screen.dart                 | Dart     |        456 |          7 |         38 |        501 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\payment\telebirr_api_service.dart           | Dart     |        227 |         10 |         37 |        274 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\professional\professional_setup_screen.dart | Dart     |          0 |          0 |          2 |          2 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\professional_setup_edit.dart                | Dart     |      1,978 |         20 |         96 |      2,094 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\professional_setup_screen.dart              | Dart     |      1,449 |         12 |         54 |      1,515 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\profile_screen.dart                         | Dart     |      1,323 |        189 |         76 |      1,588 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\widgets\ai_chat_panel.dart                  | Dart     |        927 |         26 |         68 |      1,021 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\worker_detail_screen.dart                   | Dart     |      2,925 |        121 |        167 |      3,213 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\screens\worker_detail_screenmodel1.dart             | Dart     |      1,112 |         97 |         70 |      1,279 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\ai_chat_service.dart                       | Dart     |        551 |          3 |         50 |        604 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\app_string.dart                            | Dart     |      4,502 |        136 |        154 |      4,792 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\auth_service.dart                          | Dart     |        325 |         41 |         50 |        416 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\firebase_service.dart                      | Dart     |      2,664 |        209 |        349 |      3,222 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\gemini_service.dart                        | Dart     |         27 |          5 |          7 |         39 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\services\notification_service.dart                  | Dart     |        160 |         25 |         22 |        207 |
+| c:\Users\biruk\Desktop\flutter-projects\finalend\lib\theme\light_colors.dart                             | Dart     |        548 |         54 |         38 |        640 |
+| Total                                                                                                    |          |     40,130 |      1,495 |      2,416 |     44,041 |
++----------------------------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

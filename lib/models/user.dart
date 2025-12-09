@@ -35,7 +35,6 @@ class AppUser {
     required this.role,
     this.profileImage,
     required this.location, // General text location
-
     // For Professionals
     this.baseLatitude,
     this.baseLongitude,
@@ -61,7 +60,8 @@ class AppUser {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      phoneNumber: json['phoneNumber'] ??
+      phoneNumber:
+          json['phoneNumber'] ??
           json['phone'] ??
           '', // Added fallback for 'phone'
       role: json['role'] ?? json['userType'] ?? 'client',
@@ -69,9 +69,11 @@ class AppUser {
       location: json['location'] ?? '',
 
       // For Professionals from Firestore
-      baseLatitude: (json['baseLatitude'] as num?)?.toDouble() ??
+      baseLatitude:
+          (json['baseLatitude'] as num?)?.toDouble() ??
           (json['latitude'] as num?)?.toDouble(), // Fallback for 'latitude'
-      baseLongitude: (json['baseLongitude'] as num?)?.toDouble() ??
+      baseLongitude:
+          (json['baseLongitude'] as num?)?.toDouble() ??
           (json['longitude'] as num?)?.toDouble(), // Fallback for 'longitude'
       serviceRadiusKm: (json['serviceRadiusKm'] as num?)?.toDouble(),
 
@@ -85,16 +87,17 @@ class AppUser {
       jobsCompleted: json['completedJobs'] is int
           ? json['completedJobs']
           : (json['jobsCompleted'] is int
-              ? json['jobsCompleted']
-              : null), // Fallback for completedJobs
+                ? json['jobsCompleted']
+                : null), // Fallback for completedJobs
       rating: json['rating'] is double
           ? json['rating']
           : (json['rating'] is int ? (json['rating'] as int).toDouble() : null),
       experience: json['experience'] is int ? json['experience'] : null,
       reviewCount: json['reviewCount'] is int ? json['reviewCount'] : null,
       jobsPosted: json['jobsPosted'] is int ? json['jobsPosted'] : null,
-      paymentsComplete:
-          json['paymentsComplete'] is int ? json['paymentsComplete'] : null,
+      paymentsComplete: json['paymentsComplete'] is int
+          ? json['paymentsComplete']
+          : null,
     );
   }
 

@@ -173,8 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const Icon(Icons.mark_email_read, size: 100, color: Colors.green),
         const SizedBox(height: 24),
         Text(
-          appStrings.forgotPasswordSuccess.split('!').first +
-              '!', // "Email Sent!"
+          '${appStrings.forgotPasswordSuccess.split('!').first}!', // "Email Sent!"
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),

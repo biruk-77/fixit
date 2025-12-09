@@ -20,8 +20,7 @@ import '../models/job.dart';
 import '../models/worker.dart';
 import 'jobs/job_detail_screen.dart';
 import 'chat_screen.dart';
-import '../../models/chat_message.dart';
-import '../../models/user.dart' as AppUser; // Use alias to avoid conflict
+// Use alias to avoid conflict
 
 // --- ENUMS for Filtering and Sorting ---
 enum NotificationFilter { all, unread }
@@ -689,10 +688,10 @@ class _NotificationListViewState extends State<_NotificationListView> {
                 }
               });
             },
-            child: Text(appStrings.delete),
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
+            child: Text(appStrings.delete),
           ),
         ],
       ),
@@ -863,7 +862,6 @@ class _NotificationCardRouter extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _NotificationCardRouter({
-    super.key,
     required this.notification,
     required this.isMultiSelectMode,
     required this.isSelected,
@@ -1042,7 +1040,7 @@ class _ChatMessageCard extends StatelessWidget {
                         radius: 24,
                         backgroundColor: theme.colorScheme.secondaryContainer,
                         backgroundImage: hasImage
-                            ? CachedNetworkImageProvider(senderImageUrl!)
+                            ? CachedNetworkImageProvider(senderImageUrl)
                             : null,
                         child: !hasImage
                             ? Text(
@@ -1167,7 +1165,6 @@ class _JobApplicationCard extends StatefulWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onDelete;
   const _JobApplicationCard({
-    super.key,
     required this.notification,
     required this.onDelete,
   });
@@ -1473,7 +1470,6 @@ class _NewJobPostedCard extends StatelessWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onDelete;
   const _NewJobPostedCard({
-    super.key,
     required this.notification,
     required this.onDelete,
   });
@@ -1774,7 +1770,6 @@ class _JobStatusUpdateCard extends StatelessWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onDelete;
   const _JobStatusUpdateCard({
-    super.key,
     required this.notification,
     required this.onDelete,
   });
@@ -1948,7 +1943,6 @@ class _GenericInfoCard extends StatelessWidget {
   final Map<String, dynamic> notification;
   final VoidCallback onDelete;
   const _GenericInfoCard({
-    super.key,
     required this.notification,
     required this.onDelete,
   });

@@ -358,19 +358,21 @@ class _JobDetailContent extends StatelessWidget {
                   clientId: job.seekerId,
                   currentlyAssignedWorkerId: job.workerId!,
                 );
-                if (context.mounted)
+                if (context.mounted) {
                   _showSnackbar(
                     context,
                     'Worker has been unassigned. The job is now open.',
                     isError: false,
                   );
+                }
               } catch (e) {
-                if (context.mounted)
+                if (context.mounted) {
                   _showSnackbar(
                     context,
                     'Failed to change worker.',
                     isError: true,
                   );
+                }
               }
             },
             child: Text(
@@ -670,10 +672,11 @@ class _JobDetailContent extends StatelessWidget {
             ),
           );
         }
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return Text(
             appStrings?.applicantLoadError ?? 'Could not load applicants.',
           );
+        }
         final applicants = snapshot.data!;
         return _buildSection(
           title:
@@ -1693,8 +1696,9 @@ class _ReviewList extends StatelessWidget {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: firebaseService.streamWorkerReviews(workerId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final reviews = snapshot.data!;
         if (reviews.isEmpty) {
           return Container(

@@ -82,9 +82,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      if (_selectedPaymentMethod == 'Telebirr')
+      if (_selectedPaymentMethod == 'Telebirr') {
         await _processTelebirrPayment();
-      else if (_selectedPaymentMethod == 'CBE Birr')
+      } else if (_selectedPaymentMethod == 'CBE Birr')
         await _processCbeBirrPayment();
 
       if (mounted) {
@@ -287,10 +287,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
         key: const ValueKey('CbeInput'),
         onPressed: () async {
           var status = await Permission.camera.request();
-          if (status.isGranted)
+          if (status.isGranted) {
             setState(() => _isScanning = true);
-          else
+          } else {
             _showErrorSnackBar("Camera Permission needed for QR Scan.");
+          }
         },
         icon: Icon(_scannedCbeQrData != null
             ? Icons.check_circle_rounded
@@ -329,8 +330,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _onKeypadTap(String value) {
     HapticFeedback.lightImpact();
     if (value == 'backspace') {
-      if (_pin.isNotEmpty)
+      if (_pin.isNotEmpty) {
         setState(() => _pin = _pin.substring(0, _pin.length - 1));
+      }
     } else if (_pin.length < 6) {
       setState(() => _pin += value);
     }
@@ -475,7 +477,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         MobileScanner(onDetect: (capture) {
           if (!mounted ||
               capture.barcodes.isEmpty ||
-              capture.barcodes.first.rawValue == null) return;
+              capture.barcodes.first.rawValue == null) {
+            return;
+          }
           setState(() {
             _scannedCbeQrData = capture.barcodes.first.rawValue!;
             _isScanning = false;

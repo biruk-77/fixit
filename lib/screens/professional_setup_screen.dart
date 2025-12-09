@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -11,10 +10,8 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-
-// YOUR APP'S IMPORTS
 import '../../services/firebase_service.dart';
-import '../../services/app_string.dart'; // Assumes you have your localized strings here
+import '../../services/app_string.dart';
 import 'home/home_layout.dart';
 
 class ProfessionalSetupScreen extends StatefulWidget {
@@ -30,8 +27,6 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
   final _firebaseService = FirebaseService();
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
-
-  // --- State Management ---
   int _currentPage = 0;
   bool _isSaving = false;
   double _profileStrength = 0.0;
@@ -45,12 +40,12 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
 
-  Map<String, List<dynamic>> _galleryImageFiles = {
+  final Map<String, List<dynamic>> _galleryImageFiles = {
     'Before/After': [],
     'Work Process': [],
     'Tools & Gear': [],
   };
-  List<XFile> _certificationImageFiles = [];
+  final List<XFile> _certificationImageFiles = [];
 
   // --- Form Controllers ---
   final _nameController = TextEditingController();
@@ -63,7 +58,7 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
 
   // --- Data & Logic ---
   List<String> _skills = [];
-  Map<String, TimeRange> _availability = {
+  final Map<String, TimeRange> _availability = {
     'Mon': TimeRange(
       const TimeOfDay(hour: 9, minute: 0),
       const TimeOfDay(hour: 17, minute: 0),
@@ -185,30 +180,33 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Location services are disabled.')),
           );
+        }
         return;
       }
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted)
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Location permissions are denied.')),
             );
+          }
           return;
         }
       }
       if (permission == LocationPermission.deniedForever) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Location permissions are permanently denied.'),
             ),
           );
+        }
         return;
       }
       Position position = await Geolocator.getCurrentPosition(
@@ -229,10 +227,11 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
         _locationController.text = address;
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isFetchingLocation = false);
     }
@@ -559,8 +558,9 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final appStrings = AppLocalizations.of(context);
-    if (appStrings == null)
+    if (appStrings == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final pages = [
       _buildWelcomePage(theme, appStrings),
       _buildBasicInfoPage(theme, appStrings),
@@ -602,7 +602,7 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
                       decoration: BoxDecoration(
                         color: index <= _currentPage
                             ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceVariant,
+                            : theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -662,7 +662,7 @@ class _ProfessionalSetupScreenState extends State<ProfessionalSetupScreen> {
             percent: _profileStrength,
             lineHeight: 8.0,
             barRadius: const Radius.circular(4),
-            backgroundColor: theme.colorScheme.surfaceVariant,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
             progressColor: Color.lerp(
               Colors.orange.shade300,
               theme.colorScheme.primary,
@@ -1251,7 +1251,6 @@ class _MediaGridUploader extends StatelessWidget {
     );
   }
 }
-
 class _CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -1260,14 +1259,16 @@ class _CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final bool isNumeric, isRequired;
   final int maxLines;
+
   const _CustomTextField({
+    super.key, // Good practice
     required this.controller,
     required this.label,
     this.hint,
     this.icon,
     this.suffixIcon,
     this.isNumeric = false,
-    this.isRequired = true,
+    this.isRequired = false, // <--- THIS WAS MISSING
     this.maxLines = 1,
   });
 
@@ -1291,7 +1292,7 @@ class _CustomTextField extends StatelessWidget {
         ),
         validator: isRequired
             ? (v) =>
-                  (v == null || v.trim().isEmpty) ? '$label is required.' : null
+                (v == null || v.trim().isEmpty) ? '$label is required.' : null
             : null,
       ),
     );

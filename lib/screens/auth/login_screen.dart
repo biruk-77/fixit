@@ -704,8 +704,9 @@ class _AnimatedHeadlineState extends State<_AnimatedHeadline> {
 
   @override
   Widget build(BuildContext context) {
-    if (_headlines.isEmpty)
+    if (_headlines.isEmpty) {
       return const SizedBox.shrink(); // Guard against empty list
+    }
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 500),
@@ -807,7 +808,7 @@ Widget _buildHeader(ThemeData theme, AppStrings appStrings) {
             ),
             TextSpan(
               text: appStrings.appName,
-              style: TextStyle(color: theme.colorScheme.onBackground),
+              style: TextStyle(color: theme.colorScheme.onSurface),
             ),
           ],
         ),

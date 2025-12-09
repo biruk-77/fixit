@@ -1,7 +1,7 @@
 // lib/ui/panels/ai_chat_panel.dart
 
-import 'dart:convert'; // <-- FIX: Added for jsonDecode
-import 'dart:ui'; // <-- FIX: Added for ImageFilter
+import 'dart:convert';
+import 'dart:ui';
 import 'package:animate_do/animate_do.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +11,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:image/image.dart' as img; // For fixing image decoding errors
+import 'package:image/image.dart' as img;
 import '../../models/chat_messageai.dart';
 import '../../models/worker.dart';
 import '../../services/ai_chat_service.dart';
@@ -157,11 +157,12 @@ class _AiChatPanelState extends State<AiChatPanel> {
 
   Future<void> _stop() async {
     await _flutterTts.stop();
-    if (mounted)
+    if (mounted) {
       setState(() {
         _ttsState = TtsState.stopped;
         _currentlyPlayingId = null;
       });
+    }
   }
 
   // ### FIX: COMBINED AND ROBUST SEND MESSAGE FUNCTION ###
@@ -340,8 +341,9 @@ class _AiChatPanelState extends State<AiChatPanel> {
                         padding: const EdgeInsets.all(16),
                         itemCount: _messages.length + (_isLoading ? 1 : 0),
                         itemBuilder: (context, index) {
-                          if (index < _messages.length)
+                          if (index < _messages.length) {
                             return _buildMessageBubble(_messages[index], theme);
+                          }
                           return _buildTypingIndicator(theme);
                         },
                       ),
@@ -796,18 +798,24 @@ class _AiChatPanelState extends State<AiChatPanel> {
   }
 
   ({IconData icon, Color color}) _getIconForType(String type) {
-    if (type.contains('job_request'))
+    if (type.contains('job_request')) {
       return (icon: Icons.work_outline, color: Colors.blue);
-    if (type.contains('job_accepted'))
+    }
+    if (type.contains('job_accepted')) {
       return (icon: Icons.check_circle_outline, color: Colors.green);
-    if (type.contains('job_rejected'))
+    }
+    if (type.contains('job_rejected')) {
       return (icon: Icons.cancel_outlined, color: Colors.redAccent);
-    if (type.contains('job_completed'))
+    }
+    if (type.contains('job_completed')) {
       return (icon: Icons.task_alt, color: Colors.purple);
-    if (type.contains('job_started'))
+    }
+    if (type.contains('job_started')) {
       return (icon: Icons.directions_run, color: Colors.orange);
-    if (type.contains('message'))
+    }
+    if (type.contains('message')) {
       return (icon: Icons.message_outlined, color: Colors.teal);
+    }
     return (icon: Icons.notifications_active_outlined, color: Colors.blueGrey);
   }
 
@@ -893,15 +901,30 @@ class _AiChatPanelState extends State<AiChatPanel> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // CORRECTED CODE
                 IconButton.filled(
                   key: const ValueKey('send_button'),
                   icon: const Icon(Icons.send_rounded),
                   onPressed: (_isLoading || !hasContent) ? null : _sendMessage,
                   style: IconButton.styleFrom(
+                    // --- All your styling goes inside here ---
+
+                    // 1. This is the main background color.
+                    backgroundColor: Colors.black,
+
+                    // 2. Add a foregroundColor so the icon is visible on the black background.
+                    foregroundColor: Colors.white,
+
+                    // 3. This is the correct place for the hover color.
+                    hoverColor: Colors.amber,
+
+                    // 4. Your padding was already correct.
                     padding: const EdgeInsets.all(12),
-                    backgroundColor: theme.colorScheme.primary,
-                    disabledBackgroundColor: theme.colorScheme.primary
-                        .withOpacity(0.5),
+
+                    // 5. Your disabled color logic was also correct.
+                    //    I'll adjust it slightly to look better with a black button.
+                    disabledBackgroundColor: Colors.grey.shade800,
+                    disabledForegroundColor: Colors.grey.shade500,
                   ),
                 ),
               ],
@@ -936,7 +959,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
                 child: Icon(Icons.close, color: Colors.white, size: 18),
               ),
               onPressed: () => setState(
-                () => {_pickedImageBytes = null, _pickedImageMimeType = null},
+                () {_pickedImageBytes = null; _pickedImageMimeType = null;},
               ),
             ),
           ],
@@ -953,11 +976,11 @@ class TouchableCardWrapper extends StatefulWidget {
   final BorderRadius borderRadius;
 
   const TouchableCardWrapper({
-    Key? key,
+    super.key,
     required this.child,
     required this.onTap,
     this.borderRadius = const BorderRadius.all(Radius.circular(16)),
-  }) : super(key: key);
+  });
 
   @override
   _TouchableCardWrapperState createState() => _TouchableCardWrapperState();

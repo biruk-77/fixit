@@ -2,7 +2,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiService {
   // Make sure this key is correct and has the Vertex AI API enabled in your Google Cloud project.
-  static const String _apiKey = 'AIzaSyD6xWiEtZiq3rD0-gb7-VefOm3VlFz0ecg';
+  static const String _apiKey = 'AIzaSyCnZWuqbyyUw86ajDqzT_X3R06JGIACkuk';
 
   // Public getter for the API key (to be used by AiChatService)
   String get apiKey => _apiKey; // <-- NEW: Public getter for API key

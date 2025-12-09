@@ -233,7 +233,7 @@ class _ChatListPaneState extends State<ChatListPane> {
             children: [
               _ChatListItem(
                 chatData: aiChatData,
-                currentUserId: _currentUserId!,
+                currentUserId: _currentUserId,
                 isSelected: AI_USER_ID == widget.selectedUserId,
                 onTap: () => widget.onChatSelected(AI_USER_ID),
               ),
@@ -255,7 +255,7 @@ class _ChatListPaneState extends State<ChatListPane> {
             return _ChatListItem(
               key: ValueKey(otherUserId),
               chatData: chatData,
-              currentUserId: _currentUserId!,
+              currentUserId: _currentUserId,
               isSelected: otherUserId == widget.selectedUserId,
               onTap: () {
                 if (otherUserId.isNotEmpty) {

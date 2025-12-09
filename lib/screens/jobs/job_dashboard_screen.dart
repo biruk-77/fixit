@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shimmer/shimmer.dart'; // For shimmer effect
+// For shimmer effect
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; // For staggered animations
 
 import '../../models/job.dart';
@@ -449,7 +449,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.background, // Using theme color
+      backgroundColor: colorScheme.surface, // Using theme color
       appBar: AppBar(
         // --- MODIFICATION: AppBar now dynamically shows title or search field ---
         title: _isSearching
@@ -525,13 +525,13 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
                 context,
                 '/post-job',
               ).then((_) => _loadUserData()),
-              backgroundColor: colorScheme.secondary, // Accent color from theme
+              backgroundColor: colorScheme.secondary, // Icon color from theme
+              elevation: 4, // Accent color from theme
               child: Icon(
                 Icons.add,
                 size: 28,
                 color: colorScheme.onSecondary,
-              ), // Icon color from theme
-              elevation: 4,
+              ),
             )
           : null,
     );
@@ -1526,15 +1526,15 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
                             if (job.status == 'started working' && _isWorker)
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: () => _startWork1(job),
-                                  child: Text(
-                                    appStrings.startButton,
-                                  ), // Using AppStrings
+                                  onPressed: () => _startWork1(job), // Using AppStrings
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: colorScheme
                                         .primary, // Using theme color
                                     foregroundColor: colorScheme
                                         .onPrimary, // Using theme color
+                                  ),
+                                  child: Text(
+                                    appStrings.startButton,
                                   ),
                                 ),
                               ),
@@ -1544,15 +1544,15 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
                                 onPressed: () => _completeJob(
                                   job,
                                   _firebaseService.getCurrentUser()!.uid,
-                                ),
-                                child: Text(
-                                  appStrings.completeButton,
                                 ), // Using AppStrings
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: colorScheme
                                       .secondary, // Using theme color
                                   foregroundColor: colorScheme
                                       .onSecondary, // Using theme color
+                                ),
+                                child: Text(
+                                  appStrings.completeButton,
                                 ),
                               ),
                             ),
@@ -1617,7 +1617,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
               decoration: BoxDecoration(
                 color: isActive
                     ? colorScheme.primary
-                    : colorScheme.surfaceVariant, // Using theme color
+                    : colorScheme.surfaceContainerHighest, // Using theme color
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -1942,17 +1942,9 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
               // --- Worker Info Section (No Changes) ---
               CircleAvatar(
                 radius: 28,
-                backgroundColor: colorScheme.surfaceVariant,
-                backgroundImage: applicant.profileImage != null
-                    ? NetworkImage(applicant.profileImage!)
-                    : null,
-                child: applicant.profileImage == null
-                    ? Icon(
-                        Icons.person,
-                        size: 28,
-                        color: colorScheme.onSurfaceVariant,
-                      )
-                    : null,
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                backgroundImage: NetworkImage(applicant.profileImage),
+                child: null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -2179,7 +2171,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
             Text(
               title,
               style: textTheme.headlineSmall?.copyWith(
-                color: colorScheme.onBackground,
+                color: colorScheme.onSurface,
               ), // Using theme text & color
               textAlign: TextAlign.center,
             ),
@@ -2294,10 +2286,10 @@ class JobApplicationsScreen extends StatefulWidget {
   final String clientId; // Guaranteed to be non-empty
 
   const JobApplicationsScreen({
-    Key? key,
+    super.key,
     required this.job,
     required this.clientId, // Receives the guaranteed ID
-  }) : super(key: key);
+  });
 
   @override
   _JobApplicationsScreenState createState() => _JobApplicationsScreenState();
@@ -2443,7 +2435,7 @@ class _JobApplicationsScreenState extends State<JobApplicationsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(
         context,
-      ).colorScheme.surfaceVariant.withOpacity(0.3),
+      ).colorScheme.surfaceContainerHighest.withOpacity(0.3),
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2513,9 +2505,9 @@ class _JobApplicationsScreenState extends State<JobApplicationsScreen> {
                         tag: 'applicant-avatar-${applicant.id}',
                         child: CircleAvatar(
                           radius: 32,
-                          backgroundColor: colorScheme.surfaceVariant,
+                          backgroundColor: colorScheme.surfaceContainerHighest,
                           backgroundImage: _isValidUrl(applicant.profileImage)
-                              ? NetworkImage(applicant.profileImage!)
+                              ? NetworkImage(applicant.profileImage)
                               : null,
                           child: !_isValidUrl(applicant.profileImage)
                               ? const Icon(Icons.person, size: 32)
@@ -2600,7 +2592,7 @@ class _JobApplicationsScreenState extends State<JobApplicationsScreen> {
     final isassigned = ['assigned'].contains(_currentJob.status);
 
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Builder(
         builder: (context) {

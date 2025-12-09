@@ -4,7 +4,6 @@ import 'notification_service.dart'; // FIX #2: ADD THIS for NotificationService
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
 import 'dart:io';
 import 'package:flutter/foundation.dart'
     show kIsWeb; // For checking web platform
@@ -597,8 +596,9 @@ class FirebaseService {
       );
 
       if (kIsWeb) {
-        if (platformFile.bytes == null)
+        if (platformFile.bytes == null) {
           throw Exception("File bytes are null for web upload.");
+        }
         await _supabaseClient.storage
             .from(videoBucket)
             .uploadBinary(
@@ -607,8 +607,9 @@ class FirebaseService {
               fileOptions: fileOptions,
             );
       } else {
-        if (platformFile.path == null)
+        if (platformFile.path == null) {
           throw Exception("File path is null for mobile upload.");
+        }
         await _supabaseClient.storage
             .from(videoBucket)
             .upload(
@@ -667,6 +668,7 @@ class FirebaseService {
       print('An unknown error occurred during Supabase upload: $e');
       return null;
     }
+    return null;
   }
 
   // Search workers by skill or profession
@@ -2149,16 +2151,14 @@ class FirebaseService {
         data: {'jobId': jobId, 'status': status},
       );
       // Send notification to worker
-      if (workerId != null) {
-        await createNotification(
-          userId: workerId,
-          title: 'Job Status Updated',
-          body: 'A job you are working on ($jobId) changed to $status.',
-          type: 'job_status_update',
-          data: {'jobId': jobId, 'status': status},
-        );
-      }
-      return true;
+      await createNotification(
+        userId: workerId,
+        title: 'Job Status Updated',
+        body: 'A job you are working on ($jobId) changed to $status.',
+        type: 'job_status_update',
+        data: {'jobId': jobId, 'status': status},
+      );
+          return true;
     } catch (e) {
       print('🔥 Error updating job status: $e');
       return false;
@@ -2225,7 +2225,7 @@ class FirebaseService {
       };
 
       for (final docRef in allRefs) {
-        final docSnap = await docRef!.get();
+        final docSnap = await docRef.get();
         if (docSnap.exists) {
           print('✅ Adding to batch: ${docRef.path}');
           batch.update(docRef, dataToUpdate);

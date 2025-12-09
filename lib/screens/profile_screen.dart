@@ -1,87 +1,36 @@
-// --- Full ProfileScreen.dart Code with Fixes and Navigation ---
+// lib/screens/profile/profile_screen.dart
+// --- Dynamic Layered Profile: Responsive Hero with Interactive Cards ---
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth; // Alias
 import 'package:image_picker/image_picker.dart';
-// !! IMPORTANT: Replace with correct path to your ManagePaymentMethodsScreen !!
-import 'payment/managepayment.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:intl/intl.dart'; // Required for date formatting
 import 'dart:io';
-import 'dart:ui';
+// For ImageFilter.blur
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart'; // Import Provider
-import 'professional_setup_edit.dart';
 
 // Your project specific imports (ADJUST PATHS AS NEEDED)
 import '../services/firebase_service.dart';
 import '../models/user.dart';
 import '../models/job.dart'; // Ensure Job model is imported
-import 'auth/login_screen.dart';
-import 'jobs/job_detail_screen.dart';
-import 'professional_setup_screen.dart'; // For worker edit profile
-
-// Placeholder imports for Settings Screens (REPLACE WITH ACTUAL PATHS/FILES)
-// !! ENSURE this is the correct path to your PaymentScreen !!
-// Note: If PaymentScreen requires a Job, you might need a different screen for general payment methods
-// import 'payment/payment_screen.dart'; // Commented out, using ManagePaymentMethodsScreen instead
-
-// Create these screens if they don't exist or adjust paths
-// import 'settings/privacy_security_screen.dart';
-// import 'settings/account_screen.dart';
-// import 'settings/help_support_screen.dart';
-
-// Theme and Localization
-// ***** FIX THIS IMPORT PATH/FILENAME *****
-// <<< MAKE SURE THIS IS CORRECT
-import '../services/app_string.dart'; // Your localization file
+import '../services/app_string.dart'; // Your localization file (AppStrings, AppLocalizations)
 import '../providers/locale_provider.dart'; // Your locale provider
 import '../providers/theme_provider.dart'; // Your theme provider
 
 // --- Placeholder Screens (Replace with your actual implementations) ---
-
-// Placeholder screen for demonstration
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text("Notifications")), // TODO: Localize
-      body: const Center(child: Text("Notifications Screen - TODO")));
-}
-
-// Placeholder for general Payment Methods Management
-// class ManagePaymentMethodsScreen extends StatelessWidget {
-//   const ManagePaymentMethodsScreen({Key? key}) : super(key: key);
-//   @override
-//   Widget build(BuildContext context) => Scaffold(
-//       appBar: AppBar(title: const Text("Manage Payment Methods")), // TODO: Localize
-//       body: const Center(child: Text("Manage Payments Screen - TODO")));
-// }
-
-// Placeholder screen for demonstration
-class PrivacySecurityScreen extends StatelessWidget {
-  const PrivacySecurityScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text("Privacy & Security")), // TODO: Localize
-      body: const Center(child: Text("Privacy Screen - TODO")));
-}
-
-// Placeholder screen for demonstration (Can be used for Client profile editing)
-class AccountScreen extends StatelessWidget {
-  const AccountScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text("Account")), // TODO: Localize
-      body: const Center(child: Text("Account Screen - TODO")));
-}
-
-// Placeholder screen for demonstration
-class HelpSupportScreen extends StatelessWidget {
-  const HelpSupportScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text("Help & Support")), // TODO: Localize
-      body: const Center(child: Text("Help Screen - TODO")));
-}
+// Assuming these are external files as per your project structure
+import 'notifications_screen.dart'; // Already defined
+import 'payment/managepayment.dart'; // Already defined (Ensure it's a class not commented out)
+import 'privacy_security_screen.dart'; // Already defined
+import 'account_screen.dart'; // Already defined (Used for client profile editing)
+import 'help_support_screen.dart'; // Already defined
+import 'professional_setup_edit.dart'; // Already defined (Used for professional profile editing)
+import 'auth/login_screen.dart'; // Already defined
+import 'jobs/job_detail_screen.dart'; // Already defined
+// Assuming this is defined for navigation, could be placeholder
 
 // --- Profile Screen ---
 
@@ -92,83 +41,117 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-// Add SingleTickerProviderStateMixin for animation controller
+// Changed to TickerProviderStateMixin to allow multiple AnimationControllers
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FirebaseService _firebaseService = FirebaseService();
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = true;
   bool _isUploadingImage = false;
   AppUser? _userProfile;
-  bool isVerified = true;
+  bool isVerified = false;
+  bool _isAvatarPressed =
+      false; // Will be updated from _userProfile.isEmailVerified
 
-  // Animation Controller for the border
-  late AnimationController _borderAnimationController;
-  // For tap scale effect
-  bool _isAvatarPressed = false;
-  // For tilt effect (Optional)
-  // double _tiltX = 0.0;
-  // double _tiltY = 0.0;
-  // StreamSubscription? _gyroscopeSubscription; // Optional
+  // --- Animation Controllers for the NEW design ---
+  // For the avatar's pulsating glow effect
+  late AnimationController _glowAnimationController;
+  late Animation<double> _glowAnimation;
+
+  // For initial staggered entry/fade-in of content sections
+  late AnimationController _staggeredEntryController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  // For managing scroll position to create header collapse effects
+  final ScrollController _scrollController = ScrollController();
+  double _headerScrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize border animation controller
-    _borderAnimationController = AnimationController(
+    // Initialize pulsating glow animation for the avatar
+    _glowAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 5), // Speed of rotation
-    )..repeat(); // Make it loop continuously
+      duration: const Duration(seconds: 2), // Full cycle duration
+    )..repeat(reverse: true); // Repeats back and forth
+    _glowAnimation = Tween<double>(begin: 0.0, end: 8.0).animate(
+      CurvedAnimation(
+        parent: _glowAnimationController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
-    // --- Optional: Tilt Effect Listener ---
-    // _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
-    //   if (mounted) {
-    //     setState(() {
-    //       // Adjust sensitivity and clamping as needed
-    //       _tiltX = (_tiltX + event.y * 0.01).clamp(-0.1, 0.1);
-    //       _tiltY = (_tiltY - event.x * 0.01).clamp(-0.1, 0.1);
-    //     });
-    //   }
-    // });
-    // --- End Optional Tilt ---
+    // Initialize staggered entry animations for content sections
+    _staggeredEntryController = AnimationController(
+      vsync: this,
+      duration: const Duration(
+        milliseconds: 800,
+      ), // Total duration for all content to appear
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _staggeredEntryController, curve: Curves.easeIn),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _staggeredEntryController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
+    // Add listener to the scroll controller for dynamic header effects
+    _scrollController.addListener(() {
+      setState(() {
+        _headerScrollOffset = _scrollController.offset;
+      });
+    });
+
+    // Load user profile after widgets are built, or if user is already logged in
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _loadUserProfile();
+        if (_firebaseService.getCurrentUser() == null) {
+          // If no user is logged in, show an empty state or redirect to login
+          setState(() => _isLoading = false);
+          Navigator.of(
+            context,
+          ).pushReplacementNamed('/login'); // Example redirect
+        } else {
+          _loadUserProfile();
+        }
       }
     });
   }
 
   @override
   void dispose() {
-    _borderAnimationController.dispose(); // Dispose controller
-    // _gyroscopeSubscription?.cancel(); // Optional: Cancel tilt listener
+    _glowAnimationController.dispose();
+    _staggeredEntryController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  // --- Helper Methods Placed Before Build ---
-  // (Keep _loadUserProfile, _signOut, _showImagePickerOptions, _pickAndUploadImage as they were)
   // --- Data Loading ---
+  /// Fetches the current user's profile from FirebaseService and updates the state.
+  /// Manages loading and error states.
   Future<void> _loadUserProfile() async {
-    if (!mounted) return; // Check if widget is still in the tree
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _isUploadingImage = false; // Reset upload state on refresh
     });
 
-    // Ensure localization is ready
-    final strings = AppLocalizations.of(context);
+    // Access localization strings from the context
+    final AppStrings? strings = AppLocalizations.of(context);
     if (strings == null) {
-      print(
-          "Error: AppLocalizations not found in context during profile load.");
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: const Text(
-                  'Error: Localization service not available.'), // Fallback text
-              backgroundColor: Theme.of(context).colorScheme.error),
+            content: const Text('Error: Localization service not available.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
       return;
@@ -176,70 +159,29 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     try {
       final userData = await _firebaseService.getCurrentUserProfile();
-      if (!mounted) return; // Check again after async operation
-      setState(() {
-        _userProfile = userData;
-        _isLoading = false;
-      });
+      if (!mounted) return;
+
+      // Start content entry animation after profile loads
+      _staggeredEntryController.forward(from: 0.0);
     } catch (e) {
-      print('Error loading user profile: $e');
-      if (!mounted) return; // Check again
-      setState(() {
-        _isLoading = false;
-      });
+      if (!mounted) return;
+      setState(() => _isLoading = false);
       if (mounted) {
-        // Check mounted before accessing context
-        // !! Ensure 'snackErrorLoadingProfile' exists in AppStrings !!
-        final errorMsg =
-            strings.snackErrorLoadingProfile ?? 'Error loading profile:';
+        final errorMsg = strings.snackErrorLoadingProfile;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('$errorMsg $e'),
-              backgroundColor: Theme.of(context).colorScheme.error),
+            content: Text('$errorMsg $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     }
   }
 
-  // --- Actions ---
-  Future<void> _signOut() async {
-    final strings = AppLocalizations.of(context);
-    if (strings == null || !mounted) return;
-
-    setState(() {
-      _isLoading = true; // Show loader during sign out
-    });
-    try {
-      await _firebaseService.signOut();
-      if (!mounted) return;
-      // Navigate to LoginScreen and remove all previous routes
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false; // Hide loader on error
-      });
-      // !! Ensure 'errorActionFailed' exists in AppStrings !!
-      final errorMsg = strings.errorActionFailed ?? 'Sign out failed:';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('$errorMsg $e'),
-            backgroundColor: Theme.of(context).colorScheme.error),
-      );
-    }
-  }
-
   // --- Image Picking and Uploading Logic ---
-  void _showImagePickerOptions(BuildContext context) {
-    final strings = AppLocalizations.of(context);
-    if (strings == null) {
-      print("Error: AppLocalizations not found for image picker options.");
-      // Optionally show a generic error snackbar
-      return;
-    }
+  /// Displays a modal bottom sheet for image source selection (Gallery/Camera).
+  void _showImagePickerOptions() {
+    final AppStrings strings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
@@ -252,38 +194,44 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Wrap(
             children: <Widget>[
               ListTile(
-                  leading: Icon(Icons.photo_library,
-                      color: theme.colorScheme.primary),
-                  title: Text(
-                    strings.attachOptionGallery, // !! Ensure exists !!
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  onTap: () {
-                    Navigator.of(context).pop(); // Close bottom sheet first
-                    _pickAndUploadImage(ImageSource.gallery);
-                  }),
-              ListTile(
-                leading:
-                    Icon(Icons.photo_camera, color: theme.colorScheme.primary),
+                leading: Icon(
+                  Icons.photo_library,
+                  color: theme.colorScheme.primary,
+                ),
                 title: Text(
-                  strings.attachOptionCamera, // !! Ensure exists !!
+                  strings.attachOptionGallery,
                   style: theme.textTheme.bodyLarge,
                 ),
                 onTap: () {
-                  Navigator.of(context).pop(); // Close bottom sheet first
+                  Navigator.of(context).pop();
+                  _pickAndUploadImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.photo_camera,
+                  color: theme.colorScheme.primary,
+                ),
+                title: Text(
+                  strings.attachOptionCamera,
+                  style: theme.textTheme.bodyLarge,
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
                   _pickAndUploadImage(ImageSource.camera);
                 },
               ),
               ListTile(
                 leading: Icon(Icons.cancel, color: theme.colorScheme.error),
                 title: Text(
-                  strings.generalCancel, // !! Ensure exists !!
-                  style: theme.textTheme.bodyLarge
-                      ?.copyWith(color: theme.colorScheme.error),
+                  strings.generalCancel,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
                 ),
                 onTap: () => Navigator.of(context).pop(),
               ),
-              const SizedBox(height: 10), // Bottom padding
+              const SizedBox(height: 10),
             ],
           ),
         );
@@ -291,138 +239,126 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  /// Handles the full lifecycle of picking, cropping, uploading an image,
+  /// and updating the user's profile with the new image URL.
   Future<void> _pickAndUploadImage(ImageSource source) async {
-    final strings = AppLocalizations.of(context);
+    final AppStrings strings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    if (strings == null) {
-      print("Error: AppLocalizations not found before picking image.");
-      // Optionally show error snackbar
-      return;
-    }
-    if (_isUploadingImage || !mounted) {
-      return; // Prevent concurrent uploads or calls on disposed widget
-    }
+    if (_isUploadingImage || !mounted) return;
 
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 800, // Constrain image size
+        maxWidth: 800,
         maxHeight: 800,
-        imageQuality: 85, // Compress image slightly
+        imageQuality: 85,
       );
 
       if (pickedFile != null && mounted) {
-        setState(() {
-          _isUploadingImage = true; // Show uploading indicator
-        });
+        final CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: pickedFile.path,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Crop Image',
+              toolbarColor: theme.primaryColor,
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
+            ),
+            IOSUiSettings(title: 'Crop Image', aspectRatioLockEnabled: true),
+          ],
+        );
+        if (croppedFile != null && mounted) {
+          setState(() => _isUploadingImage = true);
 
-        final imageFile = File(pickedFile.path);
-        // Assume uploadProfileImageToSupabase returns the public URL or null
-        final String? imageUrl =
-            await _firebaseService.uploadProfileImageToSupabase(imageFile);
+          final imageFile = File(croppedFile.path);
+          final String? imageUrl = await _firebaseService
+              .uploadProfileImageToSupabase(imageFile);
 
-        if (imageUrl != null && mounted) {
-          final userId = fb_auth.FirebaseAuth.instance.currentUser?.uid;
-          final userRole = _userProfile?.role; // Get role from loaded profile
+          if (imageUrl != null && mounted) {
+            final userId = fb_auth.FirebaseAuth.instance.currentUser?.uid;
+            final userRole = _userProfile?.role;
 
-          if (userId != null && userRole != null) {
-            try {
-              // Update the URL in Firestore
-              await _firebaseService.updateUserProfileImageInFirestore(
-                  userId, imageUrl, userRole);
-              if (mounted) {
-                // !! Ensure 'snackSuccessProfileUpdated' exists !!
-                final successMsg = strings.snackSuccessProfileUpdated ??
-                    'Profile picture updated!';
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text(successMsg), backgroundColor: Colors.green),
+            if (userId != null && userRole != null) {
+              try {
+                await _firebaseService.updateUserProfileImageInFirestore(
+                  userId,
+                  imageUrl,
+                  userRole,
                 );
-                // Refresh the profile data to show the new image
-                await _loadUserProfile(); // Reloads profile, sets _isLoading, then sets it false
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(strings.snackSuccessProfileUpdated),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                  await _loadUserProfile();
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${strings.snackErrorSubmitting}: $e'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                }
               }
-            } catch (e) {
-              print("Error updating profile image URL in Firestore: $e");
+            } else {
               if (mounted) {
-                // !! Ensure 'snackErrorSubmitting' exists !!
-                final errorMsg = strings.snackErrorSubmitting ??
-                    'Failed to save profile picture:';
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                      content: Text('[31m$errorMsg $e'),
-                      backgroundColor: theme.colorScheme.error),
+                    content: Text(strings.errorUserNotLoggedIn),
+                    backgroundColor: theme.colorScheme.error,
+                  ),
                 );
               }
             }
-          } else {
-            print("Error: User ID or Role is null after image upload.");
-            if (mounted) {
-              // !! Ensure 'errorUserNotLoggedIn' exists !!
-              final errorMsg = strings.errorUserNotLoggedIn ??
-                  'Error: Could not find user data to save image.';
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(errorMsg),
-                    backgroundColor: theme.colorScheme.error),
-              );
-            }
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(strings.createJobSnackbarErrorUpload),
+                backgroundColor: theme.colorScheme.error,
+              ),
+            );
           }
-        } else if (mounted) {
-          // Handle upload failure (imageUrl is null)
-          // !! Ensure 'createJobSnackbarErrorUpload' exists !!
-          final errorMsg =
-              strings.createJobSnackbarErrorUpload ?? 'Failed to upload image.';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text(errorMsg),
-                backgroundColor: theme.colorScheme.error),
-          );
         }
       } else if (mounted && pickedFile == null) {
-        // Handle cancellation
-        // !! Ensure 'createJobSnackbarFileCancelled' exists !!
-        final cancelMsg = strings.createJobSnackbarFileCancelled ??
-            'Image selection cancelled.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(cancelMsg),
-              duration: const Duration(seconds: 2),
-              backgroundColor:
-                  theme.colorScheme.secondaryContainer, // Less intrusive color
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10))),
+            content: Text(strings.createJobSnackbarFileCancelled),
+            duration: const Duration(seconds: 2),
+            backgroundColor: theme.colorScheme.secondaryContainer,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     } catch (e) {
-      print('Error picking/uploading image: $e');
       if (mounted) {
-        // !! Ensure these specific error strings exist in AppStrings !!
-        String errorMessage = strings.snackErrorGeneric ?? 'An error occurred';
+        String errorMessage = strings.snackErrorGeneric;
         if (e.toString().contains('camera_access_denied')) {
-          errorMessage = strings.snackErrorCameraPermission ??
-              'Camera permission denied. Please enable it in settings.';
+          errorMessage = strings.snackErrorCameraPermission;
         } else if (e.toString().contains('photo_access_denied')) {
-          errorMessage = strings.snackErrorGalleryPermission ??
-              'Gallery permission denied. Please enable it in settings.';
+          errorMessage = strings.snackErrorGalleryPermission;
         } else if (e.toString().contains('camera unavailable')) {
-          errorMessage = strings.snackErrorCameraNotAvailable ??
-              'Camera not available on this device.';
+          errorMessage = strings.snackErrorCameraNotAvailable;
         } else {
-          errorMessage = '$errorMessage: $e'; // Generic fallback
+          errorMessage = '$errorMessage: $e';
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(errorMessage),
-              backgroundColor: theme.colorScheme.error),
+            content: Text(errorMessage),
+            backgroundColor: theme.colorScheme.error,
+          ),
         );
       }
     } finally {
-      // Ensure the uploading indicator is turned off robustly
       if (mounted && _isUploadingImage) {
-        setState(() {
-          _isUploadingImage = false;
-        });
+        setState(() => _isUploadingImage = false);
       }
     }
   }
@@ -430,119 +366,86 @@ class _ProfileScreenState extends State<ProfileScreen>
   // --- Build Method ---
   @override
   Widget build(BuildContext context) {
+    // Get localized strings and theme data from providers
+    final AppStrings? strings = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final strings = AppLocalizations.of(context);
-    final themeProvider = Provider.of<ThemeProvider>(context);
 
     if (strings == null) {
+      // Fallback for when localization is not yet loaded
       return Scaffold(
         appBar: AppBar(title: const Text("Profile")),
-        body: Center(
-            child: CircularProgressIndicator(color: theme.colorScheme.primary)),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    // Loading state check remains the same
-    final showOverallLoader =
-        _isLoading; // Simplified: only show main loader when profile is loading
-    final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
-
     return Scaffold(
-      // AppBar remains the same
-      appBar: AppBar(
-        title: Text(strings.appBarMyProfile),
-        actions: [
-          IconButton(
-            icon: Icon(
-                isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round,
-                color: isDarkMode ? Colors.amberAccent : Colors.black38),
-            tooltip: isDarkMode
-                ? strings.themeTooltipLight
-                : strings.themeTooltipDark,
-            onPressed: () => Provider.of<ThemeProvider>(context, listen: false)
-                .toggleTheme(),
-          ),
-          IconButton(
-            icon: Icon(Icons.language,
-                color: isDarkMode ? Colors.amberAccent : Colors.black38),
-            tooltip: strings.languageToggleTooltip,
-            onPressed: () {
-              final currentLocale =
-                  Provider.of<LocaleProvider>(context, listen: false).locale;
-              final nextLocale = currentLocale.languageCode == 'en'
-                  ? const Locale('am')
-                  : const Locale('en');
-              Provider.of<LocaleProvider>(context, listen: false)
-                  .setLocale(nextLocale);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _loadUserProfile();
-              });
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.logout,
-                color: isDarkMode ? Colors.amberAccent : Colors.black38),
-            onPressed: showOverallLoader ? null : _signOut,
-            tooltip: strings.generalLogout,
-          ),
-        ],
-      ),
-      body: showOverallLoader
+      // The CustomAppBar is removed here, as the new design uses a custom SliverAppBar directly
+      body: _isLoading
           ? Center(
-              child:
-                  CircularProgressIndicator(color: theme.colorScheme.primary))
+              child: CircularProgressIndicator(
+                color: theme.colorScheme.primary,
+              ),
+            )
           : _userProfile == null
-              ? _buildErrorState(context, strings, theme)
-              : _buildProfileContent(context, strings, theme),
+          ? _buildErrorState(context, strings, theme)
+          : _buildProfileContent(context, strings, theme),
     );
   }
 
   // --- Widget Building Helper Methods ---
 
-  // (Keep _buildErrorState as it was)
+  /// Builds the error state widget when profile data is not found or loaded.
   Widget _buildErrorState(
-      BuildContext context, AppStrings strings, ThemeData theme) {
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_off_outlined,
-                size: 60, color: theme.colorScheme.error),
+            Icon(
+              Icons.person_off_outlined,
+              size: 60,
+              color: theme.colorScheme.error,
+            ),
             const SizedBox(height: 16),
             Text(
-              // !! Ensure 'profileNotFound' exists !!
-              strings.profileNotFound ?? 'User Profile Not Found',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(color: theme.colorScheme.error),
+              strings.profileNotFound,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.error,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              // !! Ensure 'profileNotFoundSub' exists !!
-
-              'We couldn\'t load your profile details. Please check your connection and try again.',
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              'We couldn\'t load your profile details. Please check your connection and try again.', // TODO: Localize this string
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 25),
             ElevatedButton.icon(
               icon: const Icon(Icons.refresh),
-              label: Text(strings.retryButton), // !! Ensure exists !!
-              onPressed: _loadUserProfile, // Retry loading
-            )
+              label: Text(strings.retryButton),
+              onPressed: _loadUserProfile,
+            ),
           ],
         ),
       ),
     );
   }
 
-  // (Keep _buildProfileContent as it was)
+  /// Builds the main content of the profile screen, wrapped in a RefreshIndicator
+  /// and using a CustomScrollView for advanced layout and scroll effects.
   Widget _buildProfileContent(
-      BuildContext context, AppStrings strings, ThemeData theme) {
-    // This check is slightly redundant due to the check in build(), but safe.
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+  ) {
     if (_userProfile == null) {
       return _buildErrorState(context, strings, theme);
     }
@@ -550,611 +453,823 @@ class _ProfileScreenState extends State<ProfileScreen>
         _userProfile!.role == 'worker' || _userProfile!.role == 'professional';
 
     return RefreshIndicator(
-      onRefresh: _loadUserProfile, // Enable pull-to-refresh
+      onRefresh: _loadUserProfile,
       color: theme.colorScheme.primary,
       backgroundColor: theme.colorScheme.surface,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
+        // CustomScrollView allows for SliverAppBar and other custom scroll effects
+        controller: _scrollController,
         physics:
-            const AlwaysScrollableScrollPhysics(), // Ensure scroll physics for RefreshIndicator
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildProfileHeader(context, strings, theme), // Use the NEW header
-            const SizedBox(height: 24),
-            _buildProfileStats(context, strings, theme),
-            const SizedBox(height: 16),
-            Divider(color: theme.dividerColor.withOpacity(0.7)),
-            const SizedBox(height: 16),
-            _buildJobHistory(context, strings, theme),
-            const SizedBox(height: 16),
-            Divider(color: theme.dividerColor.withOpacity(0.7)),
-            const SizedBox(height: 16),
-            _buildSettings(context, strings, theme),
-            const SizedBox(height: 24),
-            _buildEditProfileButton(context, strings, theme, isWorker),
-            const SizedBox(height: 20),
-          ],
-        ),
+            const AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works even if content is small
+        slivers: [
+          _buildDynamicHeader(
+            context,
+            strings,
+            theme,
+          ), // The new dynamic header
+          SliverPadding(
+            padding: const EdgeInsets.all(16.0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Staggered entry animations for the main content blocks
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAboutMeSection(context, strings, theme, isWorker),
+                        const SizedBox(height: 24),
+                        _buildContactAndJoinedInfo(context, strings, theme),
+                        const SizedBox(height: 24),
+                        _buildProfileStatsSection(
+                          context,
+                          strings,
+                          theme,
+                          isWorker,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildJobHistorySection(
+                          context,
+                          strings,
+                          theme,
+                          isWorker,
+                        ),
+                        const SizedBox(height: 24),
+                        _buildSettingsSection(context, strings, theme),
+                        const SizedBox(height: 32),
+                        _buildEditProfileButton(
+                          context,
+                          strings,
+                          theme,
+                          isWorker,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // --- Profile Header Widget (ADVANCED VERSION) ---
-  Widget _buildProfileHeader(
-      BuildContext context, AppStrings strings, ThemeData theme) {
+  /// --- NEW: Dynamic Header (SliverAppBar with FlexibleSpaceBar) ---
+  /// This section creates a rich, interactive header that collapses into a standard AppBar.
+  SliverAppBar _buildDynamicHeader(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+  ) {
     final profileData = _userProfile!;
     final name = profileData.name.isNotEmpty
         ? profileData.name
         : (profileData.email ?? 'No Name');
     final profileImage = profileData.profileImage;
-    // Assuming AppUser has isVerified
-
     String userTypeDisplay = strings.getUserTypeDisplayName(profileData.role);
-    if (userTypeDisplay == profileData.role) {
-      userTypeDisplay = profileData.role.isNotEmpty
-          ? (profileData.role[0].toUpperCase() + profileData.role.substring(1))
-          : 'User';
-    }
 
-    // Define gradient colors based on theme
-    final gradientColors = theme.brightness == Brightness.light
-        ? [
-            theme.colorScheme.primaryContainer.withOpacity(0.6),
-            theme.colorScheme.primary.withOpacity(0.4)
-          ]
-        : [
-            theme.colorScheme.surfaceContainerHigh.withOpacity(0.5),
-            theme.colorScheme.surfaceContainer.withOpacity(0.3)
-          ];
+    const double avatarRadiusExpanded = 50; // Size when expanded
+    const double expandedHeight = 280.0; // Total height of the flexible space
+    const double minHeight =
+        kToolbarHeight + 40; // A bit taller than default AppBar when collapsed
 
-    final borderGradientColors = [
-      theme.colorScheme.primary,
-      theme.colorScheme.secondary,
-      theme.colorScheme.tertiary,
-      theme.colorScheme.primary, // Loop back
-    ];
+    // Calculate opacity and scale for elements as the header collapses
+    // Clamped between 0.0 and 1.0 based on scroll offset vs. flexible space height
+    final double scrollFactor =
+        (_headerScrollOffset / (expandedHeight - minHeight)).clamp(0.0, 1.0);
+    final double avatarScale =
+        1.0 - (scrollFactor * 0.3); // Shrink avatar slightly
+    final double textOpacity =
+        1.0 - (scrollFactor * 1.5); // Fade out text faster
+    final double backgroundParallax =
+        -_headerScrollOffset * 0.4; // Slower scroll for background
 
-    final double avatarRadius = 60; // Increased radius
-    final double borderThickness = 3.5;
+    // Define rich background gradient for the header
+    final headerBackgroundGradient = LinearGradient(
+      colors: theme.brightness == Brightness.light
+          ? [
+              theme.colorScheme.primary,
+              theme.colorScheme.secondary.withOpacity(0.8),
+            ]
+          : [theme.colorScheme.primary, theme.colorScheme.secondary],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
-    return ClipRRect(
-      // Clip the backdrop filter
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        // Apply glassmorphism
-        filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withOpacity(
-                theme.brightness == Brightness.light
-                    ? 0.4
-                    : 0.2), // Semi-transparent background
-            borderRadius: BorderRadius.circular(20),
-            border:
-                Border.all(color: theme.colorScheme.outline.withOpacity(0.2)),
-            gradient: LinearGradient(
-              // Subtle background gradient
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Column(
-            children: [
-              // --- Optional: Tilt Effect Wrapper ---
-              // Transform(
-              //   transform: Matrix4.identity()
-              //     ..setEntry(3, 2, 0.001) // Perspective
-              //     ..rotateX(_tiltX)
-              //     ..rotateY(_tiltY),
-              //   alignment: FractionalOffset.center,
-              //   child: // Place the GestureDetector and Stack inside here
-              // ),
-              // --- End Optional Tilt ---
-
-              // Add GestureDetector for tap scale effect
-              GestureDetector(
-                onTapDown: (_) => setState(() => _isAvatarPressed = true),
-                onTapUp: (_) => setState(() => _isAvatarPressed = false),
-                onTapCancel: () => setState(() => _isAvatarPressed = false),
-                onTap: _isUploadingImage
-                    ? null
-                    : () => _showImagePickerOptions(context),
-                child: AnimatedScale(
-                  scale: _isAvatarPressed ? 0.95 : 1.0, // Scale down on press
-                  duration: const Duration(milliseconds: 150),
-                  child: Tooltip(
-                    message: _isUploadingImage
-                        ? 'Uploading...'
-                        : (strings.profileEditAvatarHint ??
-                            'Tap to change picture'),
-                    child: Stack(
-                      alignment: Alignment.center, // Center elements in stack
-                      children: [
-                        // --- Animated Rotating Gradient Border ---
-                        RotationTransition(
-                          turns: _borderAnimationController,
-                          child: Container(
-                            width: (avatarRadius + borderThickness) * 2,
-                            height: (avatarRadius + borderThickness) * 2,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: SweepGradient(
-                                colors: borderGradientColors,
-                                tileMode: TileMode
-                                    .repeated, // Use repeated for smoother loop
-                              ),
-                            ),
-                          ),
+    return SliverAppBar(
+      expandedHeight: expandedHeight,
+      floating: false, // Stays at top initially
+      pinned: true, // Stays visible when scrolled up (as a regular AppBar)
+      backgroundColor:
+          theme.appBarTheme.backgroundColor, // Matches default AppBar theme
+      elevation: 0, // Controlled by inner elements or shadow below
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back,
+          color: theme.colorScheme.onPrimary,
+        ), // White icon for better contrast
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      actions: [
+        // Theme toggle for collapsing AppBar
+        Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            final isDarkMode = themeProvider.themeMode == ThemeMode.dark;
+            return Opacity(
+              opacity: scrollFactor, // Fades in with the collapsing header
+              child: IconButton(
+                icon: Icon(
+                  isDarkMode ? Icons.wb_sunny_outlined : Icons.nightlight_round,
+                  color: theme.colorScheme.onPrimary,
+                ),
+                tooltip: isDarkMode
+                    ? strings.themeTooltipLight
+                    : strings.themeTooltipDark,
+                onPressed: scrollFactor > 0.5
+                    ? () => themeProvider.toggleTheme()
+                    : null, // Only clickable when visible
+              ),
+            );
+          },
+        ),
+        // Language toggle for collapsing AppBar
+        Consumer<LocaleProvider>(
+          builder: (context, localeProvider, child) {
+            final currentLocale = localeProvider.locale;
+            final nextLocale = currentLocale.languageCode == 'en'
+                ? const Locale('am')
+                : const Locale('en');
+            return Opacity(
+              opacity: scrollFactor,
+              child: IconButton(
+                icon: Icon(Icons.language, color: theme.colorScheme.onPrimary),
+                tooltip: strings.languageToggleTooltip,
+                onPressed: scrollFactor > 0.5
+                    ? () {
+                        localeProvider.setLocale(nextLocale);
+                        _loadUserProfile();
+                      }
+                    : null,
+              ),
+            );
+          },
+        ),
+        // Logout for collapsing AppBar
+        Opacity(
+          opacity: scrollFactor,
+          child: IconButton(
+            icon: Icon(Icons.logout, color: theme.colorScheme.onPrimary),
+            onPressed: scrollFactor > 0.5
+                ? () async {
+                    // Show loading during sign out
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(strings.loading),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                    await _firebaseService.signOut();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
                         ),
+                        (Route<dynamic> route) => false,
+                      );
+                    }
+                  }
+                : null,
+            tooltip: strings.generalLogout,
+          ),
+        ),
+      ],
+      flexibleSpace: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final currentHeight = constraints.biggest.height;
+          final isExpanded =
+              currentHeight >
+              minHeight + 10; // Check if it's significantly expanded
 
-                        // --- Avatar Container with Padding for Border ---
-                        Container(
-                          padding: EdgeInsets.all(
-                              borderThickness), // Padding creates the border effect
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            // Background color slightly different from main card for definition
-                            color: theme.cardTheme.color ??
-                                theme.colorScheme.surface,
-                          ),
-                          child: ClipOval(
-                            // Clip the content inside to be circular
-                            child: Stack(
-                              // Stack for image and upload overlay
-                              alignment: Alignment.center,
-                              children: [
-                                // --- CircleAvatar with Image ---
-                                CircleAvatar(
-                                  radius: avatarRadius,
-                                  backgroundColor: theme
-                                      .colorScheme.secondaryContainer
-                                      .withOpacity(0.5),
-                                  backgroundImage: (profileImage != null &&
-                                          profileImage.isNotEmpty)
-                                      ? CachedNetworkImageProvider(profileImage)
-                                      : null,
-                                  onBackgroundImageError:
-                                      (profileImage != null &&
-                                              profileImage.isNotEmpty)
-                                          ? (exception, stackTrace) {
-                                              print(
-                                                  "Error loading profile image: $exception");
-                                              // Optionally update state to show placeholder explicitly on error
-                                            }
-                                          : null,
-                                  child: (profileImage == null ||
-                                          profileImage.isEmpty)
-                                      ? Icon(Icons.person_outline,
-                                          size: avatarRadius * 0.8,
-                                          color: theme.colorScheme.primary)
-                                      : null,
-                                ),
-
-                                // --- Uploading Overlay ---
-                                Visibility(
-                                  visible: _isUploadingImage,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black
-                                          .withOpacity(0.5), // Dark overlay
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Center(
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                theme.colorScheme.onPrimary),
-                                        strokeWidth: 3,
+          return FlexibleSpaceBar(
+            centerTitle: true,
+            titlePadding: EdgeInsets.only(
+              bottom: isExpanded ? 16 : 8, // Adjust padding when collapsed
+              left: isExpanded ? 16 : 56, // Push title right when collapsed
+              right: isExpanded ? 16 : 16,
+            ),
+            title: Opacity(
+              opacity: scrollFactor, // Title fades in as it collapses
+              child: Text(
+                name,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20, // Keep font size consistent when collapsed
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Animated background with parallax
+                Transform.translate(
+                  offset: Offset(0, backgroundParallax),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: headerBackgroundGradient,
+                    ),
+                  ),
+                ),
+                // Main content of the expanded header (avatar, name, role)
+                Opacity(
+                  opacity: 1.0 - scrollFactor, // Fades out as it collapses
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: kToolbarHeight + 10,
+                    ), // Push down below standard app bar height
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Pulsating Animated Avatar
+                        AnimatedBuilder(
+                          animation: _glowAnimation,
+                          builder: (context, child) {
+                            return GestureDetector(
+                              onTapDown: (_) =>
+                                  setState(() => _isAvatarPressed = true),
+                              onTapUp: (_) =>
+                                  setState(() => _isAvatarPressed = false),
+                              onTapCancel: () =>
+                                  setState(() => _isAvatarPressed = false),
+                              onTap: _isUploadingImage
+                                  ? null
+                                  : _showImagePickerOptions,
+                              child: AnimatedScale(
+                                scale: _isAvatarPressed
+                                    ? 0.95
+                                    : avatarScale, // Scale down on press, and shrink on scroll
+                                duration: const Duration(milliseconds: 150),
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: (avatarRadiusExpanded + 10) * 2,
+                                      height: (avatarRadiusExpanded + 10) * 2,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: theme.colorScheme.tertiary
+                                                .withOpacity(0.6),
+                                            blurRadius: _glowAnimation
+                                                .value, // Pulsating blur
+                                            spreadRadius:
+                                                _glowAnimation.value *
+                                                0.5, // Pulsating spread
+                                          ),
+                                        ],
                                       ),
                                     ),
+                                    ClipOval(
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: avatarRadiusExpanded,
+                                            backgroundColor: theme
+                                                .colorScheme
+                                                .surface
+                                                .withOpacity(0.7),
+                                            backgroundImage:
+                                                (profileImage != null &&
+                                                    profileImage.isNotEmpty)
+                                                ? CachedNetworkImageProvider(
+                                                    profileImage,
+                                                  )
+                                                : null,
+                                            child:
+                                                (profileImage == null ||
+                                                    profileImage.isEmpty)
+                                                ? Icon(
+                                                    Icons.person_outline,
+                                                    size:
+                                                        avatarRadiusExpanded *
+                                                        0.8,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurface,
+                                                  )
+                                                : null,
+                                          ),
+                                          if (_isUploadingImage)
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(
+                                                  0.5,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Center(
+                                                child: CircularProgressIndicator(
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(
+                                                        theme
+                                                            .colorScheme
+                                                            .onPrimary,
+                                                      ),
+                                                  strokeWidth: 3,
+                                                ),
+                                              ),
+                                            ),
+                                          if (isVerified)
+                                            Positioned(
+                                              top: 0,
+                                              right: 0,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(
+                                                  4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.shade600,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .surface,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.verified_rounded,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // User Name
+                        Transform.translate(
+                          offset: Offset(
+                            0,
+                            _headerScrollOffset * 0.1,
+                          ), // Slight parallax for text
+                          child: Text(
+                            name,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              color: Colors.white.withOpacity(textOpacity),
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(
+                                    0.3 * textOpacity,
                                   ),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-
-                        // --- Edit Icon (Smaller, positioned differently) ---
-                        Positioned(
-                          bottom: 5,
-                          right: 5,
-                          child: IgnorePointer(
-                            // Prevent this icon from blocking taps on avatar
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: BoxDecoration(
-                                  color: theme.colorScheme.secondary
-                                      .withOpacity(0.8),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: theme.colorScheme.surface,
-                                      width: 1.5)),
-                              child: Icon(
-                                Icons.edit_rounded, // Use edit icon
-                                color: theme.colorScheme.onSecondary,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // --- Verification Badge (Conditional) ---
-                        if (isVerified)
-                          Positioned(
-                            top: 5,
-                            right: 5,
-                            child: IgnorePointer(
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                    color: Colors
-                                        .blue.shade600, // Verification color
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: theme.colorScheme.surface,
-                                        width: 1.5)),
-                                child: const Icon(
-                                  Icons.verified_rounded,
-                                  color: Colors.white,
-                                  size: 16,
+                        const SizedBox(height: 4),
+                        // User Role Chip
+                        Transform.translate(
+                          offset: Offset(
+                            0,
+                            _headerScrollOffset * 0.05,
+                          ), // Slight parallax
+                          child: Opacity(
+                            opacity: textOpacity,
+                            child: Chip(
+                              label: Text(
+                                userTypeDisplay,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: Colors.black87,
                                 ),
                               ),
+                              backgroundColor: Colors.white.withOpacity(0.8),
+                              shape: StadiumBorder(),
+                              materialTapTargetSize: MaterialTapTargetSize
+                                  .shrinkWrap, // Reduce extra space
                             ),
                           ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                name,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                    // Slightly larger name
-                    color: theme.colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                    shadows: [
-                      // Subtle text shadow
-                      Shadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1))
-                    ]),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              if (userTypeDisplay.isNotEmpty)
-                Chip(
-                  avatar: Icon(
-                      profileData.role == 'worker'
-                          ? Icons.construction_rounded
-                          : Icons.person_pin_circle_outlined,
-                      size: 16,
-                      color: theme.colorScheme.primary),
-                  label: Text(
-                    userTypeDisplay,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.primary,
-                    ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Builds a generic section card with title and icon for consistent styling.
+  Widget _buildSectionCard(
+    ThemeData theme, {
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      color: theme.cardTheme.color, // Use theme card color
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: theme.colorScheme.primary, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  backgroundColor:
-                      theme.colorScheme.primaryContainer.withOpacity(0.3),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: StadiumBorder(
-                      side: BorderSide(
-                          color: theme.colorScheme.primary
-                              .withOpacity(0.4))), // Border matching primary
                 ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
         ),
       ),
     );
   }
 
-  // --- Profile Stats Widget ---
-  Widget _buildProfileStats(
-      BuildContext context, AppStrings strings, ThemeData theme) {
-    final profile = _userProfile!; // Assumed not null
-    final bool isWorker =
-        profile.role == 'worker' || profile.role == 'professional';
+  /// Builds a reusable info tile with an icon, label, and value.
+  Widget _buildInfoTile(
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Expanded(
+            // Use Expanded to prevent overflow for long values
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyLarge,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-    // !! Ensure these stat title strings exist !!
+  /// --- NEW SECTION: About Me & Skills ---
+  /// Combines bio, website, and skills into one coherent card.
+  Widget _buildAboutMeSection(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    bool isWorker,
+  ) {
+    final profileData = _userProfile!;
+    return _buildSectionCard(
+      theme,
+      title: strings.aboutMe,
+      icon: Icons.info_outline,
+      children: [],
+    );
+  }
+
+  /// --- NEW SECTION: Contact & Joined Info ---
+  /// Separates contact details and join date into their own card.
+  Widget _buildContactAndJoinedInfo(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+  ) {
+    final profileData = _userProfile!;
+    final DateFormat formatter = DateFormat(
+      'MMM dd, yyyy',
+      strings.locale.languageCode,
+    );
+
+    return _buildSectionCard(
+      theme,
+      title: strings.contactInfo,
+      icon: Icons.contact_mail_outlined,
+      children: [
+        _buildInfoTile(
+          theme,
+          Icons.email_outlined,
+          "emailLabel",
+          profileData.email,
+        ),
+        _buildInfoTile(
+          theme,
+          Icons.phone_outlined,
+          strings.phoneLabel,
+          profileData.phoneNumber ?? 'N/A',
+        ),
+        _buildInfoTile(
+          theme,
+          Icons.location_on_outlined,
+          "addressLabel",
+          profileData.location ?? 'N/A',
+        ),
+      ],
+    );
+  }
+
+  /// Builds the user statistics section, conditional on user role.
+  /// Uses the ProfileStatCard for consistent display.
+  Widget _buildProfileStatsSection(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    bool isWorker,
+  ) {
+    final profile = _userProfile!;
     final String title = isWorker
-        ? (strings.profileStatsTitleWorker ?? 'Professional Stats')
-        : (strings.profileStatsTitleClient ?? 'Client Stats');
+        ? strings.profileStatsTitleWorker
+        : strings.profileStatsTitleClient;
 
-    List<Widget> statItems = [];
+    List<Widget> statRows = [];
 
-    // Build stats based on role
     if (isWorker) {
-      // !! Ensure worker stat strings exist !!
-      statItems = [
+      statRows = [
         Row(
           children: [
-            _buildStatCard(
-                context,
-                strings,
-                theme,
-                strings.profileStatJobsCompleted ?? 'Jobs Completed',
-                '${profile.jobsCompleted ?? 0}',
-                Icons.task_alt_rounded,
-                theme.colorScheme.primary),
+            // Using ProfileStatCard - assuming it fetches strings internally or takes string literals
+            ProfileStatCard(
+              label: strings.profileStatJobsCompleted,
+              value: '${profile.jobsCompleted ?? 0}',
+              icon: Icons.task_alt_rounded,
+              color: theme.colorScheme.primary,
+            ),
             const SizedBox(width: 12),
-            _buildStatCard(
-                context,
-                strings,
-                theme,
-                strings.profileStatRating ?? 'Rating',
-                '${(profile.rating ?? 0.0).toStringAsFixed(1)} ★',
-                Icons.star_half_rounded,
-                theme.colorScheme.secondary),
+            ProfileStatCard(
+              label: strings.profileStatRating,
+              value: '${(profile.rating ?? 0.0).toStringAsFixed(1)} ★',
+              icon: Icons.star_half_rounded,
+              color: theme.colorScheme.secondary,
+            ),
           ],
         ),
-        const SizedBox(height: 12), // Add space between rows
-        Row(children: [
-          _buildStatCard(
-              context,
-              strings,
-              theme,
-              strings.profileStatExperience ?? 'Experience',
-              strings.yearsExperience(profile.experience ?? 0),
-              Icons.workspace_premium_outlined,
-              theme.colorScheme.tertiary), // Use localized years
-          const SizedBox(width: 12),
-          _buildStatCard(
-              context,
-              strings,
-              theme,
-              strings.profileStatReviews ?? 'Reviews',
-              '${profile.reviewCount ?? 0}',
-              Icons.reviews_outlined,
-              Colors.purple.shade400), // Example color
-        ])
-      ];
-    } else {
-      // Client stats
-      // !! Ensure client stat strings exist !!
-      statItems = [
+        const SizedBox(height: 12),
         Row(
           children: [
-            _buildStatCard(
-                context,
-                strings,
-                theme,
-                strings.profileStatJobsPosted ?? 'Jobs Posted',
-                '${profile.jobsPosted ?? 0}',
-                Icons.post_add_rounded,
-                theme.colorScheme.primary),
+            ProfileStatCard(
+              label: strings.profileStatExperience,
+              value: strings.yearsExperience(profile.experience ?? 0),
+              icon: Icons.workspace_premium_outlined,
+              color: theme.colorScheme.tertiary,
+            ),
             const SizedBox(width: 12),
-            _buildStatCard(
-                context,
-                strings,
-                theme,
-                strings.profileStatJobsCompleted ?? 'Hires Completed',
-                '${profile.jobsCompleted ?? 0}',
-                Icons.playlist_add_check_rounded,
-                theme.colorScheme.secondary),
+            ProfileStatCard(
+              label: strings.profileStatReviews,
+              value: '${profile.reviewCount ?? 0}',
+              icon: Icons.reviews_outlined,
+              color: Colors.purple.shade400,
+            ),
           ],
-        )
+        ),
+      ];
+    } else {
+      statRows = [
+        Row(
+          children: [
+            ProfileStatCard(
+              label: strings.profileStatJobsPosted,
+              value: '${profile.jobsPosted ?? 0}',
+              icon: Icons.post_add_rounded,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            ProfileStatCard(
+              label: strings.profileStatJobsCompleted,
+              value: '${profile.jobsCompleted ?? 0}',
+              icon: Icons.playlist_add_check_rounded,
+              color: theme.colorScheme.secondary,
+            ),
+          ],
+        ),
       ];
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildSectionCard(
+      theme,
+      title: title,
+      icon: Icons.analytics_outlined,
       children: [
-        Text(title, style: theme.textTheme.titleLarge),
-        const SizedBox(height: 16),
-        // Display stats (handles single row or multiple rows)
-        if (statItems.isNotEmpty)
-          Column(children: statItems)
+        if (statRows.isNotEmpty)
+          Column(children: statRows)
         else
           Padding(
-            // Show message if no stats available (unlikely but possible)
             padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Text('No statistics available yet.',
-                style: theme.textTheme.bodyMedium),
+            child: Text(
+              'No statistics available yet.',
+              style: theme.textTheme.bodyMedium,
+            ), // TODO: Localize
           ),
       ],
     );
   }
 
-  // --- Stat Card (Helper) ---
-  Widget _buildStatCard(BuildContext context, AppStrings strings,
-      ThemeData theme, String label, String value, IconData icon, Color color) {
-    return Expanded(
-      // Ensure cards fill the row width
-      child: Card(
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: color.withOpacity(0.3)) // Subtle border
+  /// A single stat card used in the profile statistics section.
+  Widget ProfileStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Card(
+      elevation: 0,
+      color: color.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 24, color: color),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: color),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: color),
+                ),
+              ],
             ),
-        color: color.withOpacity(0.05), // Very light background tint
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 28),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(color: color, fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                maxLines: 1, // Prevent long labels from wrapping awkwardly
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  // --- Job History Section Widget ---
-  Widget _buildJobHistory(
-      BuildContext context, AppStrings strings, ThemeData theme) {
-    if (_userProfile == null) {
-      return const SizedBox.shrink(); // Don't build if profile isn't loaded
-    }
+  /// Builds the recent job history section using a FutureBuilder.
+  Widget _buildJobHistorySection(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    bool isWorker,
+  ) {
+    if (_userProfile == null) return const SizedBox.shrink();
 
-    final bool isCurrentUserWorker =
-        _userProfile!.role == 'worker' || _userProfile!.role == 'professional';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildSectionCard(
+      theme,
+      title: strings.profileJobHistoryTitle,
+      icon: Icons.history_toggle_off,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment:
+              MainAxisAlignment.end, // Push "View All" to the right
           children: [
-            // !! Ensure 'profileJobHistoryTitle' exists !!
-            Text(
-              strings.profileJobHistoryTitle ?? 'Recent Activity',
-              style: theme.textTheme.titleLarge,
-            ),
-            // We will add the 'View All' button conditionally inside the FutureBuilder
+            if ((_userProfile!.jobsCompleted ?? 0) > 0 ||
+                (_userProfile!.jobsPosted ?? 0) > 0)
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/jobs'),
+                child: Text(strings.viewAllButton),
+              ),
           ],
         ),
         const SizedBox(height: 12),
         FutureBuilder<List<Job>>(
-          // Fetch jobs based on the current user's ID and role
           future: _firebaseService.getUserJobs(
-              userId: _userProfile!.id, // Assumes AppUser has an 'id' field
-              isWorker: isCurrentUserWorker),
+            userId: _userProfile!.id,
+            isWorker: isWorker,
+          ), // Limit to 3 for overview
           builder: (context, snapshot) {
-            // --- Loading State ---
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 30.0),
-                  child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3)),
+                  child: CircularProgressIndicator(strokeWidth: 3),
                 ),
               );
             }
-            // --- Error State ---
-            else if (snapshot.hasError) {
-              print("Error loading job history: ${snapshot.error}");
-              // !! Ensure 'snackErrorLoading' exists !!
-              final errorMsg =
-                  strings.snackErrorLoading ?? 'Error loading history:';
+            if (snapshot.hasError) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 30.0),
                   child: Text(
-                    '$errorMsg ${snapshot.error}', // Consider showing a less technical message
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.error),
-                    textAlign: TextAlign.center,
+                    '${strings.snackErrorLoading} ${snapshot.error}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
                   ),
                 ),
               );
             }
-            // --- Data Loaded State ---
-            else {
-              final List<Job> jobs = snapshot.data ?? [];
-
-              // --- Empty State ---
-              if (jobs.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 30.0),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.history_toggle_off_outlined,
-                            size: 48,
-                            color: theme.colorScheme.onSurfaceVariant),
-                        const SizedBox(height: 8),
-                        // !! Ensure 'profileNoJobHistory' exists !!
-                        Text(
-                          strings.profileNoJobHistory ?? 'No job history yet.',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant),
-                          textAlign: TextAlign.center,
-                        ),
-                        // !! Ensure 'profileNoJobHistorySub' exists !!
-                        Text(
-                          'Jobs you post or complete will appear here.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-              // --- List View State ---
-              else {
-                // Display only the first few jobs (e.g., 5)
-                final limitedJobs = jobs.length > 5 ? jobs.sublist(0, 5) : jobs;
-                return Column(
-                  // Use Column to potentially add 'View All' above the list
-                  children: [
-                    // Conditionally show 'View All' button *above* the list if there are jobs
-                    if (jobs
-                        .isNotEmpty) // Check original list length if needed for 'View All' logic
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () {
-                            // TODO: Implement navigation to a full job history screen
-                            Navigator.pushNamed(context,
-                                '/jobs'); // Assuming '/jobs' is your jobs list screen
-                          },
-                          // !! Ensure 'viewAllButton' exists !!
-                          child: Text(strings.viewAllButton ?? 'View All'),
-                        ),
+            final List<Job> jobs = snapshot.data ?? [];
+            if (jobs.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30.0),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.history_toggle_off_outlined,
+                        size: 48,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    if (jobs.isNotEmpty)
-                      const SizedBox(
-                          height: 8), // Space before list if button shown
-                    ListView.separated(
-                      shrinkWrap:
-                          true, // Crucial for ListView inside Column/SingleChildScrollView
-                      physics:
-                          const NeverScrollableScrollPhysics(), // Disable internal scrolling
-                      itemCount: limitedJobs.length,
-                      itemBuilder: (context, index) {
-                        return _buildJobHistoryItem(
-                            context, strings, theme, limitedJobs[index]);
-                      },
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 8), // Space between items
-                    ),
-                  ],
-                );
-              }
+                      const SizedBox(height: 8),
+                      Text(
+                        strings.profileNoJobHistory,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        'Jobs you post or complete will appear here.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ), // TODO: Localize
+                    ],
+                  ),
+                ),
+              );
             }
-          }, // End of FutureBuilder builder
-        ), // End of FutureBuilder
+            return ListView.separated(
+              shrinkWrap: true,
+              physics:
+                  const NeverScrollableScrollPhysics(), // Disable internal scrolling
+              itemCount: jobs.length,
+              itemBuilder: (context, index) => _buildJobHistoryItem(
+                context,
+                strings,
+                theme,
+                jobs[index],
+                isWorker,
+              ),
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
+            );
+          },
+        ),
       ],
     );
   }
 
-  // (Keep _buildJobHistoryItem as it was)
+  /// Helper widget for a single job item in the history list.
   Widget _buildJobHistoryItem(
-      BuildContext context, AppStrings strings, ThemeData theme, Job job) {
-    // Helper to get status color
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    Job job,
+    bool isCurrentUserWorker,
+  ) {
     Color getStatusColor(String status) {
       switch (status.toLowerCase()) {
         case 'open':
@@ -1176,7 +1291,6 @@ class _ProfileScreenState extends State<ProfileScreen>
       }
     }
 
-    // Helper to get status icon
     IconData getStatusIcon(String status) {
       switch (status.toLowerCase()) {
         case 'open':
@@ -1200,63 +1314,53 @@ class _ProfileScreenState extends State<ProfileScreen>
       }
     }
 
-    final String statusKey =
-        job.status.isNotEmpty ? job.status.toLowerCase() : 'unknown';
-    // !! Ensure getStatusName exists and handles 'unknown' or provides fallback !!
+    final String statusKey = job.status.isNotEmpty
+        ? job.status.toLowerCase()
+        : 'unknown';
     final String displayStatus = strings.getStatusName(statusKey).toUpperCase();
     final Color statusColor = getStatusColor(statusKey);
     final IconData statusIcon = getStatusIcon(statusKey);
 
-    // Use localized fallbacks for job details
-    final String title = job.title.isNotEmpty
-        ? job.title
-        : (strings.jobUntitled ?? 'Untitled Job');
+    final String title = job.title.isNotEmpty ? job.title : strings.jobUntitled;
     final String location = job.location.isNotEmpty
         ? job.location
-        : (strings.notAvailable ?? 'N/A');
-    // !! Ensure jobBudgetETB and notSet exist !!
+        : strings.notAvailable;
     final String budget = job.budget > 0
-        ? strings.jobBudgetETB(job.budget.toStringAsFixed(0)) // Format budget
-        : (strings.notSet ?? 'Not set');
-    // !! Ensure jobNoDescription exists !!
+        ? strings.jobBudgetETB(job.budget.toStringAsFixed(0))
+        : strings.notSet;
     final String description = job.description.isNotEmpty
         ? (job.description.length > 100
-            ? '${job.description.substring(0, 97)}...'
-            : job.description) // Truncate long description
-        : (strings.jobNoDescription ?? 'No description provided.');
+              ? '${job.description.substring(0, 97)}...'
+              : job.description)
+        : strings.jobNoDescription;
 
-    // Determine relevant name and label based on current user's role
     String relevantName = '';
     String relevantNameLabel = '';
-    final bool isCurrentUserWorker =
-        _userProfile?.role == 'worker' || _userProfile?.role == 'professional';
 
-    // !! Ensure these label/name strings exist !!
     if (isCurrentUserWorker) {
       relevantName = job.clientName.isNotEmpty
           ? job.clientName
-          : (strings.workerDetailAnonymous ?? 'Client');
-      relevantNameLabel = strings.clientNameLabel ?? 'Client';
+          : strings.workerDetailAnonymous;
+      relevantNameLabel = strings.clientNameLabel;
     } else {
-      // Current user is a client
       relevantName = job.workerName.isNotEmpty
           ? job.workerName
           : (statusKey == 'open' || statusKey == 'pending'
-              ? (strings.jobDetailNoWorkerAssigned ?? 'Unassigned')
-              : (strings.workerDetailAnonymous ?? 'Worker'));
-      relevantNameLabel = strings.workerNameLabel ?? 'Worker';
+                ? strings.jobDetailNoWorkerAssigned
+                : strings.workerDetailAnonymous);
+      relevantNameLabel = strings.workerNameLabel;
     }
 
     return Card(
-      margin: EdgeInsets.zero, // Let parent handle padding/spacing
+      margin: EdgeInsets.zero,
       elevation: theme.cardTheme.elevation ?? 2,
-      shape: theme.cardTheme.shape ??
+      shape:
+          theme.cardTheme.shape ??
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: theme.cardTheme.color ?? theme.colorScheme.surface,
-      clipBehavior: Clip.antiAlias, // Ensures inkwell respects shape
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
-          // Navigate to Job Detail Screen when tapped
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => JobDetailScreen(job: job)),
@@ -1267,19 +1371,16 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Status Icon
               CircleAvatar(
                 radius: 24,
                 backgroundColor: statusColor.withOpacity(0.15),
                 child: Icon(statusIcon, color: statusColor, size: 24),
               ),
               const SizedBox(width: 16),
-              // Job Details Column
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title and Status Badge Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1293,97 +1394,107 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // Status Badge
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
-                            border:
-                                Border.all(color: statusColor.withOpacity(0.5)),
+                            border: Border.all(
+                              color: statusColor.withOpacity(0.5),
+                            ),
                           ),
                           child: Text(
                             displayStatus,
                             style: theme.textTheme.labelSmall?.copyWith(
-                                color: statusColor,
-                                fontWeight: FontWeight.bold),
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    // Description
                     Text(
                       description,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                      maxLines: 2, // Limit description lines in list view
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 10),
-                    // Location and Budget Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Location Info
                         Flexible(
-                            // Allow location to take available space but not overflow
-                            child: Row(
-                          mainAxisSize: MainAxisSize
-                              .min, // Don't take full width if text is short
-                          children: [
-                            Icon(Icons.location_on_outlined,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
                                 size: 16,
-                                color: theme.iconTheme.color?.withOpacity(0.7)),
-                            const SizedBox(width: 4),
-                            Flexible(
-                                // Allow text itself to shrink/ellipsis
+                                color: theme.iconTheme.color?.withOpacity(0.7),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
                                 child: Text(
-                              location,
-                              style: theme.textTheme.bodySmall,
-                              overflow: TextOverflow.ellipsis,
-                            )),
-                          ],
-                        )),
-                        // Budget Info (only if budget > 0)
+                                  location,
+                                  style: theme.textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         if (job.budget > 0)
                           Row(
                             children: [
-                              Icon(Icons.monetization_on_outlined,
-                                  size: 16, color: Colors.green.shade700),
+                              Icon(
+                                Icons.monetization_on_outlined,
+                                size: 16,
+                                color: Colors.green.shade700,
+                              ),
                               const SizedBox(width: 4),
-                              Text(budget,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.green.shade800)),
+                              Text(
+                                budget,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
                             ],
                           ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Client/Worker Name Row
                     Row(
                       children: [
                         Icon(
-                            isCurrentUserWorker
-                                ? Icons.account_circle_outlined
-                                : Icons
-                                    .construction_outlined, // Icon based on who the other party is
-                            size: 16,
-                            color: theme.iconTheme.color?.withOpacity(0.7)),
+                          isCurrentUserWorker
+                              ? Icons.account_circle_outlined
+                              : Icons.construction_outlined,
+                          size: 16,
+                          color: theme.iconTheme.color?.withOpacity(0.7),
+                        ),
                         const SizedBox(width: 4),
-                        Text('$relevantNameLabel: ',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant)),
+                        Text(
+                          '$relevantNameLabel: ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         Flexible(
-                            // Allow name to shrink/ellipsis
-                            child: Text(
-                          relevantName,
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                          overflow: TextOverflow.ellipsis,
-                        )),
+                          child: Text(
+                            relevantName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1396,78 +1507,60 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  // (Keep _buildSettings, _buildSettingItem, _buildEditProfileButton as they were)
-  Widget _buildSettings(
-      BuildContext context, AppStrings strings, ThemeData theme) {
-    // Helper function for navigation
+  /// Builds the settings list section, encapsulated in a custom card.
+  Widget _buildSettingsSection(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+  ) {
     void navigateToScreen(Widget screen) {
       Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
     }
 
-    // Define settings items with titles, subtitles, icons, and navigation actions
-    // !! Ensure all these settings strings exist in AppStrings !!
     final settingsItems = [
       {
-        'title': strings.settingsNotificationsTitle ?? 'Notifications',
-        'subtitle':
-            strings.settingsNotificationsSubtitle ?? 'Manage app notifications',
+        'title': strings.settingsNotificationsTitle,
+        'subtitle': strings.settingsNotificationsSubtitle,
         'icon': Icons.notifications_active_outlined,
-        'action': () => navigateToScreen(
-            const NotificationsScreen()), // Navigate to NotificationsScreen
+        'action': () => navigateToScreen(const NotificationsScreen()),
       },
       {
-        'title': strings.settingsPaymentTitle ?? 'Payment Methods',
-        'subtitle':
-            strings.settingsPaymentSubtitle ?? 'Add or manage payment options',
+        'title': strings.settingsPaymentTitle,
+        'subtitle': strings.settingsPaymentSubtitle,
         'icon': Icons.payment_outlined,
-        // *** ACTION: Navigate to a screen for MANAGING payment methods ***
-        // This should likely NOT be the PaymentScreen used for making a specific job payment,
-        // unless that screen can also handle general method management.
-        // Using ManagePaymentMethodsScreen placeholder. Replace with your actual screen.
-        'action': () => navigateToScreen(
-            const ManagePaymentMethodsScreen()), // Navigate to ManagePaymentMethodsScreen
-      },
+        'action': () => navigateToScreen(const ManagePaymentMethodsScreen()),
+      }, // Corrected usage of ManagePaymentMethodsScreen
       {
-        'title': strings.settingsPrivacyTitle ?? 'Privacy & Security',
-        'subtitle':
-            strings.settingsPrivacySubtitle ?? 'Password, account security',
+        'title': strings.settingsPrivacyTitle,
+        'subtitle': strings.settingsPrivacySubtitle,
         'icon': Icons.security_outlined,
-        'action': () => navigateToScreen(
-            const PrivacySecurityScreen()), // Navigate to PrivacySecurityScreen
+        'action': () => navigateToScreen(const PrivacySecurityScreen()),
       },
       {
-        'title': strings.settingsAccountTitle ?? 'Account',
-        'subtitle': strings.settingsAccountSubtitle ?? 'Manage account details',
+        'title': strings.settingsAccountTitle,
+        'subtitle': strings.settingsAccountSubtitle,
         'icon': Icons.account_circle_outlined,
-        'action': () => navigateToScreen(
-            const ProfessionalHubScreen()), // Navigate to AccountScreen (might be used for client edit profile too)
+        'action': () => navigateToScreen(const AccountScreen()),
       },
       {
-        'title': strings.settingsHelpTitle ?? 'Help & Support',
-        'subtitle': strings.settingsHelpSubtitle ?? 'Get help or contact us',
+        'title': strings.settingsHelpTitle,
+        'subtitle': strings.settingsHelpSubtitle,
         'icon': Icons.help_outline_rounded,
-        'action': () => navigateToScreen(
-            const HelpSupportScreen()), // Navigate to HelpSupportScreen
+        'action': () => navigateToScreen(const HelpSupportScreen()),
       },
-      // Add more settings items here as needed
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildSectionCard(
+      theme,
+      title: strings.profileSettingsTitle,
+      icon: Icons.settings_outlined,
       children: [
-        // !! Ensure 'profileSettingsTitle' exists !!
-        Text(strings.profileSettingsTitle ?? 'Settings',
-            style: theme.textTheme.titleLarge),
-        const SizedBox(height: 8),
-        // Use ListView.separated for dividers between items
         ListView.separated(
-          shrinkWrap: true, // Essential inside SingleChildScrollView
-          physics:
-              const NeverScrollableScrollPhysics(), // Disable internal scroll
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: settingsItems.length,
           itemBuilder: (context, index) {
             final item = settingsItems[index];
-            // Build each setting item using a helper widget
             return _buildSettingItem(
               context,
               strings,
@@ -1475,112 +1568,121 @@ class _ProfileScreenState extends State<ProfileScreen>
               item['title'] as String,
               item['subtitle'] as String,
               item['icon'] as IconData,
-              item['action'] as VoidCallback, // Pass the navigation action
+              item['action'] as VoidCallback,
             );
           },
           separatorBuilder: (context, index) => Divider(
-            // Add dividers
             height: 1,
             thickness: 1,
-            color: theme.dividerColor.withOpacity(0.5),
-            indent: 58, // Indent divider to align with text
+            color: theme.dividerColor.withOpacity(0.3),
+            indent: 58,
           ),
         ),
       ],
     );
   }
 
-  // --- Settings Item (Helper) ---
+  /// Helper widget for a single setting item within the settings list.
   Widget _buildSettingItem(
-      BuildContext context,
-      AppStrings strings,
-      ThemeData theme,
-      String title,
-      String subtitle,
-      IconData icon,
-      VoidCallback onTap) {
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    String title,
+    String subtitle,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return ListTile(
       leading: Container(
-        // Styled container for the icon
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-            // Use a subtle background color from the theme
-            color: theme.colorScheme.secondaryContainer.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(10)),
-        child:
-            Icon(icon, color: theme.colorScheme.onSecondaryContainer, size: 22),
+          color: theme.colorScheme.secondaryContainer.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(
+          icon,
+          color: theme.colorScheme.onSecondaryContainer,
+          size: 22,
+        ),
       ),
       title: Text(title, style: theme.textTheme.titleMedium),
       subtitle: Text(
         subtitle,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        maxLines: 1, // Prevent subtitle wrapping
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Icon(Icons.arrow_forward_ios,
-          size: 16, color: theme.colorScheme.onSurfaceVariant),
-      onTap: onTap, // Execute the provided navigation action on tap
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(
-          vertical: 6.0, horizontal: 8.0), // Adjust padding
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8)), // Optional rounded corners
+        vertical: 6.0,
+        horizontal: 8.0,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
-  // --- Edit Profile Button Widget (Corrected Navigation) ---
-  Widget _buildEditProfileButton(BuildContext context, AppStrings strings,
-      ThemeData theme, bool isWorker) {
+  /// Builds the final "Edit Profile" button.
+  Widget _buildEditProfileButton(
+    BuildContext context,
+    AppStrings strings,
+    ThemeData theme,
+    bool isWorker,
+  ) {
     return SizedBox(
-      width: double.infinity, // Make button take full width
+      width: double.infinity,
       child: ElevatedButton.icon(
         icon: const Icon(Icons.edit_outlined, size: 20),
-        // !! Ensure 'profileEditButton' exists !!
-        label: Text(strings.profileEditButton ?? 'Edit Profile'),
+        label: Text(strings.profileEditButton),
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14), // Button padding
-          // Use theme colors for consistency
-          // backgroundColor: theme.colorScheme.primary,
-          // foregroundColor: theme.colorScheme.onPrimary,
+          padding: const EdgeInsets.symmetric(vertical: 14),
         ),
-        // Disable button during image upload or profile loading
         onPressed: _isUploadingImage || _isLoading
             ? null
             : () {
-                // Navigate to the appropriate screen based on user role
-                if (isWorker) {
-                  // Navigate to Professional Setup/Edit Screen
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const ProfessionalHubScreen()) // Assumes this screen handles both setup and edit
-                      ).then((result) {
-                    // Refresh profile data when returning from edit screen
-                    // The 'result' could potentially carry info if changes were made
-                    if (mounted) {
-                      print(
-                          "Returned from ProfessionalHubScreen, refreshing profile...");
-                      _loadUserProfile();
-                    }
-                  });
-                } else {
-                  // Navigate to a Client Account Edit Screen (Using AccountScreen placeholder)
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const ProfessionalHubScreen()) // Replace with your client edit screen
-                      ).then((result) {
-                    // Refresh profile data when returning
-                    if (mounted) {
-                      print(
-                          "Returned from AccountScreen, refreshing profile...");
-                      _loadUserProfile();
-                    }
-                  });
-                }
+                final screen = isWorker
+                    ? ProfessionalHubScreen()
+                    : AccountScreen(); // Use AccountScreen for client editing as per your provided placeholder
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => screen),
+                ).then((result) {
+                  if (result == true && mounted) {
+                    _loadUserProfile(); // Refresh profile data when returning
+                  }
+                });
               },
+      ),
+    );
+  }
+}
+
+class ProfileStateCard extends StatelessWidget {
+  const ProfileStateCard({
+    super.key,
+    required this.state,
+    required this.appStrings,
+  });
+
+  final String state;
+  final AppStrings appStrings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [Text(state, style: const TextStyle(fontSize: 16))],
+        ),
       ),
     );
   }

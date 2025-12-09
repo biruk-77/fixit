@@ -384,6 +384,13 @@ abstract class AppStrings {
   String get createJobButtonPost;
   String get registerErrorProfessionRequired;
   String get errorPasswordShort;
+  String get termsOfService;
+  String get termsOfServiceContent;
+  String get securityContent;
+  String get security;
+  String get privacyPolicyContent;
+  String get privacyPolicy;
+  String get privacySecurity;
 
   // --- Job Dashboard Screen ---
   String get dashboardTitleDefault;
@@ -449,6 +456,60 @@ abstract class AppStrings {
   String applicantCount(int count);
   String formatTimeAgo(DateTime date);
 
+  String get anErrorOccurred;
+  String get today;
+  String get yesterday;
+
+  // --- Chat Pane AppBar ---
+  String get aiAssistantName;
+  String get online;
+  String get offline;
+  String lastSeen(String timeAgo);
+  String get viewProfile;
+  String get clearChat;
+
+  // --- Chat Pane Body & Messages ---
+  String get startTheConversation;
+  String isTyping(String name);
+  String get photo;
+  String get voiceMessage;
+  String get attachment;
+  String get jobProposal;
+  String get invalidJobProposal;
+  String get cantPlayAudio;
+  String get aiGreeting;
+  String get aiConnectionError;
+  String get aiThinkingError;
+
+  // --- Message Actions ---
+  String get reply;
+  String get copy;
+  String get copiedToClipboard;
+  String get deleteForMe;
+  String get deleteForEveryone;
+  String get messageHidden;
+  String get tooLateToDelete;
+  String get messageDeleted;
+
+  // --- Message Composer ---
+  String get messageHint;
+  String get gallery;
+  String get camera;
+  String get document;
+  String get job;
+  String get recording;
+  String replyingTo(String name);
+  String get you;
+
+  // --- Notifications & SnackBars ---
+  String get aiIsInitializing;
+  String get chatIsEmpty;
+  String get chatCleared;
+  String get failedToClearChat;
+  String get fileUploadFailed;
+  String newChatMessageFrom(String senderName);
+  String get userPhoneNumberNotAvailable;
+  String couldNotMakeCallTo(String phoneNumber);
   // --- Login Screen ---
   String get loginTitle;
   String get loginWelcome;
@@ -497,6 +558,11 @@ abstract class AppStrings {
   String get registerSuccess;
   String get registerNavigateToSetup;
   String get registerNavigateToHome;
+  String get personalInfo; // Added
+  String get contactInfo; // Added
+  String get aboutMe; // Added
+  String get website; // Added
+  String get joinedDate; // Added// Added
 
   // --- Forgot Password Screen (if needed) ---
   String get forgotPasswordTitle;
@@ -734,7 +800,6 @@ abstract class AppStrings {
   // --- General Actions (can be shared) ---
   String get cancel;
   String get delete;
-  String get reply;
 
   // --- Notifications Screen (Main) ---
   String get notifAppBarTitle;
@@ -887,6 +952,7 @@ abstract class AppStrings {
   String get convoAttachDocument;
   String get convoAttachJob;
   String get convoAudioPlaybackError;
+  String get convoErrorJobRequestNotWorker;
 }
 
 // ===========================================================
@@ -895,7 +961,105 @@ abstract class AppStrings {
 class AppStringsEn implements AppStrings {
   @override
   Locale get locale => const Locale('en');
+  @override
+  String get anErrorOccurred => "An error occurred.";
+  @override
+  String get today => "Today";
+  @override
+  String get yesterday => "Yesterday";
 
+  @override
+  String get aiAssistantName => "Min Atu Assistant";
+  @override
+  String get online => "Online";
+  @override
+  String get offline => "Offline";
+  @override
+  String lastSeen(String timeAgo) => 'Last seen $timeAgo';
+  @override
+  String get viewProfile => "View Profile";
+  @override
+  String get clearChat => "Clear Chat";
+
+  @override
+  String get startTheConversation => "Start the conversation!";
+  @override
+  String isTyping(String name) => "$name is typing...";
+  @override
+  String get photo => "📷 Photo";
+  @override
+  String get voiceMessage => "🎤 Voice Message";
+  @override
+  String get attachment => "📎 Attachment";
+  @override
+  String get jobProposal => "💼 Job Proposal";
+  @override
+  String get invalidJobProposal => "Invalid Job Proposal";
+  @override
+  String get cantPlayAudio => "Can't play audio";
+  @override
+  String get aiGreeting =>
+      "Selam! I'm Min Atu, your personal AI assistant. How can I help you today? 😊";
+  @override
+  String get aiConnectionError =>
+      "Sorry, I'm having trouble connecting right now. Please try again later.";
+  @override
+  String get aiThinkingError =>
+      "Sorry, an error occurred while I was thinking.";
+
+  @override
+  String get reply => "Reply";
+  @override
+  String get copy => "Copy";
+  @override
+  String get copiedToClipboard => "Copied to clipboard!";
+  @override
+  String get deleteForMe => "Delete for Me";
+  @override
+  String get deleteForEveryone => "Delete for Everyone";
+  @override
+  String get messageHidden => "Message hidden for you.";
+  @override
+  String get tooLateToDelete => "Too late to delete for everyone.";
+  @override
+  String get messageDeleted => "Message deleted for everyone.";
+
+  @override
+  String get messageHint => "Message...";
+  @override
+  String get gallery => "Gallery";
+  @override
+  String get camera => "Camera";
+  @override
+  String get document => "Document";
+  @override
+  String get job => "Job";
+  @override
+  String get recording => "Recording...";
+  @override
+  String replyingTo(String name) => "Replying to $name";
+  @override
+  String get you => "You";
+
+  @override
+  String get aiIsInitializing => "AI is still initializing...";
+  @override
+  String get chatIsEmpty => "Chat is already empty.";
+  @override
+  String get chatCleared => "Chat history cleared.";
+  @override
+  String get failedToClearChat => "Failed to clear chat history.";
+  @override
+  String get fileUploadFailed => "File upload failed.";
+  @override
+  String newChatMessageFrom(String senderName) =>
+      "New message from $senderName";
+  @override
+  String get userPhoneNumberNotAvailable =>
+      "User's phone number is not available.";
+  @override
+  String couldNotMakeCallTo(String phoneNumber) =>
+      "Could not make the phone call to $phoneNumber.";
   // --- General ---
   @override
   String get appName => " WORKS";
@@ -1214,6 +1378,42 @@ class AppStringsEn implements AppStrings {
   String get noAvailabilityData => "No availability data found.";
   @override
   String get booked => "Booked";
+  @override
+  @override
+  String get termsOfService => "Terms of Service";
+  @override
+  String get termsOfServiceContent => """
+      By using this app, you agree to our Terms of Service. If you do not agree, please do not use the app.
+
+      The Terms of Service are subject to change without notice. It is your responsibility to check for any changes to the Terms of Service. If you do not agree with the changes, please stop using the app.
+
+      If you have any questions or concerns about the Terms of Service, please contact us at [insert contact information].
+
+      By using the app, you agree to the following:
+
+      1. You will not use the app for any illegal or harmful activity.
+      2. You will not use the app to harass, threaten, or intimidate others.
+      3. You will not use the app to post any content that is offensive, abusive, or harmful.
+      4. You will not use the app to post any content that infringes on the intellectual property rights of others.
+      5. You will not use the app to post any content that is false or misleading.
+      6. You will not use the app to post any content that is unrelated to the purpose of the app.
+      7. You will not use the app to post any content that contains any viruses or malware.
+      8. You will not use the app to collect any personal information about other users.
+      9. You will not use the app to send any unsolicited messages or spam.
+      10. You will not use the app to impersonate any person or entity, including but not limited to, a public figure, a celebrity, or a company.
+      11. You will not use the app to post any content that is intended to deceive or mislead others.
+      12. You will not use the app to post any content that contains any profanity or obscenity.
+      13. You will not use the app to post any content that is intended to offend or insult others.
+      14. You will not use the app to post any content that is intended to intimidate or harass others.
+      15. You will not use the app to post any content that contains any advertising or promotional material.
+      16. You will not use the app to post any content that is intended to promote or support any illegal activity.
+      17. You will not use the app to post any content that contains any harmful or offensive content.
+      18. You will not use the app to post any content that contains any content that is not suitable for all ages.
+      19. You will not use the app to post any content that contains any content that is not appropriate for the purpose of the app.
+      20. You will not use the app to post any content that contains any content that is not in compliance with the laws of the United States of America.
+
+      Failure to comply with these Terms of Service may result in your account being suspended or terminated.""";
+
   @override
   String get workerDetailWorking => "Working";
   @override
@@ -1805,7 +2005,7 @@ class AppStringsEn implements AppStrings {
   String get professionalSetupErrorNotLoggedIn => "Error: Not logged in.";
   @override
   String professionalSetupErrorLoading(String error) =>
-      "Error loading profile: $error";
+      "please check your network: $error";
   @override
   String get professionalSetupErrorFormValidation =>
       "Please correct the errors before saving.";
@@ -2149,6 +2349,22 @@ class AppStringsEn implements AppStrings {
   @override
   String get postedText => "Posted";
   @override
+  String get securityContent =>
+      'We value your security. Here are the details about your account\'s safety.';
+
+  @override
+  String get security => 'Security';
+
+  @override
+  String get privacyPolicyContent =>
+      'Your privacy is important to us. Please review our Privacy Policy.';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get privacySecurity => 'Privacy & Security';
+  @override
   String get agoText => "ago";
   @override
   String get applicantText => "Applicant";
@@ -2220,8 +2436,6 @@ class AppStringsEn implements AppStrings {
   String get cancel => "Cancel";
   @override
   String get delete => "Delete";
-  @override
-  String get reply => "Reply";
 
   // --- Notifications Screen (Main) ---
   @override
@@ -2372,6 +2586,17 @@ class AppStringsEn implements AppStrings {
   String get notifEmptyStateFilteredSubtitle =>
       "Try adjusting your filters to see more notifications.";
 
+  @override
+  String get personalInfo => "Personal Information";
+  @override
+  String get contactInfo => "Contact Information";
+  @override
+  String get aboutMe => "About Me";
+  @override
+  String get website => "Website / Portfolio";
+  @override
+  String get joinedDate => "Joined Date";
+
   // --- Notification Cards (General & Specific) ---
   @override
   String get notifInAppDefaultTitle => "New Notification";
@@ -2415,6 +2640,8 @@ class AppStringsEn implements AppStrings {
   String get notifActionChatWorker => "Chat with Worker";
   @override
   String get notifActionChatClient => "Chat with Client";
+  @override
+  String get convoErrorJobRequestNotWorker => "You are not a client.";
   @override
   String getStatusName(String key) {
     switch (key.toLowerCase()) {
@@ -2836,6 +3063,7 @@ class AppStringsEn implements AppStrings {
   String get convoAttachJob => "Job";
   @override
   String get convoAudioPlaybackError => "Can't play audio";
+  @override
   String jobApplicationsScreenTitle(String jobTitle) =>
       "Applicants for: $jobTitle";
 }
@@ -2848,7 +3076,8 @@ class AppStringsAm implements AppStrings {
   Locale get locale => const Locale('am');
 
   // --- Implement ALL abstract members ---
-
+  @override
+  String get termsOfService => "የአገልግሎት ህግን አንብብ";
   @override
   String get appName => "ስራ";
   @override
@@ -3163,6 +3392,16 @@ class AppStringsAm implements AppStrings {
 
   @override
   String get chatListFilterAll => "ሁሉም"; // All
+  @override
+  String get personalInfo => "የግል መረጃ";
+  @override
+  String get contactInfo => "የእውቂያ መረጃ";
+  @override
+  String get aboutMe => "ስለ እኔ";
+  @override
+  String get website => "ድር ጣቢያ / ፖርትፎሊዮ";
+  @override
+  String get joinedDate => "የተቀላቀለበት ቀን";
 
   @override
   String get chatListFilterUnread => "ያልተነበቡ"; // Unread
@@ -3353,6 +3592,102 @@ class AppStringsAm implements AppStrings {
   @override
   String get createJobSnackbarErrorWorker =>
       'የሰራተኛውን ዝርዝር በመጫን ላይ ስህተት ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።';
+  @override
+  String get anErrorOccurred => "ስህተት አጋጥሟል፡፡";
+  @override
+  String get today => "ዛሬ";
+  @override
+  String get yesterday => "ትላንት";
+
+  @override
+  String get aiAssistantName => "ምን አቱ ረዳት";
+  @override
+  String get online => "በመስመር ላይ";
+  @override
+  String get offline => "ከመስመር ውጭ";
+  @override
+  String lastSeen(String timeAgo) => 'መጨረሻ የታየው $timeAgo';
+  @override
+  String get viewProfile => "መገለጫ ይመልከቱ";
+  @override
+  String get clearChat => "ቻት አጽዳ";
+
+  @override
+  String get startTheConversation => "ውይይቱን ጀምር!";
+  @override
+  String isTyping(String name) => "$name እየጻፈ/ች ነው...";
+  @override
+  String get photo => "📷 ፎቶ";
+  @override
+  String get voiceMessage => "🎤 የድምጽ መልዕክት";
+  @override
+  String get attachment => "📎 አባሪ";
+  @override
+  String get jobProposal => "💼 የስራ ሀሳብ";
+  @override
+  String get invalidJobProposal => "የማይሰራ የስራ ሀሳብ";
+  @override
+  String get cantPlayAudio => "ድምጹን ማጫወት አልተቻለም";
+  @override
+  String get aiGreeting =>
+      "ሰላም! እኔ ምን አቱ የግል ሰው ሰራሽ ረዳትዎ ነኝ። ዛሬ እንዴት ልረዳዎት እችላለሁ? 😊";
+  @override
+  String get aiConnectionError =>
+      "ይቅርታ፣ አሁን ለመገናኘት እየተቸገርኩ ነው። እባክዎ ቆይተው እንደገና ይሞክሩ።";
+  @override
+  String get aiThinkingError => "ይቅርታ፣ ሳስብ ሳለ ስህተት ተፈጥሯል።";
+
+  @override
+  String get reply => "ምላሽ ስጥ";
+  @override
+  String get copy => "ቅዳ";
+  @override
+  String get copiedToClipboard => "በቅንጥብ ሰሌዳ ላይ ተቀድቷል!";
+  @override
+  String get deleteForMe => "ለኔ አጥፋ";
+  @override
+  String get deleteForEveryone => "ለሁሉም አጥፋ";
+  @override
+  String get messageHidden => "መልዕክቱ ለእርስዎ ተደብቋል።";
+  @override
+  String get tooLateToDelete => "ለሁሉም ለማጥፋት ጊዜው አልፏል።";
+  @override
+  String get messageDeleted => "መልዕክቱ ለሁሉም ተሰርዟል።";
+
+  @override
+  String get messageHint => "መልዕክት...";
+  @override
+  String get gallery => "ፎቶዎች";
+  @override
+  String get camera => "ካሜራ";
+  @override
+  String get document => "ሰነድ";
+  @override
+  String get job => "ስራ";
+  @override
+  String get recording => "እየቀዳ ነው...";
+  @override
+  String replyingTo(String name) => "ለ $name ምላሽ በመስጠት ላይ";
+  @override
+  String get you => "እርስዎ";
+
+  @override
+  String get aiIsInitializing => "ሰው ሰራሽ ረዳቱ እየተዘጋጀ ነው...";
+  @override
+  String get chatIsEmpty => "ቻቱ ባዶ ነው።";
+  @override
+  String get chatCleared => "የቻት ታሪክ ጸድቷል።";
+  @override
+  String get failedToClearChat => "የቻት ታሪክን ማጽዳት አልተቻለም።";
+  @override
+  String get fileUploadFailed => "ፋይል መጫን አልተሳካም።";
+  @override
+  String newChatMessageFrom(String senderName) => "ከ $senderName አዲስ መልዕክት";
+  @override
+  String get userPhoneNumberNotAvailable => "የተጠቃሚው ስልክ ቁጥር አይገኝም።";
+  @override
+  String couldNotMakeCallTo(String phoneNumber) =>
+      "ወደ $phoneNumber የስልክ ጥሪ ማድረግ አልተቻለም።";
   @override
   String get createJobSnackbarErrorUpload =>
       'ሰነዶችን በመጫን ላይ ስህተት ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።';
@@ -4425,8 +4760,6 @@ class AppStringsAm implements AppStrings {
   String get cancel => "ይቅር";
   @override
   String get delete => "አጥፋ";
-  @override
-  String get reply => "ምላሽ ስጥ";
 
   // --- Notifications Screen (Main) ---
   @override
@@ -4625,6 +4958,27 @@ class AppStringsAm implements AppStrings {
   @override
   String get convoAiAppBarTitle => "ምን አዲስ ረዳት";
   @override
+  String get termsOfServiceContent =>
+      'በእንግድነት ስምምነት የአጠቃቀም መርማሪያን በተመለከተ ይህ አማርኛ እንዲህ አምራችሁ';
+
+  @override
+  String get securityContent =>
+      'እንዲሁም የፕሮጀክት ማኅበረ-ሰብ የአሰፋፋሽ ተሞክሮት በመከላከል ይህ ስምንት';
+
+  @override
+  String get security => 'ደህንነት';
+
+  @override
+  String get privacyPolicyContent =>
+      'በስምንት ማስተከል እንደምንታ እንዲህ ይሁን የመግቢያ ምንታ በበለጠ ስምንት';
+
+  @override
+  String get privacyPolicy => 'የግል እና ምስጢራዊ ፖሊሲ';
+
+  @override
+  String get privacySecurity => 'ግል እና ምስጢራዊ ደህንነት';
+
+  @override
   String get convoAppBarLoading => "በመጫን ላይ...";
   @override
   String get convoUserStatusOnline => "በመስመር ላይ";
@@ -4718,6 +5072,9 @@ class AppStringsAm implements AppStrings {
   String get convoAttachJob => "ሥራ";
   @override
   String get convoAudioPlaybackError => "ኦዲዮ ማጫወት አልተቻለም";
+  @override
+  @override
+  String get convoErrorJobRequestNotWorker => "አንተ ክላይንት አይደሉም።";
 }
 
 // ===========================================================

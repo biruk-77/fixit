@@ -219,14 +219,14 @@ class _QuickJobRequestScreenState extends State<QuickJobRequestScreen> {
                             ? NetworkImage(widget.worker.profileImage)
                             : null,
                         backgroundColor: Colors.grey[900],
-                        child: widget.worker.profileImage.isEmpty
-                            ? const Icon(Icons.person,
-                                size: 40, color: Colors.tealAccent)
-                            : null,
                         onBackgroundImageError:
                             widget.worker.profileImage.isNotEmpty
                                 ? (_, __) {}
                                 : null,
+                        child: widget.worker.profileImage.isEmpty
+                            ? const Icon(Icons.person,
+                                size: 40, color: Colors.tealAccent)
+                            : null,
                       ),
                       const SizedBox(width: 20),
                       Expanded(

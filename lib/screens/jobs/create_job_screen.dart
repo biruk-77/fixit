@@ -5,7 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:file_picker/file_picker.dart'; // For general files
 import 'package:image_picker/image_picker.dart'; // For camera/gallery images (XFile)
 import 'dart:io';
-import 'dart:typed_data'; // Required for Uint8List
+// Required for Uint8List
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animate_do/animate_do.dart';
@@ -944,7 +944,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       items: items.map((String item) {
         return DropdownMenuItem<String>(
           value: item,
@@ -1661,7 +1661,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           onChanged: (v) {
             if (mounted) setState(() => _isUrgent = v);
           },
-          activeColor: colorScheme.secondary,
+          activeThumbColor: colorScheme.secondary,
           inactiveThumbColor: colorScheme.outline,
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),

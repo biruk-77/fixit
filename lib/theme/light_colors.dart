@@ -272,11 +272,8 @@ class AppThemes {
       onError: _LightGreenGoldPalette.onError,
       errorContainer: _LightGreenGoldPalette.errorContainer,
       onErrorContainer: _LightGreenGoldPalette.onErrorContainer,
-      background: _LightGreenGoldPalette.background,
-      onBackground: _LightGreenGoldPalette.onBackground,
       surface: _LightGreenGoldPalette.surface,
       onSurface: _LightGreenGoldPalette.onSurface,
-      surfaceVariant: _LightGreenGoldPalette.surfaceVariant,
       onSurfaceVariant: _LightGreenGoldPalette.onSurfaceVariant,
       outline: _LightGreenGoldPalette.outline,
       outlineVariant: _LightGreenGoldPalette.outlineVariant,
@@ -328,11 +325,8 @@ class AppThemes {
       onError: _TiktokDarkPalette.onError,
       errorContainer: _TiktokDarkPalette.errorContainer,
       onErrorContainer: _TiktokDarkPalette.onErrorContainer,
-      background: _TiktokDarkPalette.background,
-      onBackground: _TiktokDarkPalette.onBackground,
       surface: _TiktokDarkPalette.surface,
       onSurface: _TiktokDarkPalette.onSurface,
-      surfaceVariant: _TiktokDarkPalette.surfaceVariant,
       onSurfaceVariant: _TiktokDarkPalette.onSurfaceVariant,
       outline: _TiktokDarkPalette.outline,
       outlineVariant: _TiktokDarkPalette.outlineVariant,
@@ -439,8 +433,8 @@ class AppThemes {
     return baseTheme.copyWith(
       brightness: brightness,
       primaryColor: colorScheme.primary,
-      scaffoldBackgroundColor: colorScheme.background,
-      canvasColor: isDark ? colorScheme.surface : colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
+      canvasColor: isDark ? colorScheme.surface : colorScheme.surface,
       cardColor: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
       dividerColor: colorScheme.outlineVariant,
       hintColor: textThemeColors.disabled,
@@ -453,14 +447,14 @@ class AppThemes {
         scrolledUnderElevation: isDark ? 0 : 2,
         // Dark uses surface, Light uses primary AppBar background
         // *** ADJUSTMENT for TikTok Dark: Match background for seamless look ***
-        backgroundColor: isDark ? colorScheme.background : colorScheme.primary,
+        backgroundColor: isDark ? colorScheme.surface : colorScheme.primary,
         foregroundColor:
-            isDark ? colorScheme.onBackground : colorScheme.onPrimary,
+            isDark ? colorScheme.onSurface : colorScheme.onPrimary,
         // *** ADJUSTMENT for TikTok Dark: Use general icon color ***
         iconTheme: IconThemeData(
             color: isDark ? iconColors.primary : colorScheme.onPrimary),
         titleTextStyle: _AppTextStyles.titleLarge.copyWith(
-            color: isDark ? colorScheme.onBackground : colorScheme.onPrimary),
+            color: isDark ? colorScheme.onSurface : colorScheme.onPrimary),
         centerTitle: true,
         surfaceTintColor:
             Colors.transparent, // No tint for dark AppBar generally
@@ -477,11 +471,13 @@ class AppThemes {
               ? colorScheme.primary.withOpacity(0.3)
               : Colors.transparent,
         ).copyWith(
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed))
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) {
               return colorScheme.onPrimary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered))
+            }
+            if (states.contains(WidgetState.hovered)) {
               return colorScheme.onPrimary.withOpacity(0.08);
+            }
             return null;
           }),
         ),
@@ -499,11 +495,13 @@ class AppThemes {
           padding: _buttonPadding,
           shape: _buttonShape,
         ).copyWith(
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed))
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) {
               return colorScheme.primary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered))
+            }
+            if (states.contains(WidgetState.hovered)) {
               return colorScheme.primary.withOpacity(0.08);
+            }
             return null;
           }),
         ),
@@ -515,11 +513,13 @@ class AppThemes {
           padding: _buttonPadding,
           shape: _buttonShape,
         ).copyWith(
-          overlayColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.pressed))
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) {
               return colorScheme.primary.withOpacity(0.12);
-            if (states.contains(MaterialState.hovered))
+            }
+            if (states.contains(WidgetState.hovered)) {
               return colorScheme.primary.withOpacity(0.08);
+            }
             return null;
           }),
         ),
@@ -536,12 +536,12 @@ class AppThemes {
         filled: true,
         // *** ADJUSTMENT for TikTok Dark: Use surfaceVariant ***
         fillColor: isDark
-            ? colorScheme.surfaceVariant.withOpacity(0.6)
+            ? colorScheme.surfaceContainerHighest.withOpacity(0.6)
             : colorScheme.surfaceContainerHighest.withOpacity(0.5),
         hintStyle:
-            _AppTextStyles.bodyLarge?.copyWith(color: textThemeColors.disabled),
+            _AppTextStyles.bodyLarge.copyWith(color: textThemeColors.disabled),
         labelStyle: _AppTextStyles.bodyLarge
-            ?.copyWith(color: colorScheme.onSurfaceVariant),
+            .copyWith(color: colorScheme.onSurfaceVariant),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         // *** ADJUSTMENT for TikTok Dark: No border usually ***
@@ -570,7 +570,7 @@ class AppThemes {
       chipTheme: ChipThemeData(
         // *** ADJUSTMENT for TikTok Dark: Darker background ***
         backgroundColor: isDark
-            ? colorScheme.surfaceVariant
+            ? colorScheme.surfaceContainerHighest
             : colorScheme.surfaceContainerHigh,
         disabledColor: colorScheme.onSurface.withOpacity(0.12),
         selectedColor: isDark
@@ -579,12 +579,12 @@ class AppThemes {
         secondarySelectedColor: colorScheme.primaryContainer,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         // Apply correct label color
-        labelStyle: _AppTextStyles.labelLarge?.copyWith(
+        labelStyle: _AppTextStyles.labelLarge.copyWith(
             color: isDark
                 ? colorScheme.onSurfaceVariant
                 : colorScheme.onSurfaceVariant),
         // Text on selected chip
-        secondaryLabelStyle: _AppTextStyles.labelLarge?.copyWith(
+        secondaryLabelStyle: _AppTextStyles.labelLarge.copyWith(
             color: isDark
                 ? colorScheme.onPrimary
                 : colorScheme.onSecondaryContainer),
@@ -599,16 +599,16 @@ class AppThemes {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         // *** ADJUSTMENT for TikTok Dark: Match background ***
-        backgroundColor: isDark ? colorScheme.background : colorScheme.primary,
+        backgroundColor: isDark ? colorScheme.surface : colorScheme.primary,
         selectedItemColor: isDark
             ? colorScheme.primary
             : colorScheme.onPrimary, // Gold selection for dark
         unselectedItemColor: isDark
             ? textThemeColors.disabled
             : colorScheme.onPrimary.withOpacity(0.7), // Grey disabled for dark
-        selectedLabelStyle: _AppTextStyles.labelMedium?.copyWith(
+        selectedLabelStyle: _AppTextStyles.labelMedium.copyWith(
             color: isDark ? colorScheme.primary : colorScheme.onPrimary),
-        unselectedLabelStyle: _AppTextStyles.labelMedium?.copyWith(
+        unselectedLabelStyle: _AppTextStyles.labelMedium.copyWith(
             color: isDark
                 ? textThemeColors.disabled
                 : colorScheme.onPrimary.withOpacity(0.7)),
@@ -617,7 +617,6 @@ class AppThemes {
         landscapeLayout: BottomNavigationBarLandscapeLayout.centered,
       ),
       visualDensity: VisualDensity.standard,
-      useMaterial3: true,
       pageTransitionsTheme: _pageTransitionsTheme,
     );
   }

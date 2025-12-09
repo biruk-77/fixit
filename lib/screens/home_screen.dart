@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; // Used for potential font customization
 import 'package:shimmer/shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart'; // Needed for DateFormat in cards (though not directly used in the provided snippets, good to keep if used elsewhere)
+// Needed for DateFormat in cards (though not directly used in the provided snippets, good to keep if used elsewhere)
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:animate_do/animate_do.dart';
@@ -13,7 +13,6 @@ import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geolocator/geolocator.dart'; // For location services and distance calculation
 import 'package:provider/provider.dart';
-import 'widgets/ai_chat_panel.dart';
 
 // --- Models, Services, Screens & Localization ---
 import '../models/worker.dart';
@@ -29,6 +28,8 @@ import 'jobs/create_job_screen.dart';
 import 'jobs/job_detail_screen.dart';
 import 'notifications_screen.dart';
 import 'chat_screen.dart';
+import 'widgets/ai_chat_panel.dart';
+import 'auth/login_screen.dart';
 
 import 'professional_setup_screen.dart';
 import '../services/ai_chat_service.dart';
@@ -362,8 +363,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (!mounted) return;
 
     // Debounce for AI suggestion
-    if (_aiSuggestionDebounce?.isActive ?? false)
+    if (_aiSuggestionDebounce?.isActive ?? false) {
       _aiSuggestionDebounce!.cancel();
+    }
     _aiSuggestionDebounce = Timer(const Duration(milliseconds: 750), () {
       final text = _searchController.text.trim();
       final isQuestion =
@@ -412,7 +414,7 @@ class _HomeScreenState extends State<HomeScreen>
       } else {
         setStateIfMounted(() {
           _currentUser = userProfile;
-          _userType = userProfile.role?.toLowerCase() == 'worker'
+          _userType = userProfile.role.toLowerCase() == 'worker'
               ? 'worker'
               : 'client';
         });
@@ -426,7 +428,7 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         _showErrorSnackbar(
           AppLocalizations.of(context)?.snackErrorLoadingProfile ??
-              'Error loading profile.',
+              'please check your network.',
           isCritical: true,
         );
       }
@@ -518,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen>
       });
       if (mounted) {
         final errorMsg =
-            strings.snackErrorLoadingProfile ?? 'Error loading profile:';
+            strings.snackErrorLoadingProfile ?? 'please check your network:';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$errorMsg $e'),
@@ -560,19 +562,19 @@ class _HomeScreenState extends State<HomeScreen>
       _dynamicLocations.add('All');
       final Set<String> dynamicCategories = {'All', ..._baseCategories};
       for (var worker in workers) {
-        if (worker.location != null && worker.location!.isNotEmpty) {
-          _dynamicLocations.add(worker.location!);
+        if (worker.location.isNotEmpty) {
+          _dynamicLocations.add(worker.location);
         }
-        if (worker.profession != null && worker.profession!.isNotEmpty) {
+        if (worker.profession.isNotEmpty) {
           bool isBaseCategory = _baseCategories.any(
             (b) =>
                 b != 'All' &&
-                worker.profession!.toLowerCase().contains(b.toLowerCase()),
+                worker.profession.toLowerCase().contains(b.toLowerCase()),
           );
           if (!isBaseCategory &&
-              !_baseCategories.contains(worker.profession!) && // Added !
-              worker.profession!.trim().isNotEmpty) {
-            dynamicCategories.add(worker.profession!);
+              !_baseCategories.contains(worker.profession) && // Added !
+              worker.profession.trim().isNotEmpty) {
+            dynamicCategories.add(worker.profession);
           }
         }
       }
@@ -634,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
       print("DEBUG: Fetched ${jobs.length} jobs.");
       List<Job> openJobs =
-          jobs.where((j) => j.status?.toLowerCase() == 'open').toList()..sort(
+          jobs.where((j) => j.status.toLowerCase() == 'open').toList()..sort(
             (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
               a.createdAt ?? DateTime(0),
             ),
@@ -673,23 +675,23 @@ class _HomeScreenState extends State<HomeScreen>
     final List<Worker> filtered = _workers.where((worker) {
       final locationMatch =
           (_filterSelectedLocation == allKey ||
-          (worker.location?.toLowerCase() ?? '') ==
+          (worker.location.toLowerCase() ?? '') ==
               _filterSelectedLocation.toLowerCase());
       final categoryMatch =
           (_filterSelectedCategory == allKey ||
-          (worker.profession?.toLowerCase() ?? '').contains(
+          (worker.profession.toLowerCase() ?? '').contains(
             _filterSelectedCategory.toLowerCase(),
           ));
       final searchMatch = query.isEmpty
           ? true
-          : ((worker.name?.toLowerCase() ?? '').contains(query) ||
-                (worker.profession?.toLowerCase() ?? '').contains(query) ||
-                (worker.location?.toLowerCase() ?? '').contains(query) ||
-                (worker.skills?.any(
-                      (s) => (s?.toLowerCase() ?? '').contains(query),
+          : ((worker.name.toLowerCase() ?? '').contains(query) ||
+                (worker.profession.toLowerCase() ?? '').contains(query) ||
+                (worker.location.toLowerCase() ?? '').contains(query) ||
+                (worker.skills.any(
+                      (s) => (s.toLowerCase() ?? '').contains(query),
                     ) ?? // Added null-aware
                     false) ||
-                (worker.about?.toLowerCase() ?? '').contains(query));
+                (worker.about.toLowerCase() ?? '').contains(query));
       return locationMatch && categoryMatch && searchMatch;
     }).toList();
     print(
@@ -711,13 +713,13 @@ class _HomeScreenState extends State<HomeScreen>
     final List<Job> filtered = _jobs.where((job) {
       final statusMatch =
           (_filterSelectedJobStatus == allKey ||
-          (job.status?.toLowerCase() ?? '') ==
+          (job.status.toLowerCase() ?? '') ==
               _filterSelectedJobStatus.toLowerCase());
       final searchMatch = query.isEmpty
           ? true
-          : ((job.title?.toLowerCase() ?? '').contains(query) ||
-                (job.description?.toLowerCase() ?? '').contains(query) ||
-                (job.location?.toLowerCase() ?? '').contains(query));
+          : ((job.title.toLowerCase() ?? '').contains(query) ||
+                (job.description.toLowerCase() ?? '').contains(query) ||
+                (job.location.toLowerCase() ?? '').contains(query));
       return statusMatch && searchMatch;
     }).toList();
     print(
@@ -793,21 +795,32 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _signOut() async {
+    final strings = AppLocalizations.of(context);
+    if (strings == null || !mounted) return;
+
     setState(() {
-      showOverallLoader = true;
+      _isLoading = true; // Show loader during sign out
     });
     try {
-      await _authService.signOut();
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      await _firebaseService.signOut();
+      if (!mounted) return;
+      // Navigate to LoginScreen and remove all previous routes
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
     } catch (e) {
-      print("Error signing out: $e");
-      rethrow;
-    } finally {
-      if (mounted) {
-        setState(() {
-          showOverallLoader = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false; // Hide loader on error
+      });
+      final errorMsg = strings.errorActionFailed ?? 'Sign out failed:';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$errorMsg $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -1088,7 +1101,7 @@ class _HomeScreenState extends State<HomeScreen>
         ? appStrings.findExpertsTitle
         : appStrings.yourJobFeedTitle;
     String? firstName = _currentUser?.name
-        ?.split(' ')
+        .split(' ')
         .first; // Null-aware access
     String welcomeMessage = firstName != null && firstName.isNotEmpty
         ? appStrings.helloUser(firstName)
@@ -1338,7 +1351,7 @@ class _HomeScreenState extends State<HomeScreen>
     return LiquidPullToRefresh(
       key: ValueKey<String>("content_loaded_${_userType}_${theme.brightness}"),
       onRefresh: _refreshData,
-      color: colorScheme.surfaceVariant, // Changed from surfaceContainerHighest
+      color: colorScheme.surfaceContainerHighest, // Changed from surfaceContainerHighest
       backgroundColor: colorScheme.secondary,
       height: 60,
       animSpeedFactor: 1.5,
@@ -1437,7 +1450,7 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color:
             inputTheme.fillColor ??
-            colorScheme.surfaceVariant.withOpacity(
+            colorScheme.surfaceContainerHighest.withOpacity(
               0.8,
             ), // Changed from surfaceContainerHighest
         borderRadius: BorderRadius.circular(30.0),
@@ -1514,7 +1527,7 @@ class _HomeScreenState extends State<HomeScreen>
     Color iconDefaultColor = colorScheme.onSurfaceVariant;
     List<Color> defaultGradient = isDarkMode
         ? [
-            colorScheme.surfaceVariant,
+            colorScheme.surfaceContainerHighest,
             colorScheme.surface,
           ] // Changed from surfaceContainerHighest
         : [
@@ -1858,9 +1871,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     // Adjust cardHeight based on index to simulate staggered grid different heights
-    if (index % 3 == 0)
+    if (index % 3 == 0) {
       cardHeight += 20;
-    else if (index % 3 == 1)
+    } else if (index % 3 == 1)
       cardHeight -= 15;
     cardHeight = cardHeight.clamp(
       200,
@@ -2349,7 +2362,7 @@ class _HomeScreenState extends State<HomeScreen>
         Color bgColor = isSelected
             ? (chipTheme.selectedColor ?? colorScheme.primary)
             : (chipTheme.backgroundColor ??
-                  colorScheme.surfaceVariant); // Use surfaceVariant
+                  colorScheme.surfaceContainerHighest); // Use surfaceVariant
         Color labelColor = isSelected
             ? (chipTheme.secondaryLabelStyle?.color ?? colorScheme.onPrimary)
             : (chipTheme.labelStyle?.color ?? colorScheme.onSurfaceVariant);
@@ -2369,7 +2382,7 @@ class _HomeScreenState extends State<HomeScreen>
           },
           backgroundColor:
               chipTheme.backgroundColor ??
-              colorScheme.surfaceVariant, // Use surfaceVariant
+              colorScheme.surfaceContainerHighest, // Use surfaceVariant
           selectedColor: chipTheme.selectedColor ?? colorScheme.primary,
           labelStyle: (chipTheme.labelStyle ?? textTheme.labelMedium)?.copyWith(
             color: labelColor,
@@ -2551,11 +2564,11 @@ class UltimateGridWorkerCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onBookNow;
   const UltimateGridWorkerCard({
-    Key? key,
+    super.key,
     required this.worker,
     required this.onTap,
     required this.onBookNow,
-  }) : super(key: key);
+  });
 
   IconData _getProfessionIcon(String? p) {
     if (p == null) return Icons.construction_rounded;
@@ -2913,19 +2926,19 @@ class UltimateGridWorkerCard extends StatelessWidget {
           label: Text(appStrings.workerCardHire),
           onPressed: onBookNow,
           style: t.elevatedButtonTheme.style?.copyWith(
-            backgroundColor: MaterialStateProperty.all(aC),
-            foregroundColor: MaterialStateProperty.all(oAC),
-            textStyle: MaterialStateProperty.all(
+            backgroundColor: WidgetStateProperty.all(aC),
+            foregroundColor: WidgetStateProperty.all(oAC),
+            textStyle: WidgetStateProperty.all(
               tt.labelLarge?.copyWith(
                 fontSize: 13.5,
                 color: oAC,
                 fontFamily: GoogleFonts.poppins().fontFamily,
               ),
             ),
-            padding: MaterialStateProperty.all(
+            padding: WidgetStateProperty.all(
               const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             ),
-            shape: MaterialStateProperty.all(
+            shape: WidgetStateProperty.all(
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -3013,9 +3026,7 @@ class UltimateGridJobCard extends StatelessWidget {
     IconData statusIcon = _getStatusIcon(job.status);
     String statusText = _getStatusText(job.status, appStrings);
     String timeAgo = _getTimeAgo(job.createdAt, appStrings);
-    String budget = job.budget != null
-        ? appStrings.jobBudgetETB(job.budget.toStringAsFixed(0))
-        : appStrings.generalN_A;
+    String budget = appStrings.jobBudgetETB(job.budget.toStringAsFixed(0));
     Color cardBg = theme.cardColor;
 
     // Use first attachment as potential preview image, null if no attachments
@@ -3080,7 +3091,7 @@ class UltimateGridJobCard extends StatelessWidget {
                         color: statusColor,
                         fontFamily: GoogleFonts.poppins().fontFamily,
                       ), // Use Google FontsR
-                      backgroundColor: cs.surfaceVariant.withOpacity(0.8),
+                      backgroundColor: cs.surfaceContainerHighest.withOpacity(0.8),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 2,
@@ -3097,7 +3108,7 @@ class UltimateGridJobCard extends StatelessWidget {
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
                       child: CachedNetworkImage(
-                        imageUrl: previewImageUrl!,
+                        imageUrl: previewImageUrl,
                         fit: BoxFit.cover,
                         placeholder: (c, u) =>
                             Container(color: cs.surfaceContainer),
@@ -3191,10 +3202,10 @@ class FeaturedWorkerCard extends StatelessWidget {
   final Worker worker;
   final VoidCallback onTap;
   const FeaturedWorkerCard({
-    Key? key,
+    super.key,
     required this.worker,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   IconData _getProfessionIcon(String? p) {
     if (p == null) return Icons.construction_rounded;
@@ -3554,9 +3565,7 @@ class FeaturedJobCard extends StatelessWidget {
       theme.brightness == Brightness.dark,
     );
     String timeAgo = _getTimeAgo(job.createdAt, appStrings);
-    String budget = job.budget != null
-        ? appStrings.jobBudgetETB(job.budget.toStringAsFixed(0))
-        : appStrings.generalN_A;
+    String budget = appStrings.jobBudgetETB(job.budget.toStringAsFixed(0));
     Color cardBg = theme.cardColor;
 
     String? previewImageUrl = job.attachments.isNotEmpty
@@ -3617,7 +3626,7 @@ class FeaturedJobCard extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: CachedNetworkImage(
-                          imageUrl: previewImageUrl!,
+                          imageUrl: previewImageUrl,
                           height: 40,
                           width: 40,
                           fit: BoxFit.cover,

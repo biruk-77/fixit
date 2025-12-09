@@ -69,7 +69,7 @@ class AuthService {
 
       print("Found Google user silently: ${googleUser.email}");
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+          googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: kIsWeb ? null : googleAuth.idToken,
         idToken: googleAuth.idToken,
@@ -316,16 +316,11 @@ class AuthService {
       // =========================================================================
       // ========== FIX #2: Use the new `authenticate` method ==========
       // =========================================================================
-      final GoogleSignInAccount? googleUser = await _googleSignIn
+      final GoogleSignInAccount googleUser = await _googleSignIn
           .authenticate();
 
-      if (googleUser == null) {
-        print('Google Sign In cancelled by user.');
-        return null;
-      }
-
       final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+          googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: kIsWeb ? null : googleAuth.idToken,
         idToken: googleAuth.idToken,

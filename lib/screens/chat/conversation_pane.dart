@@ -1,6 +1,3 @@
-// lib/screens/chat/conversation_pane.dart
-// --- DEFINITIVE AI-POWERED, WHATSAPP-STYLE CHAT ---
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -11,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../jobs/quick_job_request_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -34,15 +32,13 @@ import '../../models/job.dart';
 import '../../models/user.dart' as AppUser;
 import '../../models/worker.dart';
 import '../../services/ai_chat_service.dart';
+import '../../services/app_string.dart';
 import '../../services/firebase_service.dart';
 import '../chat_screen.dart';
 import '../jobs/job_detail_screen.dart';
 import '../worker_detail_screen.dart';
 
-// A unique, constant ID for our AI assistant
 const String AI_USER_ID = 'min-atu-ai-assistant';
-
-// --- WIDGETS ---
 
 class ImageViewerScreen extends StatelessWidget {
   final String imageUrl;
@@ -77,21 +73,24 @@ class ImageViewerScreen extends StatelessWidget {
 class _DateDivider extends StatelessWidget {
   final DateTime timestamp;
   const _DateDivider({required this.timestamp});
-  String _formatDate(DateTime date) {
+
+  String _formatDate(DateTime date, AppStrings appStrings) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final messageDay = DateTime(date.year, date.month, date.day);
 
-    if (messageDay == today) return "Today";
-    if (messageDay == yesterday) return "Yesterday";
-    if (now.difference(messageDay).inDays < 7)
+    if (messageDay == today) return appStrings.convoDateToday;
+    if (messageDay == yesterday) return appStrings.convoDateYesterday;
+    if (now.difference(messageDay).inDays < 7) {
       return DateFormat.EEEE().format(date);
+    }
     return DateFormat.yMMMd().format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final appStrings = AppLocalizations.of(context)!;
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 20),
@@ -103,7 +102,7 @@ class _DateDivider extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
-          _formatDate(timestamp),
+          _formatDate(timestamp, appStrings),
           style: Theme.of(context).textTheme.labelSmall,
         ),
       ),
@@ -146,11 +145,16 @@ class _ConversationPaneState extends State<ConversationPane> {
     super.initState();
     _isAiChat = widget.otherUserId == AI_USER_ID;
 
-    if (_isAiChat) {
-      _initializeAiChat();
-    } else {
-      _initializeHumanChat();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        if (_isAiChat) {
+          _initializeAiChat();
+        } else {
+          _initializeHumanChat();
+        }
+      }
+    });
+
     _scrollController.addListener(_scrollListener);
     _messageController.addListener(_onTextChanged);
   }
@@ -167,6 +171,7 @@ class _ConversationPaneState extends State<ConversationPane> {
   }
 
   Future<void> _initializeAiChat() async {
+    final appStrings = AppLocalizations.of(context)!;
     setState(() => _isAiLoading = true);
     await _firebaseService.getCurrentUserProfile().then((user) {
       if (mounted) setState(() => _currentUser = user);
@@ -183,8 +188,7 @@ class _ConversationPaneState extends State<ConversationPane> {
                   id: _uuid.v4(),
                   senderId: AI_USER_ID,
                   receiverId: _currentUserId!,
-                  message:
-                      "Selam! I'm Min Atu, your personal AI assistant. How can I help you today? 😊",
+                  message: appStrings.convoAiWelcome,
                   timestamp: DateTime.now(),
                 ),
               );
@@ -201,8 +205,7 @@ class _ConversationPaneState extends State<ConversationPane> {
                   id: _uuid.v4(),
                   senderId: AI_USER_ID,
                   receiverId: _currentUserId!,
-                  message:
-                      "Sorry, I'm having trouble connecting right now. Please try again later.",
+                  message: appStrings.convoAiErrorInit,
                   timestamp: DateTime.now(),
                   messageType: 'error',
                 ),
@@ -215,10 +218,10 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   Future<void> _initializeHumanChat() async {
     if (_currentUserId == null) return;
-    _chatRoomId = _getChatRoomId(_currentUserId!, widget.otherUserId);
+    _chatRoomId = _getChatRoomId(_currentUserId, widget.otherUserId);
 
     final results = await Future.wait([
-      _firebaseService.getUser(_currentUserId!),
+      _firebaseService.getUser(_currentUserId),
       _firebaseService.getUser(widget.otherUserId),
     ]);
 
@@ -252,6 +255,8 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   Future<void> _sendMessage(ChatMessage message) async {
     if (_chatRoomId == null) return;
+    final appStrings = AppLocalizations.of(context)!;
+
     _messageController.clear();
     _setTypingStatus(false);
     _typingTimer?.cancel();
@@ -267,16 +272,16 @@ class _ConversationPaneState extends State<ConversationPane> {
     String lastMessageContent = message.message;
     switch (message.messageType) {
       case 'image':
-        lastMessageContent = '📷 Photo';
+        lastMessageContent = appStrings.chatListLastMsgPhoto;
         break;
       case 'audio':
-        lastMessageContent = '🎤 Voice Message';
+        lastMessageContent = appStrings.chatListLastMsgVoice;
         break;
       case 'file':
-        lastMessageContent = '📎 Attachment';
+        lastMessageContent = appStrings.convoLastMsgAttachment;
         break;
       case 'job_proposal':
-        lastMessageContent = '💼 Job Proposal';
+        lastMessageContent = appStrings.convoLastMsgJobProposal;
         break;
     }
 
@@ -305,7 +310,9 @@ class _ConversationPaneState extends State<ConversationPane> {
 
       await _firebaseService.createNotification(
         userId: widget.otherUserId,
-        title: "New message from ${_currentUser?.name ?? 'New Message'}",
+        title: appStrings.convoNewMessageNotifTitle(
+          _currentUser?.name ?? appStrings.convoNewMessageNotifTitleDefault,
+        ),
         body: lastMessageContent,
         type: 'message_received',
         data: {
@@ -323,8 +330,9 @@ class _ConversationPaneState extends State<ConversationPane> {
   Future<void> _handleSendPressed() async {
     final text = _messageController.text.trim();
     if ((text.isEmpty && _pickedImageBytesForAi == null) ||
-        _currentUserId == null)
+        _currentUserId == null) {
       return;
+    }
 
     if (_isAiChat) {
       await _handleAiQuery(text, imageBytes: _pickedImageBytesForAi);
@@ -332,10 +340,11 @@ class _ConversationPaneState extends State<ConversationPane> {
         _pickedImageBytesForAi = null;
       });
     } else {
+      final appStrings = AppLocalizations.of(context)!;
       final replyMessage = _replyingToMessage;
       final newMessage = ChatMessage(
         id: _uuid.v4(),
-        senderId: _currentUserId!,
+        senderId: _currentUserId,
         receiverId: widget.otherUserId,
         message: text,
         timestamp: DateTime.now(),
@@ -345,7 +354,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         replyToMessageId: replyMessage?.id,
         replyToMessageText: replyMessage?.message,
         replyToSenderName: replyMessage?.senderId == _currentUserId
-            ? 'You'
+            ? appStrings.convoReplyToYou
             : _otherUser?.name,
         replyToMessageType: replyMessage?.messageType,
       );
@@ -354,9 +363,10 @@ class _ConversationPaneState extends State<ConversationPane> {
   }
 
   Future<void> _handleAiQuery(String query, {Uint8List? imageBytes}) async {
+    final appStrings = AppLocalizations.of(context)!;
     if (!_isAiInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("AI is still initializing...")),
+        SnackBar(content: Text(appStrings.convoAiStillInitializing)),
       );
       return;
     }
@@ -425,7 +435,7 @@ class _ConversationPaneState extends State<ConversationPane> {
             id: _uuid.v4(),
             senderId: AI_USER_ID,
             receiverId: _currentUserId!,
-            message: "Sorry, an error occurred while I was thinking.",
+            message: appStrings.convoAiErrorThinking,
             timestamp: DateTime.now(),
             messageType: 'error',
           ),
@@ -439,6 +449,7 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   Future<void> _handleFileUpload(file_picker.PlatformFile platformFile) async {
     if (_currentUserId == null) return;
+    final appStrings = AppLocalizations.of(context)!;
 
     if (_isAiChat) {
       final bytes = kIsWeb
@@ -455,7 +466,7 @@ class _ConversationPaneState extends State<ConversationPane> {
 
     final fileUrl = await _firebaseService.uploadJobAttachment(
       platformFile: platformFile,
-      userId: _currentUserId!,
+      userId: _currentUserId,
     );
 
     if (fileUrl != null) {
@@ -477,7 +488,7 @@ class _ConversationPaneState extends State<ConversationPane> {
 
       final newMessage = ChatMessage(
         id: _uuid.v4(),
-        senderId: _currentUserId!,
+        senderId: _currentUserId,
         receiverId: widget.otherUserId,
         message: fileUrl,
         timestamp: DateTime.now(),
@@ -490,29 +501,37 @@ class _ConversationPaneState extends State<ConversationPane> {
       _sendMessage(newMessage);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("File upload failed.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(appStrings.convoErrorFileUpload)),
+        );
       }
     }
   }
 
   Future<void> _deleteMessageForMe(String messageId) async {
+    final appStrings = AppLocalizations.of(context)!;
+    // NOTE: For 'Delete for Me' in a real app, you would typically add the message ID
+    // to a local list or database of 'hidden messages' and filter the StreamBuilder
+    // results to exclude that message ID for the current user.
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text("Message hidden for you.")));
+    ).showSnackBar(SnackBar(content: Text(appStrings.convoMsgDeletedForMe)));
   }
 
   Future<void> _deleteMessageForEveryone(ChatMessage message) async {
     if (_chatRoomId == null) return;
+    final appStrings = AppLocalizations.of(context)!;
     final timeSinceSent = DateTime.now().difference(message.timestamp);
     if (timeSinceSent.inMinutes > 60) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Too late to delete for everyone.")),
+        SnackBar(
+          content: Text(appStrings.convoErrorDeleteForEveryoneTimeLimit),
+        ),
       );
       return;
     }
     try {
+      // Deleting from Firestore triggers stream refresh for both users
       await FirebaseFirestore.instance
           .collection('chats')
           .doc(_chatRoomId)
@@ -520,7 +539,7 @@ class _ConversationPaneState extends State<ConversationPane> {
           .doc(message.id)
           .delete();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Message deleted for everyone.")),
+        SnackBar(content: Text(appStrings.convoMsgDeletedForEveryone)),
       );
     } catch (e) {
       print("Error deleting message: $e");
@@ -529,15 +548,16 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   Future<void> _clearChatHistory() async {
     if (_chatRoomId == null || !mounted) return;
+    final appStrings = AppLocalizations.of(context)!;
     final messagesSnapshot = await FirebaseFirestore.instance
         .collection('chats')
         .doc(_chatRoomId)
         .collection('messages')
         .get();
     if (messagesSnapshot.docs.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Chat is already empty.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appStrings.convoErrorChatAlreadyEmpty)),
+      );
       return;
     }
     final batch = FirebaseFirestore.instance.batch();
@@ -548,11 +568,11 @@ class _ConversationPaneState extends State<ConversationPane> {
       await batch.commit();
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Chat history cleared.")));
+      ).showSnackBar(SnackBar(content: Text(appStrings.convoMsgChatCleared)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to clear chat history.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(appStrings.convoErrorClearChat)));
     }
   }
 
@@ -596,6 +616,7 @@ class _ConversationPaneState extends State<ConversationPane> {
   }
 
   AppBar _buildAppBar() {
+    final appStrings = AppLocalizations.of(context)!;
     if (_isAiChat) {
       return AppBar(
         leading: IconButton(
@@ -613,9 +634,9 @@ class _ConversationPaneState extends State<ConversationPane> {
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              "Min Atu Assistant",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              appStrings.convoAiAppBarTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
         ),
@@ -623,7 +644,7 @@ class _ConversationPaneState extends State<ConversationPane> {
     }
 
     if (_otherUser == null) {
-      return AppBar(title: const Text('Loading...'));
+      return AppBar(title: Text(appStrings.convoAppBarLoading));
     }
     final hasImage = _otherUser?.profileImage?.isNotEmpty ?? false;
     return AppBar(
@@ -670,9 +691,12 @@ class _ConversationPaneState extends State<ConversationPane> {
                       builder: (context, snapshot) {
                         if (!snapshot.hasData ||
                             snapshot.data?.data() == null) {
-                          return const Text(
-                            "Offline",
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          return Text(
+                            appStrings.convoUserStatusOffline,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
                           );
                         }
                         final data =
@@ -682,7 +706,7 @@ class _ConversationPaneState extends State<ConversationPane> {
 
                         if (status == 'online') {
                           return Text(
-                            'Online',
+                            appStrings.convoUserStatusOnline,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.green.shade400,
@@ -691,8 +715,10 @@ class _ConversationPaneState extends State<ConversationPane> {
                         } else {
                           return Text(
                             lastSeen != null
-                                ? 'Last seen ${timeago.format(lastSeen.toDate())}'
-                                : 'Offline',
+                                ? appStrings.convoUserStatusLastSeen(
+                                    timeago.format(lastSeen.toDate()),
+                                  )
+                                : appStrings.convoUserStatusOffline,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.grey,
@@ -723,13 +749,13 @@ class _ConversationPaneState extends State<ConversationPane> {
             }
           },
           itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
+            PopupMenuItem<String>(
               value: 'view_profile',
-              child: Text('View Profile'),
+              child: Text(appStrings.convoMenuViewProfile),
             ),
-            const PopupMenuItem<String>(
+            PopupMenuItem<String>(
               value: 'clear_chat',
-              child: Text('Clear Chat'),
+              child: Text(appStrings.convoMenuClearChat),
             ),
           ],
         ),
@@ -739,21 +765,14 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   void _navigateToUserProfile() async {
     final String userIdToNavigate = widget.otherUserId;
+    final appStrings = AppLocalizations.of(context)!;
 
     if (userIdToNavigate.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Could not open profile: User ID is missing."),
-        ),
+        SnackBar(content: Text(appStrings.convoErrorProfileIdMissing)),
       );
       return;
     }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
 
     try {
       final workerProfile = await _firebaseService.getWorkerById(
@@ -771,7 +790,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not load worker profile.")),
+          SnackBar(content: Text(appStrings.convoErrorProfileLoad)),
         );
       }
     } catch (e) {
@@ -779,14 +798,15 @@ class _ConversationPaneState extends State<ConversationPane> {
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("An error occurred.")));
+      ).showSnackBar(SnackBar(content: Text(appStrings.convoErrorGeneric)));
     }
   }
 
   Future<void> _makePhoneCall() async {
+    final appStrings = AppLocalizations.of(context)!;
     if (_otherUser == null || _otherUser!.phoneNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User's phone number is not available.")),
+        SnackBar(content: Text(appStrings.convoErrorPhoneNotAvailable)),
       );
       return;
     }
@@ -797,7 +817,7 @@ class _ConversationPaneState extends State<ConversationPane> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Could not make the phone call to ${_otherUser!.phoneNumber}.",
+            appStrings.convoErrorPhoneLaunch(_otherUser!.phoneNumber),
           ),
         ),
       );
@@ -843,6 +863,7 @@ class _ConversationPaneState extends State<ConversationPane> {
     if (_chatRoomId == null) {
       return const Center(child: CircularProgressIndicator());
     }
+    final appStrings = AppLocalizations.of(context)!;
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('chats')
@@ -855,7 +876,7 @@ class _ConversationPaneState extends State<ConversationPane> {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('Start the conversation!'));
+          return Center(child: Text(appStrings.convoEmptyHumanChat));
         }
         final messagesDocs = snapshot.data!.docs;
         _markMessagesAsRead(messagesDocs);
@@ -902,6 +923,7 @@ class _ConversationPaneState extends State<ConversationPane> {
                   children: [
                     if (showDateDivider)
                       _DateDivider(timestamp: message.timestamp),
+                    // SwipeTo enables the slide-to-reply functionality
                     SwipeTo(
                       onRightSwipe: (details) {
                         HapticFeedback.lightImpact();
@@ -945,6 +967,7 @@ class _ConversationPaneState extends State<ConversationPane> {
 
   Widget _buildTypingIndicator() {
     if (_chatRoomId == null) return const SizedBox.shrink();
+    final appStrings = AppLocalizations.of(context)!;
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('chats')
@@ -964,7 +987,10 @@ class _ConversationPaneState extends State<ConversationPane> {
               children: [
                 FadeIn(
                   child: Text(
-                    "${_otherUser?.name ?? 'Someone'} is typing...",
+                    appStrings.convoTypingIndicator(
+                      _otherUser?.name ??
+                          appStrings.convoTypingIndicatorDefault,
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
@@ -1019,7 +1045,7 @@ class _ConversationPaneState extends State<ConversationPane> {
     try {
       await FirebaseFirestore.instance.collection('chats').doc(_chatRoomId).set(
         {
-          'typing': {_currentUserId!: isTyping},
+          'typing': {_currentUserId: isTyping},
         },
         SetOptions(merge: true),
       );
@@ -1081,6 +1107,7 @@ class MessageBubble extends StatelessWidget {
 
   void _showMessageActions(BuildContext context) {
     if (chatRoomId == 'ai-chat') return;
+    final appStrings = AppLocalizations.of(context)!;
     HapticFeedback.mediumImpact();
     final theme = Theme.of(context);
     showModalBottomSheet(
@@ -1127,7 +1154,7 @@ class MessageBubble extends StatelessWidget {
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.reply_outlined),
-                  title: const Text('Reply'),
+                  title: Text(appStrings.convoActionReply),
                   onTap: () {
                     Navigator.pop(context);
                     onReply();
@@ -1136,12 +1163,12 @@ class MessageBubble extends StatelessWidget {
                 if (message.messageType == 'text')
                   ListTile(
                     leading: const Icon(Icons.copy_outlined),
-                    title: const Text('Copy'),
+                    title: Text(appStrings.convoActionCopy),
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: message.message));
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Copied to clipboard!")),
+                        SnackBar(content: Text(appStrings.convoMsgCopied)),
                       );
                     },
                   ),
@@ -1151,7 +1178,7 @@ class MessageBubble extends StatelessWidget {
                     color: theme.colorScheme.error,
                   ),
                   title: Text(
-                    'Delete for Me',
+                    appStrings.convoActionDeleteForMe,
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                   onTap: () {
@@ -1166,7 +1193,7 @@ class MessageBubble extends StatelessWidget {
                       color: theme.colorScheme.error,
                     ),
                     title: Text(
-                      'Delete for Everyone',
+                      appStrings.convoActionDeleteForEveryone,
                       style: TextStyle(color: theme.colorScheme.error),
                     ),
                     onTap: () {
@@ -1392,7 +1419,6 @@ class MessageContent extends StatelessWidget {
           child: Wrap(
             alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.end,
-
             children: [
               MarkdownBody(
                 data: message.message,
@@ -1401,7 +1427,6 @@ class MessageContent extends StatelessWidget {
                   p: TextStyle(fontSize: 16, color: textColor),
                 ),
               ),
-              // The timestamp is now handled outside the bubble
             ],
           ),
         );
@@ -1491,10 +1516,6 @@ class ImageMessageContent extends StatelessWidget {
   }
 }
 
-// =======================================================================
-// === START OF THE FINAL, WORKING AUDIO PLAYER WIDGETS
-// =======================================================================
-
 class AudioWaveformPlayer extends StatefulWidget {
   final String audioUrl;
   final bool isMe;
@@ -1509,9 +1530,6 @@ class AudioWaveformPlayer extends StatefulWidget {
   @override
   State<AudioWaveformPlayer> createState() => _AudioWaveformPlayerState();
 }
-// =======================================================================
-// === START OF THE FINAL DEBUGGING AUDIO PLAYER WIDGETS
-// =======================================================================
 
 class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
   final audio_waveforms.PlayerController _playerController =
@@ -1527,33 +1545,23 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
   @override
   void initState() {
     super.initState();
-    print("AUDIO_DEBUG: initState for ${widget.audioUrl}");
     _preparePlayer();
   }
 
   Future<void> _preparePlayer() async {
-    print("AUDIO_DEBUG: _preparePlayer() called.");
     if (widget.audioUrl.isEmpty || !Uri.parse(widget.audioUrl).isAbsolute) {
-      print("AUDIO_DEBUG: ERROR - Invalid URL.");
       if (mounted) setState(() => _hasError = true);
       return;
     }
 
     try {
       final String pathToPlay = await _getLocalPathForAudio(widget.audioUrl);
-      print("AUDIO_DEBUG: Local path to play is $pathToPlay");
 
-      print("AUDIO_DEBUG: Setting up waveform listener...");
       _waveformSubscription = _playerController.onCurrentExtractedWaveformData
           .listen((wave) async {
-            print("AUDIO_DEBUG: Waveform listener triggered.");
             if (wave.isNotEmpty && mounted && !_isPlayerReady) {
-              print("AUDIO_DEBUG: Waveform is ready! Getting duration...");
               _maxDurationMs = await _playerController.getDuration(
                 audio_waveforms.DurationType.max,
-              );
-              print(
-                "AUDIO_DEBUG: Got duration: $_maxDurationMs ms. Updating UI to ready state.",
               );
               if (mounted) {
                 setState(() {
@@ -1563,19 +1571,16 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
                 });
               }
               await _waveformSubscription?.cancel();
-              print("AUDIO_DEBUG: Waveform listener cancelled.");
             }
           });
 
-      print("AUDIO_DEBUG: Calling preparePlayer()...");
       await _playerController.preparePlayer(
         path: pathToPlay,
         shouldExtractWaveform: true,
         volume: 1.0,
       );
-      print("AUDIO_DEBUG: preparePlayer() finished.");
     } catch (e) {
-      print("AUDIO_DEBUG: CRITICAL ERROR in _preparePlayer: $e");
+      print("CRITICAL ERROR in _preparePlayer: $e");
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -1593,19 +1598,14 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
       final localFile = File(localPath);
 
       if (!await localFile.exists()) {
-        print("AUDIO_DEBUG: Downloading audio from $url...");
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
           await localFile.writeAsBytes(response.bodyBytes);
-          print("AUDIO_DEBUG: Download complete.");
         } else {
-          print("AUDIO_DEBUG: ERROR - Failed to download file.");
           throw Exception(
             'Failed to download audio file: ${response.statusCode}',
           );
         }
-      } else {
-        print("AUDIO_DEBUG: Audio already cached.");
       }
       return localPath;
     }
@@ -1618,7 +1618,6 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
     final newSpeed = _speeds[nextIndex];
     _playerController.setRate(newSpeed);
     setState(() => _currentSpeed = newSpeed);
-    print("AUDIO_DEBUG: Speed changed to $newSpeed");
   }
 
   String _formatDuration(int? milliseconds) {
@@ -1631,7 +1630,6 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
 
   @override
   void dispose() {
-    print("AUDIO_DEBUG: dispose() called for ${widget.audioUrl}");
     _waveformSubscription?.cancel();
     _playerController.dispose();
     super.dispose();
@@ -1645,15 +1643,12 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
         : theme.colorScheme.onSurface;
 
     if (_hasError) {
-      print("AUDIO_DEBUG: Building ERROR state.");
       return _buildErrorState(theme);
     }
     if (_isLoading || !_isPlayerReady) {
-      print("AUDIO_DEBUG: Building LOADING state.");
       return _buildLoadingState();
     }
 
-    print("AUDIO_DEBUG: Building PLAYER UI state.");
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: 8.0,
@@ -1739,27 +1734,25 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
     ),
   );
 
-  Widget _buildErrorState(ThemeData theme) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.error_outline, color: theme.colorScheme.error, size: 30),
-        const SizedBox(width: 8),
-        Text(
-          "Can't play audio",
-          style: TextStyle(color: theme.colorScheme.error),
-        ),
-      ],
-    ),
-  );
+  Widget _buildErrorState(ThemeData theme) {
+    final appStrings = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, color: theme.colorScheme.error, size: 30),
+          const SizedBox(width: 8),
+          Text(
+            appStrings.convoAudioPlaybackError,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-// lib/screens/chat/conversation_pane.dart
-
-// =======================================================================
-// === REPLACE ONLY THE PlayerIcon WIDGET WITH THIS FINAL CODE ===
-// =======================================================================
 class PlayerIcon extends StatelessWidget {
   const PlayerIcon({
     super.key,
@@ -1793,23 +1786,13 @@ class PlayerIcon extends StatelessWidget {
               }
             } else {
               try {
-                // --- THE FINAL LOGICAL FIX ---
                 if (playerState == audio_waveforms.PlayerState.stopped) {
-                  // Step 1: Force reset the player to the beginning using the direct native call.
-                  // This bypasses the buggy seekTo() in your library.
                   await audio_waveforms.AudioWaveformsInterface.instance.seekTo(
                     controller.playerKey,
                     0,
                   );
-
-                  // Step 2: Call pausePlayer(). This is a "no-op" that is allowed on a
-                  // stopped player, but it has the side effect of updating the
-                  // internal state to 'paused', which is what we need.
                   await controller.pausePlayer();
                 }
-
-                // Step 3: Now that the state is guaranteed to be 'paused' (not 'stopped'),
-                // the public startPlayer() method will finally work as intended.
                 await controller.startPlayer();
               } on Object catch (e) {
                 print('Error playing player: $e');
@@ -1836,7 +1819,9 @@ class FileMessageContent extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final fileName = data['fileName'] ?? 'Attachment';
+    final appStrings = AppLocalizations.of(context)!;
+    // FIXED: Use outlined icon and no circular background
+    final fileName = data['fileName'] ?? appStrings.convoLastMsgAttachment;
     final theme = Theme.of(context);
     final color = isMe
         ? theme.colorScheme.onPrimaryContainer
@@ -1874,7 +1859,6 @@ class FileMessageContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // The timestamp is now handled outside the bubble
                 ],
               ),
             ),
@@ -1898,6 +1882,7 @@ class JobCardMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appStrings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final color = isMe
         ? theme.colorScheme.onPrimaryContainer
@@ -1907,7 +1892,7 @@ class JobCardMessageContent extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.all(12.0),
         child: Text(
-          'Invalid Job Proposal',
+          appStrings.convoJobProposalInvalid,
           style: TextStyle(color: theme.colorScheme.error),
         ),
       );
@@ -1938,7 +1923,7 @@ class JobCardMessageContent extends StatelessWidget {
                     Icon(Icons.work_outline_rounded, color: color, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Job Proposal',
+                      appStrings.convoJobProposalTitle,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: color,
@@ -1957,7 +1942,9 @@ class JobCardMessageContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Budget: ETB ${job.budget.toStringAsFixed(0)}',
+                  appStrings.convoJobProposalBudget(
+                    job.budget.toStringAsFixed(0),
+                  ),
                   style: TextStyle(color: color.withOpacity(0.9)),
                 ),
                 const SizedBox(height: 8),
@@ -2119,6 +2106,7 @@ class ReplyPreviewInBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appStrings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isAiBubble = message.senderId == AI_USER_ID;
 
@@ -2134,12 +2122,18 @@ class ReplyPreviewInBubble extends StatelessWidget {
               : theme.colorScheme.primary);
 
     String contentPreview = message.replyToMessageText ?? '';
-    if (message.replyToMessageType == 'image') contentPreview = '📷 Photo';
-    if (message.replyToMessageType == 'audio')
-      contentPreview = '🎤 Voice Message';
-    if (message.replyToMessageType == 'file') contentPreview = '📎 Attachment';
-    if (message.replyToMessageType == 'job_proposal')
-      contentPreview = '💼 Job Proposal';
+    if (message.replyToMessageType == 'image') {
+      contentPreview = appStrings.chatListLastMsgPhoto;
+    }
+    if (message.replyToMessageType == 'audio') {
+      contentPreview = appStrings.chatListLastMsgVoice;
+    }
+    if (message.replyToMessageType == 'file') {
+      contentPreview = appStrings.convoLastMsgAttachment;
+    }
+    if (message.replyToMessageType == 'job_proposal') {
+      contentPreview = appStrings.convoLastMsgJobProposal;
+    }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(3, 3, 3, 8),
@@ -2210,6 +2204,7 @@ class MessageInputComposer extends StatefulWidget {
   final Uint8List? pickedImageBytesForAi;
   final VoidCallback onClearAiImage;
   final String? otherUserName;
+  final AppUser.AppUser? otherAppUser;
 
   const MessageInputComposer({
     super.key,
@@ -2223,6 +2218,7 @@ class MessageInputComposer extends StatefulWidget {
     this.pickedImageBytesForAi,
     required this.onClearAiImage,
     this.otherUserName,
+    this.otherAppUser,
   });
 
   @override
@@ -2280,13 +2276,16 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
 
     if (status.isPermanentlyDenied) {
       if (mounted) {
+        final appStrings = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Permission for ${permission.toString().split('.').last} is required.",
+              appStrings.convoPermissionRequired(
+                permission.toString().split('.').last,
+              ),
             ),
             action: SnackBarAction(
-              label: "SETTINGS",
+              label: appStrings.convoPermissionSettings,
               onPressed: openAppSettings,
             ),
           ),
@@ -2299,13 +2298,14 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
 
   Future<void> _toggleRecording() async {
     if (!await _handlePermission(Permission.microphone)) return;
+    final appStrings = AppLocalizations.of(context)!;
 
     if (!_isRecorderInitialized) {
       await _initRecorder();
       if (!_isRecorderInitialized) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Recorder could not be initialized.")),
+            SnackBar(content: Text(appStrings.convoErrorRecorderInit)),
           );
         }
         return;
@@ -2347,6 +2347,31 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
           setState(() => _recordingDuration += const Duration(seconds: 1));
         }
       });
+    }
+  }
+
+  Future<void> _handleJobAttachmentPressed() async {
+    final appStrings = AppLocalizations.of(context)!;
+    if (widget.otherAppUser != null && widget.otherAppUser is Worker) {
+      final Worker worker = widget.otherAppUser as Worker;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => QuickJobRequestScreen(worker: worker),
+        ),
+      );
+      // Close the attachment panel after navigation
+      setState(() {
+        _showAttachmentPanel = false;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            appStrings
+                .convoErrorJobRequestNotWorker, // Ensure this string exists in AppStrings
+          ),
+        ),
+      );
     }
   }
 
@@ -2469,19 +2494,23 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
   }
 
   Widget _buildInputArea(BuildContext context, bool hasContent) {
+    final appStrings = AppLocalizations.of(context)!;
     if (_isRecording) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Row(
           children: [
-            Icon(Icons.mic, color: Colors.red.shade400),
+            Icon(Icons.mic_none, color: Colors.red.shade400),
             const SizedBox(width: 8),
             Text(
               _formatDuration(_recordingDuration),
               style: TextStyle(color: Colors.red.shade400),
             ),
             const Spacer(),
-            Text("Recording...", style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              appStrings.convoRecording,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(width: 16),
             GestureDetector(
               onTap: _toggleRecording,
@@ -2516,7 +2545,7 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
               controller: widget.controller,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                hintText: 'Message...',
+                hintText: appStrings.convoMessageHint,
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surface,
                 contentPadding: const EdgeInsets.symmetric(
@@ -2533,7 +2562,16 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
             ),
           ),
           const SizedBox(width: 8),
+          // We use the microphone icon only when the text field is empty
+          const SizedBox(width: 8),
+          // We use the microphone icon only when the text field is empty
           IconButton.filled(
+            style: IconButton.styleFrom(
+              backgroundColor:
+                  Colors.transparent, // Change the background color here
+              foregroundColor:
+                  Colors.lightGreenAccent, // Change the icon color here
+            ),
             icon: Icon(hasContent ? Icons.send_rounded : Icons.mic_rounded),
             onPressed: hasContent ? widget.onSend : _toggleRecording,
           ),
@@ -2543,6 +2581,7 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
   }
 
   Widget _buildAttachmentPanel() {
+    final appStrings = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
@@ -2550,20 +2589,14 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
         children: [
           _AttachmentButton(
             icon: Icons.photo_library_outlined,
-            label: 'Gallery',
+            label: appStrings.convoAttachGallery,
             onTap: () => _onAttachmentSelected(() async {
-              if (!await _handlePermission(Permission.photos)) return;
-              final result = await file_picker.FilePicker.platform.pickFiles(
-                type: file_picker.FileType.image,
-              );
-              if (result != null && result.files.isNotEmpty) {
-                widget.onAttachment(result.files.single);
-              }
+              await _pickimage();
             }),
           ),
           _AttachmentButton(
             icon: Icons.camera_alt_outlined,
-            label: 'Camera',
+            label: appStrings.convoAttachCamera,
             onTap: () => _onAttachmentSelected(() async {
               await _pickAndHandleImage(ImageSource.camera);
             }),
@@ -2571,7 +2604,7 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
           if (!widget.isAiChat)
             _AttachmentButton(
               icon: Icons.attach_file_outlined,
-              label: 'Document',
+              label: appStrings.convoAttachDocument,
               onTap: () => _onAttachmentSelected(() async {
                 final result = await file_picker.FilePicker.platform.pickFiles(
                   type: file_picker.FileType.any,
@@ -2582,14 +2615,33 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
           if (!widget.isAiChat)
             _AttachmentButton(
               icon: Icons.work_outline,
-              label: 'Job',
+              label: appStrings.convoAttachJob,
               onTap: () {
-                /* TODO: Implement Job selection UI */
+                _onAttachmentSelected(() async {
+                  await _handleJobAttachmentPressed();
+                });
               },
             ),
         ],
       ),
     ).animate().fadeIn().slideY(begin: 0.5);
+  }
+
+  Future<void> _pickimage() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      widget.onAttachment(
+        file_picker.PlatformFile(
+          name: pickedFile.name,
+          bytes: bytes,
+          size: bytes.length,
+          path: kIsWeb ? null : pickedFile.path,
+        ),
+      );
+    }
   }
 }
 
@@ -2614,7 +2666,14 @@ class _AttachmentButton extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(radius: 24, child: Icon(icon)),
+            // Changed to match the new aesthetic: no colored background, just icon
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.1),
+              child: Icon(icon, color: Theme.of(context).colorScheme.primary),
+            ),
             const SizedBox(height: 8),
             Text(label),
           ],
@@ -2638,16 +2697,21 @@ class ReplyPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appStrings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isMeReplying =
         message.senderId == FirebaseService().getCurrentUser()?.uid;
     String senderName = isMeReplying
-        ? 'You'
+        ? appStrings.convoReplyToYou
         : (otherUserName ?? message.senderId);
 
     String contentPreview = message.message;
-    if (message.messageType == 'image') contentPreview = '📷 Photo';
-    if (message.messageType == 'audio') contentPreview = '🎤 Voice Message';
+    if (message.messageType == 'image') {
+      contentPreview = appStrings.chatListLastMsgPhoto;
+    }
+    if (message.messageType == 'audio') {
+      contentPreview = appStrings.chatListLastMsgVoice;
+    }
 
     return Container(
       padding: const EdgeInsets.all(8.0).copyWith(left: 16),
@@ -2664,7 +2728,7 @@ class ReplyPreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Replying to $senderName',
+                  appStrings.convoReplyingTo(senderName),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,

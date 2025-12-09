@@ -26,6 +26,7 @@ import 'services/notification_service.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'services/firebase_service.dart';
+import 'services/fcm_service.dart';
 import 'models/job.dart';
 import 'screens/jobs/job_detail_screen.dart';
 
@@ -55,6 +56,9 @@ void main() async {
     testUrl: "...",
   );
   await NotificationService().init();
+
+  // Initialize FCM
+  await FCMService().initialize();
 
   runApp(
     MultiProvider(
@@ -184,7 +188,7 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
     final appStrings = AppLocalizations.of(context);
-    final _firebaseService = FirebaseService();
+    final firebaseService = FirebaseService();
 
     return FutureBuilder<bool>(
       future: Future(() => authService.isUserLoggedIn()),
@@ -204,7 +208,7 @@ class AuthWrapper extends StatelessWidget {
           // Consider showing a generic error screen
           return const LoginScreen();
         }
-        _firebaseService.setupNotificationListener();
+        firebaseService.setupNotificationListener();
         final bool isLoggedIn = snapshot.data ?? false;
         print("AuthWrapper: User logged in = $isLoggedIn");
         return isLoggedIn ? const MainScreen() : const LoginScreen();

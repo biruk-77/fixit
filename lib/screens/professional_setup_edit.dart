@@ -293,9 +293,9 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
           _professionController.text = profile.profession ?? '';
           _phoneController.text = profile.phoneNumber;
           _locationController.text = profile.location;
-          _experienceController.text = profile.experience?.toString() ?? '0';
+          _experienceController.text = profile.experience.toString() ?? '0';
           _aboutController.text = profile.about ?? '';
-          _baseRateController.text = profile.priceRange?.toString() ?? '0';
+          _baseRateController.text = profile.priceRange.toString() ?? '0';
 
           setState(() {
             _existingProfileImageUrl = profile.profileImage;
@@ -307,19 +307,17 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
             _skills = List.from(profile.skills ?? []);
 
             // FIX: Logic to load categorized gallery data from Firebase.
-            if (profile.galleryImages is Map) {
-              final loadedMap = Map<String, dynamic>.from(
-                profile.galleryImages as Map,
-              );
-              _galleryImageFiles = {
-                'Before/After':
-                    loadedMap['Before/After']?.cast<dynamic>()?.toList() ?? [],
-                'Work Process':
-                    loadedMap['Work Process']?.cast<dynamic>()?.toList() ?? [],
-                'Tools & Gear':
-                    loadedMap['Tools & Gear']?.cast<dynamic>()?.toList() ?? [],
-              };
-            }
+            final loadedMap = Map<String, dynamic>.from(
+              profile.galleryImages as Map,
+            );
+            _galleryImageFiles = {
+              'Before/After':
+                  loadedMap['Before/After']?.cast<dynamic>()?.toList() ?? [],
+              'Work Process':
+                  loadedMap['Work Process']?.cast<dynamic>()?.toList() ?? [],
+              'Tools & Gear':
+                  loadedMap['Tools & Gear']?.cast<dynamic>()?.toList() ?? [],
+            };
 
             _certificationImageFiles = List.from(
               profile.certificationImages ?? [],
@@ -328,15 +326,13 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
             _currentLatitude = profile.latitude;
             _currentLongitude = profile.longitude;
 
-            if (profile.availability != null) {
-              final Map<String, TimeRange> loadedAvailability = {};
-              profile.availability!.forEach((day, data) {
-                loadedAvailability[day] = TimeRange.fromJson(
-                  data as Map<String, dynamic>,
-                );
-              });
-              _availability = loadedAvailability;
-            }
+            final Map<String, TimeRange> loadedAvailability = {};
+            profile.availability.forEach((day, data) {
+              loadedAvailability[day] = TimeRange.fromJson(
+                data as Map<String, dynamic>,
+              );
+            });
+            _availability = loadedAvailability;
           });
 
           if (_locationController.text.trim().isEmpty) {
@@ -355,7 +351,7 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
               backgroundColor: Colors.red,
             ),
           );
-          print('Error loading profile: $e\n$s');
+          print('please check your network: $e\n$s');
         }
       } finally {
         if (mounted) {
@@ -1390,7 +1386,7 @@ class _ProfileStrengthIndicator extends StatelessWidget {
           value: strength,
           minHeight: 10,
           valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-          backgroundColor: theme.colorScheme.surfaceVariant,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
         ),
       ),
     );
@@ -1468,16 +1464,19 @@ class _CustomTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final bool isNumeric, isRequired;
   final int maxLines;
+
   const _CustomTextField({
+    super.key, // Good practice to add super.key
     required this.controller,
     required this.label,
     this.hint,
     this.icon,
     this.suffixIcon,
     this.isNumeric = false,
-    this.isRequired = true,
+    this.isRequired = false, // <--- THIS WAS MISSING
     this.maxLines = 1,
   });
+
   @override
   Widget build(BuildContext context) {
     final appStrings = AppLocalizations.of(context)!;

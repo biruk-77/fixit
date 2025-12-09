@@ -1,4 +1,5 @@
 // lib/screens/worker_detail_screen.dart
+
 import 'dart:ui' as ui; // For ImageFilter.blur
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,11 +12,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:geolocator/geolocator.dart'; // For location services
-import 'package:url_launcher/url_launcher.dart'; // For launching URLs (phone, maps)
+import 'package:url_launcher/url_launcher.dart'; // For launching URLs (phone, maps)ssssssss
 import 'package:flutter_animate/flutter_animate.dart'; // REQUIRED FOR ALL ANIMATIONS
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:polyline_codec/polyline_codec.dart';
 import 'package:http/http.dart' as http;
 import '../models/worker.dart';
 import '../models/user.dart';
@@ -627,14 +627,14 @@ class _VideoPlayerSection extends StatelessWidget {
   final AppStrings appStrings; // For localized text
 
   const _VideoPlayerSection({
-    required Key? key,
+    required super.key,
     required this.chewieController,
     required this.isVideoInitialized,
     required this.isVideoPlaying,
     required this.togglePlayback,
     required this.profileImageUrl,
     required this.appStrings,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -715,7 +715,6 @@ class _LocationMapWidget extends StatefulWidget {
   final double? clientLng;
 
   const _LocationMapWidget({
-    super.key,
     required this.appStrings,
     required this.workerLat,
     required this.workerLng,
@@ -1639,7 +1638,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
       }
     } catch (e) {
       debugPrint("Error fetching client location: $e");
-      if (mounted && appStrings != null) {
+      if (mounted) {
         // FIX: Changed to hardcoded string to avoid AppStrings getter error
         _showErrorSnackbar('Error fetching location.');
       }
@@ -1717,9 +1716,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
       _isVideoPlaying = true; // Set initial playing state
     } catch (e) {
       debugPrint("Error initializing video player: $e");
-      if (mounted && appStrings != null)
+      if (mounted) {
         // FIX: Changed to hardcoded string to avoid AppStrings getter error
         _showErrorSnackbar('Could not load video.');
+      }
       _videoController?.dispose();
       _chewieController?.dispose();
       if (mounted) setState(() => _isVideoInitialized = false);
@@ -2116,7 +2116,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
 
     // Safe data access for worker properties
     final workerName = widget.worker.name;
-   
+
     final workerAbout = widget.worker.about;
     final workerSkills = widget.worker.skills;
     final workerExperience = widget.worker.experience;
@@ -2126,43 +2126,49 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
     final workerIntroVideoUrl = widget.worker.introVideoUrl;
 
     return Scaffold(
-      backgroundColor: cs.background,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      backgroundColor: cs.surface,
+      // ** FIX 1: REMOVED THE endTop LOCATION TO USE THE DEFAULT (bottom-right) **
+      // floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       floatingActionButtonAnimator: FloatingActionButtonAnimator.scaling,
-     
-      floatingActionButton:
-          FloatingActionButton.extended(
-            onPressed: () {
-              // This is the navigation logic
-              HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ConversationPane(
-                    // Pass the worker's ID to the conversation screen
-                    otherUserId: widget.worker.id,
+
+      floatingActionButton: Padding(
+        // ** FIX 2: MOVED IT DOWN (by reducing its distance from the bottom) **
+        padding: const EdgeInsets.only(bottom: 80),
+        child:
+            FloatingActionButton.extended(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ConversationPane(otherUserId: widget.worker.id),
                   ),
+                );
+              },
+              label: Text(
+                appStrings.workerDetailChat,
+                // ** FIX 3: MADE THE TEXT BIGGER **
+                style: tt.titleLarge?.copyWith(
+                  color: cs.onPrimary,
+                  fontWeight: FontWeight.bold,
                 ),
-              );
-            },
-            
-            label: Text(
-              appStrings
-                  .workerDetailChat, // Assuming you have a string for "Chat"
-              style: tt.titleMedium?.copyWith(
-                color: cs.onPrimary,
-                fontWeight: FontWeight.bold,
               ),
+              icon: Icon(
+                Icons.chat_bubble_outline_rounded,
+                color: cs.onPrimary,
+                // ** FIX 4: MADE THE ICON BIGGER **
+                size: 24,
+              ),
+              backgroundColor: cs.primary,
+            ).animate().slideX(
+              begin: 1,
+              duration: 500.milliseconds,
+              delay: 800.milliseconds,
+              curve: Curves.easeOutCubic,
             ),
-            icon: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
-            backgroundColor: cs.primary,
-            elevation: 8.0,
-          ).animate().slideX(
-            begin: 1, // Start off-screen at the bottom
-            duration: 500.milliseconds,
-            delay: 800.milliseconds, // Wait for other animations to start
-            curve: Curves.easeOutCubic,
-          ), // Use background for base
+      ),
+
       body: Stack(
         children: [
           // Main Scrollable Content
@@ -2312,7 +2318,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
                                               progress:
                                                   (workerExperience / 20.0)
                                                       .clamp(0, 1),
-                                              valueText: '${workerExperience}+',
+                                              valueText: '$workerExperience+',
                                               accentColor: cs.secondary,
                                             ),
                                           ]
