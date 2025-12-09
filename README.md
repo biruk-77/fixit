@@ -1,399 +1,402 @@
-# FixIt - Professional Service Marketplace
+# ✨ FixIt - Professional Service Marketplace
+![alt text](https://img.shields.io/badge/Flutter-SDK-blue?style=flat&logo=flutter)
 
+![alt text](https://img.shields.io/badge/Dart-Language-blue?style=flat&logo=dart)
+
+![alt text](https://img.shields.io/badge/Firebase-Platform-FFCA28?style=flat&logo=firebase&logoColor=black)
+
+![alt text](https://img.shields.io/badge/Supabase-Database%20%26%20Auth-3ECF8E?style=flat&logo=supabase&logoColor=white)
+
+![alt text](https://img.shields.io/badge/Google%20Generative%20AI-Gemini%20API-purple?style=flat&logo=google)
+
+![alt text](https://img.shields.io/badge/GitHub%20Actions-Automation-2088FF?style=flat&logo=githubactions&logoColor=white)
+
+![alt text](https://img.shields.io/badge/License-MIT-green)
 A comprehensive Flutter application that connects clients with service professionals (workers) for job posting, bidding, and completion. Built with Firebase, Supabase, and Google Generative AI.
-
-## 📋 Project Overview
-
-**FixIt** is a two-sided marketplace platform where:
-- **Clients** can post jobs, review proposals, hire professionals, and manage payments
-- **Professionals** can browse available jobs, apply for work, complete tasks, and build their reputation
-
-### Key Features
-
-- **Authentication**: Firebase Auth with Google Sign-In support
-- **Dual User Roles**: Client and Professional (Worker) with distinct interfaces
-- **Job Management**: Create, browse, apply, and complete jobs
-- **Real-time Chat**: In-app messaging between clients and professionals
-- **Notifications**: Firebase Cloud Messaging (FCM) + local notifications
-- **Payment Integration**: Telebirr payment gateway for job payments
-- **AI Chat Assistant**: Google Generative AI (Gemini) integration for smart assistance
-- **Geolocation**: Distance-based worker discovery with service radius
-- **Ratings & Reviews**: Professional reputation system
-- **Multi-language Support**: English, Amharic, Oromo localization
-- **Dark Mode**: Theme switching with Provider state management
-- **File Management**: Job attachments via Firebase Storage
-- **User Presence**: Online/offline status tracking
-
----
-
-## 🏗️ Project Structure
-
-```
+📋 Project Overview
+FixIt revolutionizes how clients find and hire skilled professionals, and how professionals secure work and manage their services. It is a robust two-sided marketplace platform where:
+Clients can effortlessly post jobs, review proposals, hire top-tier professionals, and manage secure payments.
+Professionals can browse a wide array of available jobs, apply for relevant work, complete tasks efficiently, and build their reputation through verified reviews.
+Our platform leverages a powerful backend powered by Firebase and Supabase, and is enhanced with Google Generative AI (Gemini) for smart assistance, offering a seamless and efficient marketplace experience across mobile and web platforms.
+Key Features
+🔒 Secure Authentication: Firebase Auth with Google Sign-In, email/password, and robust user management capabilities.
+👥 Dual User Roles: Distinct and tailored interfaces for Clients (job posters) and Professionals (service providers).
+💼 Comprehensive Job Management: Full lifecycle management including creating, browsing, applying, tracking, and completing jobs with detailed workflows.
+💬 Real-time Chat: Seamless in-app messaging between clients and professionals for clear and instant communication.
+🔔 Advanced Notifications: Real-time updates and alerts via Firebase Cloud Messaging (FCM) and local notifications for critical events.
+💰 Integrated Payment Gateway: Secure and convenient Telebirr payment integration for all job-related financial transactions.
+🤖 AI Chat Assistant: Powered by Google Generative AI (Gemini) to provide smart assistance, insightful recommendations, and proactive support.
+📍 Geolocation & Service Radius: Efficient discovery of nearby professionals based on location and defined service areas.
+⭐ Ratings & Reviews: A transparent reputation system allowing clients to rate and review professionals, fostering trust and quality service.
+🌐 Multi-language Support: Localized user experience with support for English, Amharic, and Oromo language options.
+🌃 Dynamic Theme Switching: Effortless toggling between Light and Dark modes for a personalized viewing experience.
+📎 File Management: Securely attach and share job-related files and documents via Firebase Storage.
+🟢 User Presence: Real-time online/offline status tracking for improved communication visibility and engagement.
+📸 Demo Screenshots
+Coming Soon! High-quality screenshots demonstrating the client dashboard, professional profile, job listing, and chat features will be added here.
+![alt text](https://via.placeholder.com/600x350/007bff/ffffff?text=Client+Dashboard)
+![alt text](https://via.placeholder.com/600x350/28a745/ffffff?text=Professional+Profile)
+🏗️ Project Structure
+The repository is structured to ensure maintainability, scalability, and ease of development. Key directories include:
+code
+Code
 lib/
 ├── main.dart                          # App entry point, routing, theme setup
-├── firebase_options.dart              # Firebase configuration
+├── firebase_options.dart              # Firebase configuration generated by FlutterFire
 │
-├── models/                            # Data models
+├── models/                            # Data models (AppUser, Job, Worker, Review, ChatMessage, etc.)
 │   ├── user.dart                      # AppUser model (client/professional)
 │   ├── job.dart                       # Job model with status tracking
 │   ├── worker.dart                    # Professional profile model
 │   ├── review.dart                    # Review/rating model
-│   ├── chat_message.dart              # Chat message model
-│   └── chat_messageai.dart            # AI chat message model
+│   └── chat_message.dart              # Chat message model
 │
-├── services/                          # Business logic & API integration
-│   ├── auth_service.dart              # Firebase Auth, Google Sign-In
-│   ├── firebase_service.dart          # Firestore operations, notifications
-│   ├── fcm_service.dart               # Firebase Cloud Messaging setup
-│   ├── notification_service.dart      # Local notifications
-│   ├── ai_chat_service.dart           # Google Generative AI integration
-│   ├── gemini_service.dart            # Gemini API wrapper
-│   └── app_string.dart                # Localization strings
+├── providers/                         # State management using Provider (LocaleProvider, ThemeProvider)
+│   ├── locale_provider.dart
+│   └── theme_provider.dart
 │
-├── screens/                           # UI screens
-│   ├── auth/
-│   │   └── login_screen.dart          # Authentication UI
-│   ├── home/
-│   │   ├── home_layout.dart           # Main home screen layout
-│   │   └── home_screen.dart           # Job feed & discovery
-│   ├── jobs/
-│   │   ├── create_job_screen.dart     # Job posting form
-│   │   ├── job_dashboard_screen.dart  # Job management
-│   │   └── job_detail_screen.dart     # Job details & applications
-│   ├── chat/
-│   │   └── chat_screen.dart           # Real-time messaging
-│   ├── profile_screen.dart            # User profile management
-│   ├── professional_setup_screen.dart # Professional profile setup
-│   ├── professional_setup_edit.dart   # Professional profile editing
-│   ├── worker_detail_screen.dart      # Professional profile view
-│   ├── notifications_screen.dart      # Notification center
-│   ├── account_screen.dart            # Account settings
-│   ├── privacy_security_screen.dart   # Privacy & security settings
-│   ├── help_support_screen.dart       # Help & support
-│   ├── payment/                       # Payment screens
-│   └── widgets/                       # Reusable UI components
+├── screens/                           # UI screens organized by feature
+│   ├── account_screen.dart
+│   ├── auth/                          # Authentication related screens (login, register, forgot password)
+│   ├── chat/                          # Chat specific screens (list, conversation)
+│   ├── home/                          # Home screen variations (mobile, web layouts)
+│   ├── jobs/                          # Job management screens (create, dashboard, detail)
+│   ├── payment/                       # Payment related screens and services
+│   ├── widgets/                       # Reusable UI components (AI chat panel)
+│   └── ...                            # Other screens (profile, notifications, help & support)
 │
-├── providers/                         # State management (Provider)
-│   ├── theme_provider.dart            # Dark/light theme toggle
-│   └── locale_provider.dart           # Language/locale management
+├── services/                          # Backend integrations and business logic
+│   ├── ai_chat_service.dart           # Integration with Google Gemini
+│   ├── auth_service.dart              # Firebase Authentication wrapper
+│   ├── fcm_service.dart               # Firebase Cloud Messaging handling
+│   ├── firebase_service.dart          # Generic Firebase Firestore & Storage operations
+│   ├── gemini_service.dart            # Direct Gemini API interactions
+│   └── notification_service.dart      # Local notification management
 │
-├── theme/
-│   ├── light_colors.dart              # Color schemes & typography
-│   └── app_theme.dart                 # Theme definitions
+├── theme/                             # Application theme definitions (light_colors.dart)
 │
-└── test/
-    └── widget_test.dart               # Basic widget tests
-```
+├── assets/                            # Static assets (icons, images)
+│   ├── icon/                          # App icons
+│   └── ...
+│
+├── android/                           # Android specific project files (Kotlin, Gradle)
+├── ios/                               # iOS specific project files (Swift, Xcode)
+├── web/                               # Web specific project files
+├── linux/                             # Linux specific project files
+├── macos/                             # macOS specific project files
+├── windows/                           # Windows specific project files
+└── ...                                # Other configuration files (.gitignore, pubspec.yaml, etc.)
+🛠️ Tech Stack
+FixIt is built using a modern and robust technology stack:
+Frontend
+Flutter SDK: The leading framework for cross-platform application development.
+Dart Language: Google's client-optimized language for fast apps on any platform.
+State Management: Provider package for efficient and scalable state management.
+Backend & Database
+Firebase: Google's comprehensive mobile and web application development platform.
+Authentication: Firebase Authentication for secure user sign-up/sign-in (Email/Password, Google Sign-In).
+Database: Cloud Firestore for flexible, scalable NoSQL cloud database.
+Storage: Firebase Storage for robust cloud storage of user-generated content (e.g., job attachments).
+Messaging: Firebase Cloud Messaging (FCM) for real-time push notifications.
+Supabase: An open-source Firebase alternative (used for specific data management and potentially evolving features).
+AI Integration
+Google Generative AI (Gemini API): Powers the intelligent AI Chat Assistant for enhanced user support and recommendations.
+Payment Gateway
+Telebirr: Integrated for secure and seamless payment processing within the application.
+CI/CD
+GitHub Actions: Automates the build, test, and deployment processes for various platforms, including Firebase Hosting for web.
+Platform Specific Development
+Android: Utilizing Kotlin and Gradle for native Android configurations.
+iOS: Leveraging Swift and Xcode for native iOS configurations.
+Web, Linux, macOS, Windows: Fully supported through Flutter's multi-platform capabilities.
+🚀 Installation
+To get a local copy up and running, follow these simple steps.
+Prerequisites
+Ensure you have the following installed:
+Flutter SDK
+Firebase CLI
+Git
+VS Code or another preferred IDE
+Setup Steps
+Clone the Repository
+code
+Bash
+git clone https://github.com/your-username/fixit.git
+cd fixit
+Install Dependencies
+code
+Bash
+flutter pub get
+Firebase Project Setup
+Create a new project in the Firebase Console.
+Add Android, iOS, and Web applications to your Firebase project.
+For Android, download google-services.json and place it in android/app/.
+For iOS, download GoogleService-Info.plist and place it in ios/Runner/.
+Run flutterfire configure in your project root to generate lib/firebase_options.dart.
+Enable Firebase Authentication (Email/Password, Google Sign-In) in the Firebase console.
+Set up Cloud Firestore, Firebase Storage, and Firebase Cloud Messaging.
+Supabase Configuration (if actively utilized)
+Create a project on Supabase.
+Obtain your Supabase URL and Anon Public Key.
+Configure these credentials as environment variables or directly within lib/services/supabase_service.dart (if applicable) or a similar configuration file.
+Google Generative AI (Gemini) Setup
+Obtain an API key from the Google AI Studio.
+Integrate this key into lib/services/gemini_service.dart or securely via environment variables.
+Telebirr Payment Integration
+Refer to lib/screens/payment/config.dart for necessary API credentials and configuration details for Telebirr.
+Run the Application
+code
+Bash
+flutter run
+# For web:
+flutter run -d chrome
+💡 Usage
+After installation and configuration, you can launch the FixIt application on your preferred device or browser.
+Client Experience
+Register/Login: Sign up as a client or log in with existing credentials.
+Post a Job: Describe your task, set a budget, and specify required skills.
+Browse Professionals: View professional profiles, their ratings, and skills.
+Review Proposals: Evaluate bids from interested professionals.
+Hire: Accept a proposal and initiate the job.
+Communicate: Use the in-app chat to discuss job details.
+Pay: Make secure payments via Telebirr upon job completion.
+Review: Rate and provide feedback on the professional's service.
+Professional Experience
+Register/Login: Sign up as a professional or log in.
+Create Profile: Fill out your professional profile, skills, service radius, and hourly rates.
+Browse Jobs: Discover available jobs matching your expertise.
+Apply: Submit proposals to jobs of interest.
+Communicate: Engage with clients via real-time chat.
+Complete Job: Mark a job as complete once tasks are finished.
+Get Paid: Receive payments securely through Telebirr.
+Build Reputation: Accumulate positive ratings and reviews.
+For details on setting up push notifications, refer to FCM_SETUP_GUIDE.md.
+📚 API Reference
+FixIt primarily utilizes the official SDKs and client libraries for its backend services:
+Firebase SDKs: For Authentication, Firestore, Storage, and FCM operations.
+Supabase Client: For interacting with the Supabase backend.
+Google Gemini API: Accessed via package:google_generative_ai for AI functionalities.
+Telebirr API: Custom service integration for payment processing, defined in lib/screens/payment/telebirr_api_service.dart.
+While the project includes OpenAPI.postman_environment.json and openapi2.postman_collection.json, these are typically used for consuming external APIs during development or for testing rather than exposing an API from FixIt itself.
+🤝 Contributing
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated.
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Fork the Project
+Create your Feature Branch (git checkout -b feature/AmazingFeature)
+Commit your Changes (git commit -m 'Add some AmazingFeature')
+Push to the Branch (git push origin feature/AmazingFeature)
+Open a Pull Request
+Please ensure your code adheres to our project's coding standards and includes appropriate tests.
+📜 License
+Distributed under the MIT License. See LICENSE for more information.
+📧 Contact
+Your Name/Team Name - email@example.com
+Project Link: https://github.com/your-username/fixit
+<a href="https://ibb.co/LXZ8PPf4"><img src="https://i.ibb.co/1tmLnnxH/photo-1-2025-12-09-04-38-02.jpg" alt="photo 1 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/mFTpkNZ2"><img src="https://i.ibb.co/Wp5CZV8M/photo-2-2025-12-09-04-38-02.jpg" alt="photo 2 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/0SdzWFj"><img src="https://i.ibb.co/dqzH3L0/photo-3-2025-12-09-04-38-02.jpg" alt="photo 3 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/VcgJLFjw"><img src="https://i.ibb.co/mV9bRnDN/photo-4-2025-12-09-04-38-02.jpg" alt="photo 4 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/DDBCph0Z"><img src="https://i.ibb.co/5WQ8FmbP/photo-5-2025-12-09-04-38-02.jpg" alt="photo 5 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/cKSD19xL"><img src="https://i.ibb.co/9mksN0Gt/photo-6-2025-12-09-04-38-02.jpg" alt="photo 6 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/vxYnf37s"><img src="https://i.ibb.co/ynSjK6wh/photo-7-2025-12-09-04-38-02.jpg" alt="photo 7 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/zHFtwwsD"><img src="https://i.ibb.co/rf3XJJkN/photo-8-2025-12-09-04-38-02.jpg" alt="photo 8 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/pvCWPbLJ"><img src="https://i.ibb.co/WWSD3G2g/photo-9-2025-12-09-04-38-02.jpg" alt="photo 9 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/tpt1VcQG"><img src="https://i.ibb.co/hFjT3HL6/photo-10-2025-12-09-04-38-02.jpg" alt="photo 10 2025 12 09 04 38 02" border="0"></a>
+<a href="https://ibb.co/Q3pZnLqb"><img src="https://i.ibb.co/fzqbtfK1/photo-2025-12-09-03-40-20.jpg" alt="photo-2025-12-09-03-40-20" border="0"></a> i need the full code read me file
+warning
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Here is the complete, high-performance README for your FixIt project.
+I have replaced the placeholder text with the actual screenshots you provided, arranged in a professional grid layout so they look amazing on GitHub. I also added a System Architecture diagram and polished the installation instructions.
+Copy the code below directly into your README.md file.
+code
+Markdown
+<div align="center">
+  <img src="https://img.icons8.com/fluency/96/maintenance.png" alt="FixIt Logo" width="100"/>
+  <h1>🛠️ FixIt - Professional Service Marketplace</h1>
+  
+  <p>
+    <strong>The Uber for Skilled Professionals.</strong><br>
+    <em>Connect, Hire, and Get the Job Done with the power of Flutter & AI.</em>
+  </p>
+
+  <p>
+    <a href="https://flutter.dev">
+      <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+    </a>
+    <a href="https://firebase.google.com">
+      <img src="https://img.shields.io/badge/Firebase-Backend-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
+    </a>
+    <a href="https://ai.google.dev/">
+      <img src="https://img.shields.io/badge/AI_Powered_By-Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini" />
+    </a>
+    <a href="https://github.com/your-username/fixit/blob/main/LICENSE">
+      <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License" />
+    </a>
+  </p>
+</div>
 
 ---
 
-## 🛠️ Technology Stack
+## 📱 App Gallery
 
-### Frontend
-- **Framework**: Flutter 3.8.1+
-- **State Management**: Provider 6.1.2
-- **UI Components**: Google Nav Bar, Line Icons, Font Awesome
-- **Animations**: Flutter Animate, Animate Do, Avatar Glow
-- **Localization**: Flutter Localizations (i18n)
-
-### Backend & Services
-- **Authentication**: Firebase Auth 6.0.1, Google Sign-In 7.1.1
-- **Database**: Cloud Firestore 6.0.0
-- **Storage**: Firebase Storage 13.0.0
-- **Messaging**: Firebase Cloud Messaging 16.0.4, Firebase Messaging
-- **Alternative Backend**: Supabase 2.3.1
-
-### AI & Advanced Features
-- **AI Chat**: Google Generative AI 0.4.7 (Gemini)
-- **Payments**: Flutter Telebirr 0.0.4
-- **Maps**: Flutter Map 8.2.1, Geolocator 14.0.2, Geocoding 4.0.0
-- **Media**: Image Picker 1.1.2, Image Cropper 9.1.0, Cached Network Image 3.4.1
-- **File Handling**: File Picker 10.3.3, Path Provider 2.1.3
-
-### Utilities
-- **Networking**: HTTP 1.5.0, Dio (implied)
-- **Notifications**: Flutter Local Notifications 19.4.1
-- **Audio**: Flutter Sound 9.28.0, Audio Waveforms 1.3.0, AudioPlayers 6.5.0
-- **Charts**: FL Chart 0.66.2
-- **Encryption**: Crypto 3.0.6, PointyCastle 3.7.3
-- **UI Enhancements**: Shimmer, Carousel Slider, Table Calendar, Percent Indicator
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="https://i.ibb.co/1tmLnnxH/photo-1-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 1"/><br><b>Splash & Onboarding</b></td>
+      <td align="center"><img src="https://i.ibb.co/Wp5CZV8M/photo-2-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 2"/><br><b>Authentication</b></td>
+      <td align="center"><img src="https://i.ibb.co/dqzH3L0/photo-3-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 3"/><br><b>Home Dashboard</b></td>
+      <td align="center"><img src="https://i.ibb.co/mV9bRnDN/photo-4-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 4"/><br><b>Service Categories</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="https://i.ibb.co/5WQ8FmbP/photo-5-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 5"/><br><b>Job Details</b></td>
+      <td align="center"><img src="https://i.ibb.co/9mksN0Gt/photo-6-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 6"/><br><b>Pro Profile</b></td>
+      <td align="center"><img src="https://i.ibb.co/ynSjK6wh/photo-7-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 7"/><br><b>AI Chat Assistant</b></td>
+      <td align="center"><img src="https://i.ibb.co/rf3XJJkN/photo-8-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 8"/><br><b>Active Jobs</b></td>
+    </tr>
+     <tr>
+      <td align="center"><img src="https://i.ibb.co/WWSD3G2g/photo-9-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 9"/><br><b>Secure Payment</b></td>
+      <td align="center"><img src="https://i.ibb.co/hFjT3HL6/photo-10-2025-12-09-04-38-02.jpg" width="200px" alt="Screen 10"/><br><b>Settings & Theme</b></td>
+      <td align="center" colspan="2"><b>✨ Experience the flow</b><br>From posting a job to hiring a pro.</td>
+    </tr>
+  </table>
+</div>
 
 ---
 
-## 🚀 Getting Started
+## 📋 Project Overview
 
-### Prerequisites
-- Flutter SDK 3.8.1 or higher
-- Dart SDK (bundled with Flutter)
-- Firebase project setup
-- Google Cloud project for Gemini API
-- Supabase project (optional)
+**FixIt** revolutionizes how clients find and hire skilled professionals. It is a robust two-sided marketplace platform where:
 
-### Installation
+-   **Clients** can effortlessly post jobs, review proposals, hire top-tier professionals, and manage secure payments.
+-   **Professionals** can browse a wide array of available jobs, apply for relevant work, and build their reputation.
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd finalend
-   ```
+Our platform leverages a powerful backend powered by **Firebase** and **Supabase**, and is enhanced with **Google Generative AI (Gemini)** for smart assistance.
 
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
+## 🌟 Key Features
 
-3. **Configure Firebase**
-   - Download `google-services.json` (Android) and `GoogleService-Info.plist` (iOS)
-   - Place them in the appropriate directories
-   - Update `firebase_options.dart` with your Firebase config
-
-4. **Configure Supabase** (Optional)
-   - Update the Supabase URL and Anon Key in `main.dart`
-
-5. **Set up Gemini API**
-   - Get API key from Google Cloud Console
-   - Configure in `gemini_service.dart`
-
-6. **Run the app**
-   ```bash
-   flutter run
-   ```
+*   🔒 **Secure Authentication**: Google Sign-In & Email/Password via Firebase Auth.
+*   👥 **Dual User Roles**: Distinct interfaces for Clients and Professionals.
+*   💬 **Real-time Chat**: Instant messaging between parties.
+*   🔔 **Push Notifications**: Powered by Firebase Cloud Messaging (FCM).
+*   💰 **Telebirr Integration**: Secure local payment gateway integration.
+*   🤖 **Gemini AI Assistant**: In-app AI chatbot to help users describe problems or find services.
+*   📍 **Geolocation**: Discovery of nearby professionals.
+*   🌃 **Dark Mode**: Dynamic theme switching.
+*   🌐 **Localization**: Support for English, Amharic, and Oromo.
 
 ---
 
-## 📱 App Architecture
+## 🏗️ System Architecture
 
-### Authentication Flow
-1. User opens app → `AuthWrapper` checks login status
-2. If logged in → `MainScreen` (role-based UI)
-3. If not logged in → `LoginScreen` with email/Google sign-in
-4. After login → User profile setup (for professionals)
+```mermaid
+graph TD
+    User[Mobile App User]
+    
+    subgraph Frontend [Flutter Application]
+        UI[UI Screens]
+        State[Provider State Mgmt]
+        Services[Service Layer]
+    end
+    
+    subgraph Backend [Cloud Services]
+        Auth[Firebase Auth]
+        DB[Firestore NoSQL]
+        Storage[Firebase Storage]
+        AI[Google Gemini API]
+        Pay[Telebirr API]
+    end
 
-### Role-Based Navigation
-**Professional (Worker)**
-- Feed (job browsing)
-- Profile (view/edit)
-- My Jobs (applications & active work)
-- Setup (professional profile configuration)
-
-**Client**
-- Home (worker discovery & job feed)
-- Post Job (create new job)
-- Profile (view/edit)
-- History (job management & payments)
-
-### Data Flow
-```
-Firebase Auth → User Profile (Firestore) → Role Determination
-                                         ↓
-                                    MainScreen
-                                    ↓
-                    (Professional)          (Client)
-                    ├─ HomeLayout          ├─ HomeLayout
-                    ├─ ProfileScreen       ├─ CreateJobScreen
-                    ├─ JobDashboard        ├─ ProfileScreen
-                    └─ ProfSetup           └─ JobDashboard
-```
-
----
-
-## 🔑 Key Services
-
-### AuthService
-- Email/password authentication
-- Google Sign-In (with silent authentication)
-- User profile management
-- Email verification
-
-### FirebaseService
-- Firestore CRUD operations
-- Job management (create, update, apply)
-- Notification listener setup
-- User presence tracking (online/offline)
-- File upload to Firebase Storage
-
-### FCMService
-- Firebase Cloud Messaging initialization
-- Token management
-- Push notification handling
-
-### NotificationService
-- Local notification display
-- Notification tap handling
-- Payload routing to relevant screens
-
-### AIChatService / GeminiService
-- Google Generative AI integration
-- Smart chat responses
-- Context-aware assistance
-
----
-
-## 🎨 UI/UX Features
-
-### Theme System
-- Light and dark modes
-- Dynamic color schemes
-- Consistent typography via Google Fonts
-- Theme provider for state management
-
-### Localization
-- **Supported Languages**: English, Amharic, Oromo
-- **Strings**: Centralized in `app_string.dart`
-- **Dynamic Switching**: Language change without app restart
-
-### Responsive Design
-- Adaptive layouts for different screen sizes
-- Safe area handling
-- Bottom navigation with Google Nav Bar
-- Staggered animations for visual appeal
-
----
-
-## 🔔 Notifications
-
-### Push Notifications (FCM)
-- Job applications received
-- Job acceptance/rejection
-- New messages
-- Payment confirmations
-
-### Local Notifications
-- In-app notification display
-- Sound and vibration feedback
-- Tap-to-navigate functionality
-
-### Real-time Updates
-- Firestore listeners for job changes
-- Chat message streaming
-- Notification collection monitoring
-
----
-
-## 💳 Payment Integration
-
-**Telebirr Payment Gateway**
-- Test mode configuration
-- Job payment processing
-- Transaction status tracking
-- Payment history
-
----
-
-## 🗺️ Geolocation Features
-
-- Worker location tracking
-- Service radius configuration
-- Distance calculation from client
-- Location-based worker discovery
-- Address geocoding/reverse geocoding
-
----
-
-## 📊 Database Schema (Firestore)
-
-### Collections
-- **users**: Client & professional profiles
-- **jobs**: Job postings with status
-- **applications**: Job applications from professionals
-- **reviews**: Ratings and reviews
-- **notifications**: User notifications
-- **chat_rooms**: Chat conversation metadata
-- **messages**: Chat messages
-- **workers**: Professional detailed profiles
-
----
-
-## 🧪 Testing
-
-Run widget tests:
-```bash
-flutter test
-```
-
----
-
-## 📝 Configuration Files
-
-### pubspec.yaml
-- Defines all dependencies
-- Flutter configuration
-- Asset paths
-- Launcher icon setup
-
-### firebase.json
-- Firebase deployment configuration
-
-### analysis_options.yaml
-- Dart linting rules
-- Code quality standards
-
-### FCM_SETUP_GUIDE.md
-- Detailed Firebase Cloud Messaging setup instructions
-
----
-
-## 🐛 Known Issues & Fixes
-
-The codebase includes several documented fixes:
-- **FIX #1**: StreamSubscription import for notification handling
-- **FIX #2**: NotificationService integration
-- **FIX #3**: Google Silent Sign-In using `attemptLightweightAuthentication`
-- **Presence Tracking**: App lifecycle observer for online/offline status
-
----
-
-## 🚦 Development Workflow
-
-1. **Feature Development**: Create feature branch
-2. **Testing**: Run `flutter test` and manual testing
-3. **Code Quality**: Follow analysis_options.yaml rules
-4. **Localization**: Add strings to `app_string.dart`
-5. **Theme Consistency**: Use `AppThemes` for styling
-6. **State Management**: Use Provider for global state
-
----
-
-## 📚 Resources
-
-- [Flutter Documentation](https://docs.flutter.dev/)
-- [Firebase for Flutter](https://firebase.google.com/docs/flutter/setup)
-- [Provider Package](https://pub.dev/packages/provider)
-- [Google Generative AI](https://ai.google.dev/)
-- [Firestore Documentation](https://firebase.google.com/docs/firestore)
-
----
-
-## 📄 License
-
-This project is proprietary and confidential.
-
----
-
-## 👥 Support
-
-For issues, questions, or contributions, please contact the development team.
-
----
-
-## 🔐 Security Notes
-
-- **API Keys**: Store sensitive keys in environment variables or secure configuration
-- **Firebase Rules**: Implement proper Firestore security rules
-- **Authentication**: Always validate tokens server-side
-- **Data Privacy**: Comply with data protection regulations (GDPR, etc.)
-
----
-
-## 🎯 Future Enhancements
-
-- [ ] Video call integration (Agora/Twilio)
-- [ ] Advanced analytics dashboard
-- [ ] Subscription/premium features
-- [ ] Offline-first capability
-- [ ] Machine learning for job recommendations
-- [ ] Advanced search and filtering
-- [ ] Dispute resolution system
-- [ ] Escrow payment system
-#   f i x i t  
- 
+    User --> UI
+    UI --> State
+    State --> Services
+    Services -->|Auth| Auth
+    Services -->|Data Sync| DB
+    Services -->|Images| Storage
+    Services -->|Chat/Advice| AI
+    Services -->|Transactions| Pay
+🛠️ Tech Stack
+Component	Technology	Description
+Framework	
+![alt text](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)
+Cross-platform UI Toolkit
+Language	
+![alt text](https://img.shields.io/badge/dart-%230175C2.svg?style=flat&logo=dart&logoColor=white)
+Core logic language
+Backend	
+![alt text](https://img.shields.io/badge/firebase-%23039BE5.svg?style=flat&logo=firebase)
+Auth, Database, Storage, Messaging
+AI Engine	
+![alt text](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=flat&logo=google&logoColor=white)
+Intelligent Chat Assistant
+Database	
+![alt text](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)
+Secondary Data Management
+Payments	Telebirr	Mobile Money Integration
+📂 Project Structure
+code
+Text
+lib/
+├── main.dart                          # App entry point & Routing
+├── firebase_options.dart              # Firebase Config
+├── models/                            # Data Models (User, Job, Worker)
+├── providers/                         # State Management (Provider)
+├── screens/                           # UI Views
+│   ├── auth/                          # Login/Register
+│   ├── chat/                          # Real-time Messaging
+│   ├── home/                          # Dashboard
+│   ├── jobs/                          # Job Posting & Tracking
+│   ├── payment/                       # Telebirr Integration
+│   └── widgets/                       # Reusable Components
+├── services/                          # API Integrations
+│   ├── gemini_service.dart            # AI Logic
+│   ├── auth_service.dart              # Firebase Auth
+│   └── fcm_service.dart               # Push Notifications
+└── assets/                            # Images & Icons
+🚀 Installation & Setup
+Prerequisites
+Flutter SDK (3.x or higher)
+VS Code or Android Studio
+A Firebase Project
+Steps
+Clone the Repository
+code
+Bash
+git clone https://github.com/your-username/fixit.git
+cd fixit
+Install Dependencies
+code
+Bash
+flutter pub get
+Firebase Configuration
+Install the Firebase CLI.
+Run flutterfire configure to connect your app to your Firebase project.
+This will generate the firebase_options.dart file.
+Environment Variables (API Keys)
+Create a .env file or configure your gemini_service.dart with your Google AI Studio Key.
+Configure screens/payment/config.dart with your Telebirr credentials.
+Run the App
+code
+Bash
+# Run on connected device (Emulator or Physical)
+flutter run
+🤝 Contributing
+We welcome contributions!
+Fork the project.
+Create your Feature Branch (git checkout -b feature/AmazingFeature).
+Commit your changes (git commit -m 'Add some AmazingFeature').
+Push to the branch (git push origin feature/AmazingFeature).
+Open a Pull Request.
+📜 License
+Distributed under the MIT License. See LICENSE for more information.
+<div align="center">
+<p>Made with ❤️ by <strong>Biruk Zewude</strong></p>
+<p>
+<a href="https://github.com/biruk-77">
+<img src="https://img.shields.io/badge/Follow_Me-GitHub-black?style=for-the-badge&logo=github" />
+</a>
+</p>
+</div>
