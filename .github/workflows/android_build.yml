@@ -1,44 +1,45 @@
-name: FixIt Android Build
+name: Flutter Release Build
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main  # runs on pushes to main
+  workflow_dispatch:  # allows manual trigger from GitHub
 
 jobs:
-  build_android:
-    name: Build Android APK
+  build-release:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout Code
-      - uses: actions/checkout@v4
+      # Step 1: Checkout the repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 2. Setup Java
-      - uses: actions/setup-java@v4
+      # Step 2: Set up Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          flutter-version: "3.13.0"  # Dart 3.8.1+ compatible
 
-      # 3. Setup Flutter
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.0'
-          channel: 'stable'
-      
-      # 4. Install Dependencies
-      - name: Install Dependencies
+      # Step 3: Enable Flutter analytics opt-out (optional, cleaner logs)
+      - name: Disable Flutter analytics
+        run: flutter config --no-analytics
+
+      # Step 4: Get dependencies
+      - name: Flutter Pub Get
         run: flutter pub get
 
-      # 5. Build APK
-      - name: Build APK
+      # Step 5: Run tests (optional but recommended)
+      - name: Flutter Test
+        run: flutter test --coverage
+
+      # Step 6: Build APK release
+      - name: Build APK Release
         run: flutter build apk --release
 
-      # 6. Upload Artifact
+      # Step 7: Upload artifact so you can download it from Actions
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: app-release-apk
+          name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
