@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:intl/intl.dart'; // Required for date formatting
 import 'dart:io';
+import 'dart:async'; // For stopwatch
 // For ImageFilter.blur
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -30,6 +31,42 @@ import 'help_support_screen.dart'; // Already defined
 import 'professional_setup_edit.dart'; // Already defined (Used for professional profile editing)
 import 'auth/login_screen.dart'; // Already defined
 import 'jobs/job_detail_screen.dart'; // Already defined
+
+// --- Logger Utility ---
+class ProfileLogger {
+  static const String _tag = '🔵 [ProfileScreen]';
+  static final Stopwatch _stopwatch = Stopwatch();
+
+  static void startTimer() {
+    _stopwatch.reset();
+    _stopwatch.start();
+  }
+
+  static void logEvent(String event, {String? details}) {
+    final elapsed = _stopwatch.elapsedMilliseconds;
+    final message = details != null ? '$event - $details' : event;
+    print('$_tag [$elapsed ms] $message');
+  }
+
+  static void logError(String error, {StackTrace? stackTrace}) {
+    final elapsed = _stopwatch.elapsedMilliseconds;
+    print('$_tag ❌ [$elapsed ms] ERROR: $error');
+    if (stackTrace != null) {
+      print('$_tag Stack: $stackTrace');
+    }
+  }
+
+  static void logSuccess(String message, {String? details}) {
+    final elapsed = _stopwatch.elapsedMilliseconds;
+    final fullMessage = details != null ? '$message - $details' : message;
+    print('$_tag ✅ [$elapsed ms] $fullMessage');
+  }
+
+  static void logWarning(String message) {
+    final elapsed = _stopwatch.elapsedMilliseconds;
+    print('$_tag ⚠️ [$elapsed ms] $message');
+  }
+}
 // Assuming this is defined for navigation, could be placeholder
 
 // --- Profile Screen ---
@@ -71,7 +108,12 @@ class _ProfileScreenState extends State<ProfileScreen>
   void initState() {
     super.initState();
 
+    // Start performance timer
+    ProfileLogger.startTimer();
+    ProfileLogger.logEvent('initState() called');
+
     // Initialize pulsating glow animation for the avatar
+    ProfileLogger.logEvent('Initializing glow animation');
     _glowAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2), // Full cycle duration
@@ -82,8 +124,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         curve: Curves.easeInOut,
       ),
     );
+    ProfileLogger.logSuccess('Glow animation initialized');
 
     // Initialize staggered entry animations for content sections
+    ProfileLogger.logEvent('Initializing staggered animations');
     _staggeredEntryController = AnimationController(
       vsync: this,
       duration: const Duration(
@@ -100,24 +144,40 @@ class _ProfileScreenState extends State<ProfileScreen>
             curve: Curves.easeOutCubic,
           ),
         );
+    ProfileLogger.logSuccess('Staggered animations initialized');
 
     // Add listener to the scroll controller for dynamic header effects
+    // Only rebuild when offset changes significantly (every 5 pixels) to reduce rebuilds
+    ProfileLogger.logEvent('Setting up scroll listener');
     _scrollController.addListener(() {
-      setState(() {
-        _headerScrollOffset = _scrollController.offset;
-      });
+      final newOffset = _scrollController.offset;
+      if ((newOffset - _headerScrollOffset).abs() > 5) {
+        setState(() {
+          _headerScrollOffset = newOffset;
+        });
+      }
     });
+    ProfileLogger.logSuccess('Scroll listener configured');
 
     // Load user profile after widgets are built, or if user is already logged in
+    ProfileLogger.logEvent('Scheduling profile load');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        if (_firebaseService.getCurrentUser() == null) {
+        final currentUser = _firebaseService.getCurrentUser();
+        if (currentUser == null) {
+          ProfileLogger.logWarning(
+            'No authenticated user found, redirecting to login',
+          );
           // If no user is logged in, show an empty state or redirect to login
           setState(() => _isLoading = false);
           Navigator.of(
             context,
           ).pushReplacementNamed('/login'); // Example redirect
         } else {
+          ProfileLogger.logEvent(
+            'User authenticated',
+            details: 'UID: ${currentUser.uid}',
+          );
           _loadUserProfile();
         }
       }
@@ -136,15 +196,24 @@ class _ProfileScreenState extends State<ProfileScreen>
   /// Fetches the current user's profile from FirebaseService and updates the state.
   /// Manages loading and error states.
   Future<void> _loadUserProfile() async {
-    if (!mounted) return;
+    ProfileLogger.logEvent('_loadUserProfile() started');
+
+    if (!mounted) {
+      ProfileLogger.logWarning('Widget not mounted, aborting profile load');
+      return;
+    }
+
+    ProfileLogger.logEvent('Setting loading state to true');
     setState(() {
       _isLoading = true;
       _isUploadingImage = false; // Reset upload state on refresh
     });
 
     // Access localization strings from the context
+    ProfileLogger.logEvent('Fetching localization strings');
     final AppStrings? strings = AppLocalizations.of(context);
     if (strings == null) {
+      ProfileLogger.logError('Localization strings not available');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -156,15 +225,55 @@ class _ProfileScreenState extends State<ProfileScreen>
       }
       return;
     }
+    ProfileLogger.logSuccess('Localization strings loaded');
 
     try {
+      ProfileLogger.logEvent('Fetching user profile from Firebase');
+      final startTime = DateTime.now();
+
       final userData = await _firebaseService.getCurrentUserProfile();
-      if (!mounted) return;
+
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      ProfileLogger.logSuccess(
+        'User profile fetched',
+        details: 'Time: ${loadTime}ms',
+      );
+
+      if (!mounted) {
+        ProfileLogger.logWarning('Widget unmounted after profile fetch');
+        return;
+      }
+
+      if (userData != null) {
+        ProfileLogger.logEvent(
+          'Profile data received',
+          details: 'User: ${userData.name}, Role: ${userData.role}',
+        );
+
+        // Update state with loaded profile
+        ProfileLogger.logEvent('Updating state with profile data');
+        setState(() {
+          _userProfile = userData;
+          _isLoading = false;
+        });
+        ProfileLogger.logSuccess('Profile state updated');
+      } else {
+        ProfileLogger.logWarning('Received null profile data');
+        setState(() => _isLoading = false);
+      }
 
       // Start content entry animation after profile loads
+      ProfileLogger.logEvent('Starting staggered entry animation');
       _staggeredEntryController.forward(from: 0.0);
-    } catch (e) {
-      if (!mounted) return;
+      ProfileLogger.logSuccess('Animation started');
+    } catch (e, stackTrace) {
+      ProfileLogger.logError('Error loading profile', stackTrace: stackTrace);
+
+      if (!mounted) {
+        ProfileLogger.logWarning('Widget unmounted after error');
+        return;
+      }
+
       setState(() => _isLoading = false);
       if (mounted) {
         final errorMsg = strings.snackErrorLoadingProfile;
@@ -176,6 +285,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         );
       }
     }
+
+    ProfileLogger.logSuccess('_loadUserProfile() completed');
   }
 
   // --- Image Picking and Uploading Logic ---
@@ -543,10 +654,21 @@ class _ProfileScreenState extends State<ProfileScreen>
         (_headerScrollOffset / (expandedHeight - minHeight)).clamp(0.0, 1.0);
     final double avatarScale =
         1.0 - (scrollFactor * 0.3); // Shrink avatar slightly
-    final double textOpacity =
-        1.0 - (scrollFactor * 1.5); // Fade out text faster
+    final double textOpacity = (1.0 - (scrollFactor * 1.5)).clamp(
+      0.0,
+      1.0,
+    ); // Fade out text faster, clamped to valid range
     final double backgroundParallax =
         -_headerScrollOffset * 0.4; // Slower scroll for background
+
+    // Log opacity values for debugging (only in debug mode)
+    if (scrollFactor > 0.5) {
+      ProfileLogger.logEvent(
+        'Header collapse',
+        details:
+            'scrollFactor: ${scrollFactor.toStringAsFixed(2)}, textOpacity: ${textOpacity.toStringAsFixed(2)}',
+      );
+    }
 
     // Define rich background gradient for the header
     final headerBackgroundGradient = LinearGradient(

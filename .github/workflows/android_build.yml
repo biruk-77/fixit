@@ -1,0 +1,44 @@
+name: FixIt Android Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build_android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout Code
+      - uses: actions/checkout@v4
+
+      # 2. Setup Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Setup Flutter
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+      
+      # 4. Install Dependencies
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # 5. Build APK
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 6. Upload Artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk

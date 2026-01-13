@@ -1363,26 +1363,10 @@ class FirebaseService {
             .collection('jobs')
             .where('workerId', isEqualTo: actualUserId);
       } else {
-        // Check if the collection uses 'clientId' or 'seekerId'
-        final testDoc = await _firestore.collection('jobs').limit(1).get();
-        if (testDoc.docs.isNotEmpty) {
-          final fieldExists = (testDoc.docs.first.data()).containsKey(
-            'clientId',
-          );
-          if (fieldExists) {
-            query = _firestore
-                .collection('jobs')
-                .where('clientId', isEqualTo: actualUserId);
-          } else {
-            query = _firestore
-                .collection('jobs')
-                .where('seekerId', isEqualTo: actualUserId);
-          }
-        } else {
-          query = _firestore
-              .collection('jobs')
-              .where('clientId', isEqualTo: actualUserId);
-        }
+        // Use 'clientId' as the standard field (no extra query needed)
+        query = _firestore
+            .collection('jobs')
+            .where('clientId', isEqualTo: actualUserId);
       }
 
       // Add status filter if provided
@@ -1390,8 +1374,8 @@ class FirebaseService {
         query = query.where('status', isEqualTo: status);
       }
 
-      // Fetch the data without ordering
-      final snapshot = await query.get();
+      // Fetch the data with a limit (default 5 for profile preview, can be overridden)
+      final snapshot = await query.limit(5).get();
 
       // Convert to a list of Job objects
       final jobs = snapshot.docs.map((doc) {
@@ -2158,7 +2142,7 @@ class FirebaseService {
         type: 'job_status_update',
         data: {'jobId': jobId, 'status': status},
       );
-          return true;
+      return true;
     } catch (e) {
       print('🔥 Error updating job status: $e');
       return false;

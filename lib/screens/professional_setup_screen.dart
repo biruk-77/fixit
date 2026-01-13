@@ -1261,14 +1261,12 @@ class _CustomTextField extends StatelessWidget {
   final int maxLines;
 
   const _CustomTextField({
-    super.key, // Good practice
     required this.controller,
     required this.label,
     this.hint,
     this.icon,
     this.suffixIcon,
-    this.isNumeric = false,
-    this.isRequired = false, // <--- THIS WAS MISSING
+    this.isNumeric = false, // <--- THIS WAS MISSING
     this.maxLines = 1,
   });
 
