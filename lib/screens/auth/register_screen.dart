@@ -301,14 +301,19 @@ class _RegisterScreenState extends State<RegisterScreen>
         photoUrl: null,
       );
       if (!mounted) return;
-      await _authService.sendEmailVerificationLink();
-      if (!mounted) return;
-      _showInfoSnackbar(appStrings.emailVerificationSent);
-      setState(() {
-        _currentPhase = VerificationState.emailPending;
-        _isLoading = false;
+      
+      // SKIP EMAIL VERIFICATION - Send email in background but don't wait
+      // Users can verify later if needed
+      _authService.sendEmailVerificationLink().catchError((e) {
+        debugPrint("Email verification send failed (non-blocking): $e");
       });
-      _startEmailCheckTimer();
+      
+      // Navigate immediately without verification
+      if (!mounted) return;
+      _showSuccessSnackbar(appStrings.registerSuccess);
+      setState(() => _isLoading = false);
+      _navigateAfterVerification();
+      
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -319,7 +324,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         setState(() => _isLoading = false);
         _showErrorSnackbar(appStrings.registerErrorUnknown);
       }
-      print("Err: $e\n$s");
+      debugPrint("Err: $e\n$s");
     }
   }
 
@@ -373,7 +378,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         setState(() => _isLoading = false);
         _showErrorSnackbar(appStrings.errorActionFailed);
       }
-      print('Err: $e\n$s');
+      debugPrint('Err: $e\n$s');
     }
   }
 
@@ -412,7 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       }
     } catch (e, s) {
       if (mounted) _showErrorSnackbar(appStrings.registerErrorUnknown);
-      print('Err: $e\n$s');
+      debugPrint('Err: $e\n$s');
     } finally {
       if (mounted) {
         setState(() {
@@ -496,7 +501,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       if (!isAutoCheck && mounted) {
         _showErrorSnackbar(appStrings.errorCheckingVerification);
       }
-      print('Err: $e\n$s');
+      debugPrint('Err: $e\n$s');
     } finally {
       if (!isAutoCheck && mounted) {
         setState(() => _isCheckingVerification = false);
@@ -558,7 +563,7 @@ class _RegisterScreenState extends State<RegisterScreen>
           _showErrorSnackbar(appStrings.errorResendingEmail);
           setState(() => _isResending = false);
         }
-        print("Err: $e\n$s");
+        debugPrint("Err: $e\n$s");
       }
     } else {
       if (mounted) setState(() => _isResending = false);
@@ -657,7 +662,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                   listen: false,
                 ).toggleTheme();
               } catch (e) {
-                print("Error accessing ThemeProvider: $e");
+                debugPrint("Error accessing ThemeProvider: $e");
               }
             },
           ),
@@ -675,7 +680,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     : const Locale('en');
                 localeProvider.setLocale(nextLocale);
               } catch (e) {
-                print("Error getting LocaleProvider: $e");
+                debugPrint("Error getting LocaleProvider: $e");
               }
             },
           ),

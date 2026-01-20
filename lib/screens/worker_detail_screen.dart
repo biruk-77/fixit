@@ -2136,6 +2136,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen>
         padding: const EdgeInsets.only(bottom: 80),
         child:
             FloatingActionButton.extended(
+              heroTag: 'worker_detail_fab',
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.push(

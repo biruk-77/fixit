@@ -38,22 +38,22 @@ class LocaleProvider with ChangeNotifier {
         // Check if the loaded locale is supported before setting it
         if (AppLocalizations.delegate.isSupported(newLocale)) {
           _locale = newLocale;
-          print("LocaleProvider: Loaded saved locale '$_locale'.");
+          debugPrint("LocaleProvider: Loaded saved locale '$_locale'.");
           // No need to notifyListeners() here as this is part of initialization.
           // The MaterialApp will pick up this initial _locale value when it first builds
           // and watches this provider.
         } else {
-          print(
+          debugPrint(
               "LocaleProvider: Saved locale '$savedCode' is no longer supported. Using default.");
           // Optionally, remove the invalid saved preference
           // await prefs.remove(_selectedLocaleKey);
         }
       } else {
-        print(
+        debugPrint(
             "LocaleProvider: No saved locale found. Using default '$_locale'.");
       }
     } catch (e) {
-      print("LocaleProvider: Error loading saved locale: $e. Using default.");
+      debugPrint("LocaleProvider: Error loading saved locale: $e. Using default.");
     }
     // If you need to ensure MaterialApp rebuilds after async load,
     // you could call notifyListeners() here, but it's often not necessary
@@ -70,9 +70,9 @@ class LocaleProvider with ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_selectedLocaleKey, languageCode);
-      print("LocaleProvider: Saved locale '$languageCode' to preferences.");
+      debugPrint("LocaleProvider: Saved locale '$languageCode' to preferences.");
     } catch (e) {
-      print("LocaleProvider: Error saving locale: $e");
+      debugPrint("LocaleProvider: Error saving locale: $e");
     }
   }
 
@@ -81,7 +81,7 @@ class LocaleProvider with ChangeNotifier {
   void setLocale(Locale newLocale) {
     // 1. Check if the new locale is actually supported by your app.
     if (!AppLocalizations.delegate.isSupported(newLocale)) {
-      print(
+      debugPrint(
           "LocaleProvider: Locale '${newLocale.languageCode}' is not supported.");
       return; // Do nothing if the language isn't supported
     }
@@ -89,14 +89,14 @@ class LocaleProvider with ChangeNotifier {
     // 2. Check if the new locale is actually different from the current one.
     if (_locale.languageCode == newLocale.languageCode) {
       // Compare language codes
-      print(
+      debugPrint(
           "LocaleProvider: Locale '${newLocale.languageCode}' is already selected.");
       return; // Do nothing if it's the same language
     }
 
     // 3. If it's different and supported, update the internal locale.
     _locale = newLocale;
-    print("LocaleProvider: Locale changed to '${_locale.languageCode}'.");
+    debugPrint("LocaleProvider: Locale changed to '${_locale.languageCode}'.");
 
     // 4. Save the newly selected locale to preferences.
     _saveLocale(_locale.languageCode);

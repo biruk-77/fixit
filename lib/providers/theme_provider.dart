@@ -23,14 +23,14 @@ class ThemeProvider with ChangeNotifier {
       if (savedThemeIndex != null &&
           savedThemeIndex < ThemeMode.values.length) {
         _themeMode = ThemeMode.values[savedThemeIndex];
-        print(
+        debugPrint(
             "ThemeProvider: Loaded theme preference: $_themeMode"); // Debug log
       } else {
-        print(
+        debugPrint(
             "ThemeProvider: No saved theme preference found, using default: $_themeMode");
       }
     } catch (e) {
-      print("ThemeProvider: Error loading theme preference: $e");
+      debugPrint("ThemeProvider: Error loading theme preference: $e");
       // Stick with default if loading fails
     } finally {
       notifyListeners(); // Notify listeners after loading (or if default is used)
@@ -42,9 +42,9 @@ class ThemeProvider with ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_themePrefKey, mode.index);
-      print("ThemeProvider: Saved theme preference: $mode"); // Debug log
+      debugPrint("ThemeProvider: Saved theme preference: $mode"); // Debug log
     } catch (e) {
-      print("ThemeProvider: Error saving theme preference: $e");
+      debugPrint("ThemeProvider: Error saving theme preference: $e");
     }
   }
 

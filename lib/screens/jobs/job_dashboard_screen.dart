@@ -98,7 +98,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
         _showErrorSnackbar(
           appStrings.errorLoadingData(e.toString()),
         ); // Using AppStrings
-        print('Error loading data: $e');
+        debugPrint('Error loading data: $e');
       }
     } finally {
       if (mounted) {
@@ -150,7 +150,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
             _assignedJobs = effectiveWorksForMe; // Use the effective list
           });
         }
-        print('Final works for me jobs: ${_assignedJobs.length}');
+        debugPrint('Final works for me jobs: ${_assignedJobs.length}');
       } else {
         // For clients, fetch both posted jobs and requested jobs in parallel
         final [postedJobs, requestedJobs] = await Future.wait([
@@ -166,7 +166,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
         }
       }
     } catch (e) {
-      print('Error loading jobs: $e');
+      debugPrint('Error loading jobs: $e');
       _showErrorSnackbar(
         appStrings.errorLoadingJobs(e.toString()),
       ); // Using AppStrings
@@ -231,7 +231,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
     final appStrings = AppLocalizations.of(context)!; // Corrected call
     try {
       setState(() => _isLoading = true);
-      print(userID);
+      debugPrint(userID);
       await _firebaseService.updateJobStatus1(
         job.id,
         userID,
@@ -296,8 +296,8 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
 
     try {
       setState(() => _isLoading = true);
-      print('Current user ID: ${_firebaseService.getCurrentUser()?.uid}');
-      print('currentuserID from start work: $currentUserId');
+      debugPrint('Current user ID: ${_firebaseService.getCurrentUser()?.uid}');
+      debugPrint('currentuserID from start work: $currentUserId');
 
       await _firebaseService.updateJobStatus1(
         job.id,
@@ -334,8 +334,8 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
 
     try {
       setState(() => _isLoading = true);
-      print('Current user ID: ${_firebaseService.getCurrentUser()?.uid}');
-      print('currentuserID from start work: $currentUserId');
+      debugPrint('Current user ID: ${_firebaseService.getCurrentUser()?.uid}');
+      debugPrint('currentuserID from start work: $currentUserId');
 
       await _firebaseService.updateJobStatus(
         job.id,
@@ -521,6 +521,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
             ),
       floatingActionButton: !_isWorker
           ? FloatingActionButton(
+              heroTag: 'job_dashboard_fab',
               onPressed: () => Navigator.pushNamed(
                 context,
                 '/post-job',
@@ -1144,7 +1145,7 @@ class _JobDashboardScreenState extends State<JobDashboardScreen>
     final statusColor = _getStatusColor(job.status);
 
     final formattedDate = job.scheduledDate != null;
-    print('this is the date formatt$formattedDate');
+    debugPrint('this is the date formatt$formattedDate');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

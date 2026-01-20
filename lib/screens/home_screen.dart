@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      print("Location services are disabled.");
+      debugPrint("Location services are disabled.");
       return;
     }
 
@@ -212,13 +212,13 @@ class _HomeScreenState extends State<HomeScreen>
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        print("Location permissions are denied.");
+        debugPrint("Location permissions are denied.");
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      print(
+      debugPrint(
         "Location permissions are permanently denied, we cannot request permissions.",
       );
       return;
@@ -233,12 +233,12 @@ class _HomeScreenState extends State<HomeScreen>
           _userLatitude = position.latitude;
           _userLongitude = position.longitude;
         });
-        print(
+        debugPrint(
           "DEBUG: User location fetched: Lat: $_userLatitude, Lon: $_userLongitude",
         );
       }
     } catch (e) {
-      print("Error getting location: $e");
+      debugPrint("Error getting location: $e");
       if (mounted) {
         _showErrorSnackbar(
           "Could not get your location. Distances won't be available.",
@@ -274,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen>
           }
         },
         onError: (error) {
-          print("Error listening to notifications for badge: $error");
+          debugPrint("Error listening to notifications for badge: $error");
           if (mounted) {
             setState(() {
               _unreadNotificationsCount = 0; // Reset on error
@@ -424,7 +424,7 @@ class _HomeScreenState extends State<HomeScreen>
       _filterSelectedJobStatus = _tempSelectedJobStatus = 'All';
       await _refreshData(isInitialLoad: true);
     } catch (e, s) {
-      print('FATAL ERROR: Determining user type failed: $e\n$s');
+      debugPrint('FATAL ERROR: Determining user type failed: $e\n$s');
       if (mounted) {
         _showErrorSnackbar(
           AppLocalizations.of(context)?.snackErrorLoadingProfile ??
@@ -460,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen>
         await _loadJobs();
       }
     } catch (e, s) {
-      print('ERROR: Refreshing data failed: $e\n$s');
+      debugPrint('ERROR: Refreshing data failed: $e\n$s');
       if (mounted) {
         _showErrorSnackbar(
           AppLocalizations.of(context)?.snackErrorLoading ??
@@ -488,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     final strings = AppLocalizations.of(context);
     if (strings == null) {
-      print(
+      debugPrint(
         "Error: AppLocalizations not found in context during profile load.",
       );
       if (mounted) {
@@ -513,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen>
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading user profile: $e');
+      debugPrint('Error loading user profile: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -535,15 +535,15 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _loadWorkers() async {
     if (!mounted) return;
-    print("DEBUG: Loading workers...");
+    debugPrint("DEBUG: Loading workers...");
     try {
       final workers = await _firebaseService.getWorkers();
       if (!mounted) return;
-      print("DEBUG: Fetched ${workers.length} workers.");
+      debugPrint("DEBUG: Fetched ${workers.length} workers.");
 
       // Calculate distances for workers if user location is known
       if (_userLatitude != null && _userLongitude != null) {
-        print("DEBUG: Pre-calculating distances as location is already known.");
+        debugPrint("DEBUG: Pre-calculating distances as location is already known.");
         for (var worker in workers) {
           if (worker.latitude != null && worker.longitude != null) {
             final distanceInMeters = Geolocator.distanceBetween(
@@ -599,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen>
       });
       await _initializeAiService();
     } catch (e, s) {
-      print("DEBUG: Error loading workers: $e\n$s");
+      debugPrint("DEBUG: Error loading workers: $e\n$s");
       if (mounted) {
         _showErrorSnackbar(
           AppLocalizations.of(context)?.snackErrorLoading ??
@@ -616,7 +616,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _initializeAiService() async {
-    print("HomeScreen: Initializing PERSONALIZED AI Service...");
+    debugPrint("HomeScreen: Initializing PERSONALIZED AI Service...");
     _aiChatService = AiChatService();
 
     // Call the new, more powerful initialization method
@@ -625,16 +625,16 @@ class _HomeScreenState extends State<HomeScreen>
     setState(() {
       _isAiServiceInitialized = true; // AI is ready!
     });
-    print("HomeScreen: PERSONALIZED AI Service is now ready.");
+    debugPrint("HomeScreen: PERSONALIZED AI Service is now ready.");
   }
 
   Future<void> _loadJobs() async {
     if (!mounted) return;
-    print("DEBUG: Loading jobs...");
+    debugPrint("DEBUG: Loading jobs...");
     try {
       final jobs = await _firebaseService.getJobs();
       if (!mounted) return;
-      print("DEBUG: Fetched ${jobs.length} jobs.");
+      debugPrint("DEBUG: Fetched ${jobs.length} jobs.");
       List<Job> openJobs =
           jobs.where((j) => j.status.toLowerCase() == 'open').toList()..sort(
             (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
@@ -648,7 +648,7 @@ class _HomeScreenState extends State<HomeScreen>
         _applyJobFilters();
       });
     } catch (e, s) {
-      print("DEBUG: Error loading jobs: $e\n$s");
+      debugPrint("DEBUG: Error loading jobs: $e\n$s");
       if (mounted) {
         _showErrorSnackbar(
           AppLocalizations.of(context)?.snackErrorLoading ??
@@ -694,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen>
                 (worker.about.toLowerCase() ?? '').contains(query));
       return locationMatch && categoryMatch && searchMatch;
     }).toList();
-    print(
+    debugPrint(
       "DEBUG: Workers filtered: ${filtered.length} results for query '$query', loc '$_filterSelectedLocation', cat '$_filterSelectedCategory'",
     );
     setStateIfMounted(() {
@@ -722,7 +722,7 @@ class _HomeScreenState extends State<HomeScreen>
                 (job.location.toLowerCase() ?? '').contains(query));
       return statusMatch && searchMatch;
     }).toList();
-    print(
+    debugPrint(
       "DEBUG: Jobs filtered: ${filtered.length} results for query '$query', status '$_filterSelectedJobStatus'",
     );
     setStateIfMounted(() {
@@ -790,7 +790,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Placeholder methods for new AppBar actions
   // Renamed to avoid confusion with the main _determineUserTypeAndLoadData
   void _updateUserAfterLocaleChange() async {
-    print('Loading user profile (after locale change)');
+    debugPrint('Loading user profile (after locale change)');
     await _determineUserTypeAndLoadData(); // Re-load data based on current user/locale
   }
 
@@ -859,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
-    print(
+    debugPrint(
       "DEBUG: HomeScreen build | userType: $_userType | FW: ${_filteredWorkers.length} | FJ: ${_filteredJobs.length} | isDark: $isDarkMode | Locale: ${appStrings.locale.languageCode}",
     );
 
@@ -1172,7 +1172,7 @@ class _HomeScreenState extends State<HomeScreen>
                     listen: false,
                   ).toggleTheme();
                 } catch (e) {
-                  print("Error accessing ThemeProvider: $e");
+                  debugPrint("Error accessing ThemeProvider: $e");
                   rethrow; // Use appStrings
                 }
               },
@@ -1200,7 +1200,7 @@ class _HomeScreenState extends State<HomeScreen>
                     }
                   });
                 } catch (e) {
-                  print("Error getting LocaleProvider: $e");
+                  debugPrint("Error getting LocaleProvider: $e");
                   rethrow; // Use appStrings
                 }
               },
@@ -2088,6 +2088,7 @@ class _HomeScreenState extends State<HomeScreen>
           onPressed: isClient
               ? () => _navigateToUnifiedChatScreen()
               : _navigateToCreateProfile,
+          heroTag: 'home_screen_main_fab',
           backgroundColor: fabBackgroundColor,
           foregroundColor: fabForegroundColor,
           elevation: fabTheme.elevation ?? 6.0,

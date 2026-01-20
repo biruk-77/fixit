@@ -351,7 +351,7 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
               backgroundColor: Colors.red,
             ),
           );
-          print('please check your network: $e\n$s');
+          debugPrint('please check your network: $e\n$s');
         }
       } finally {
         if (mounted) {
@@ -487,7 +487,7 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
           backgroundColor: Colors.red,
         ),
       );
-      print('Error saving profile: $e\n$s');
+      debugPrint('Error saving profile: $e\n$s');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -989,6 +989,7 @@ class _ProfessionalHubScreenState extends State<ProfessionalHubScreen>
 
   Widget _buildSaveButton(AppStrings appStrings) {
     return FloatingActionButton.extended(
+      heroTag: 'prof_setup_fab',
       onPressed: _isSaving ? null : _saveProfile,
       icon: _isSaving ? null : const Icon(Icons.save_alt_outlined),
       label: _isSaving
@@ -1471,7 +1472,8 @@ class _CustomTextField extends StatelessWidget {
     this.hint,
     this.icon,
     this.suffixIcon,
-    this.isNumeric = false, // <--- THIS WAS MISSING
+    this.isNumeric = false,
+    this.isRequired = false,
     this.maxLines = 1,
   });
 

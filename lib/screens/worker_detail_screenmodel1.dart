@@ -61,16 +61,16 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       if (mounted && userProfile != null) {
         setState(() {
           _currentUserRole = userProfile.role;
-          print("Current User Role: $_currentUserRole");
+          debugPrint("Current User Role: $_currentUserRole");
         });
       } else if (mounted) {
         setState(() {
           _currentUserRole = null;
         }); // Explicitly set null if no profile
-        print("No user profile found or user not logged in.");
+        debugPrint("No user profile found or user not logged in.");
       }
     } catch (e) {
-      print('Error loading user profile: $e');
+      debugPrint('Error loading user profile: $e');
       if (mounted) {
         _showErrorSnackbar('Error loading your profile.');
       }
@@ -105,11 +105,11 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         setState(() {
           _isWorkerFavorite = favDoc.exists;
           _isLoadingFavorite = false;
-          print('Favorite status checked: $_isWorkerFavorite');
+          debugPrint('Favorite status checked: $_isWorkerFavorite');
         });
       }
     } catch (e) {
-      print('Error checking favorite status: $e');
+      debugPrint('Error checking favorite status: $e');
       if (mounted) {
         _showErrorSnackbar('Error checking favorites.');
         setState(() {
@@ -163,7 +163,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         }
       }
     } catch (e) {
-      print("Error toggling favorite: $e");
+      debugPrint("Error toggling favorite: $e");
       if (mounted) _showErrorSnackbar('Could not update favorites.');
     } finally {
       if (mounted) setState(() => _isLoadingFavorite = false);
@@ -181,7 +181,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     try {
       doc = await professionalRef.get();
       if (!doc.exists) {
-        print("Checking 'workers' collection...");
+        debugPrint("Checking 'workers' collection...");
         doc = await workerRef.get();
       }
 
@@ -240,7 +240,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         );
       }
     } catch (e) {
-      print("Error fetching phone number: $e");
+      debugPrint("Error fetching phone number: $e");
       if (mounted) _showErrorSnackbar('Error getting contact info.');
     }
   }
@@ -294,7 +294,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         // Consider refreshing the review list here if using pagination or complex state
       }
     } catch (e) {
-      print("Error submitting review: $e");
+      debugPrint("Error submitting review: $e");
       if (mounted) {
         setState(() {
           _isSubmittingReview = false;
@@ -556,7 +556,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                     strokeWidth: 1.5))));
                   }
                   if (snapshot.hasError) {
-                    print("Error streaming rating: ${snapshot.error}");
+                    debugPrint("Error streaming rating: ${snapshot.error}");
                     final displayRating = widget.worker.rating; // Fallback
                     return AnimatedRatingStars(
                       initialRating: displayRating,
@@ -856,7 +856,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               );
             }
             if (snapshot.hasError) {
-              print("Error loading reviews: ${snapshot.error}");
+              debugPrint("Error loading reviews: ${snapshot.error}");
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1176,7 +1176,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
       } catch (_) {}
     }
     // Fallback if parsing fails or type is unexpected
-    print("Warning: Could not parse review date: $timestamp");
+    debugPrint("Warning: Could not parse review date: $timestamp");
     return DateTime.now(); // Or return null and handle it in the UI
   }
 

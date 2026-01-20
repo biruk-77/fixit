@@ -73,7 +73,7 @@ import 'services/fcm_service.dart';
 
 // Get the FCM token
 String? token = await FCMService().getToken();
-print('FCM Token: $token');
+debugPrint('FCM Token: $token');
 
 // Save this token to Firestore for sending messages
 ```

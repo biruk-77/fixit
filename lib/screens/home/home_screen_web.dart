@@ -199,7 +199,7 @@ class _HomeScreenWebState extends State<HomeScreenWeb>
         });
       }
     } catch (e) {
-      print("Error getting location: $e");
+      debugPrint("Error getting location: $e");
     }
   }
 

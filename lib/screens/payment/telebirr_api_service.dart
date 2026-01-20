@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:basic_utils/basic_utils.dart';
 import 'config.dart'; // Make sure this path is correct for your project
@@ -21,7 +21,7 @@ class TelebirrApiService {
 
   TelebirrApiService({bool trustBadCertificate = false}) {
     if (trustBadCertificate) {
-      print("WARNING: Enabling permissive HttpClientCertificate validation.");
+      debugPrint("WARNING: Enabling permissive HttpClientCertificate validation.");
       HttpOverrides.global = _MyHttpOverrides();
     }
   }
@@ -42,7 +42,7 @@ class TelebirrApiService {
 
   // --- THIS IS THE FINAL, CORRECT SIGNING FUNCTION ---
   String _signRequest(Map<String, dynamic> payload) {
-    print("Attempting to sign payload with correct RSA logic...");
+    debugPrint("Attempting to sign payload with correct RSA logic...");
     try {
       final Map<String, String> paramsToSign = {};
 
@@ -70,9 +70,9 @@ class TelebirrApiService {
           .map((key) => '$key=${Uri.encodeComponent(paramsToSign[key]!)}')
           .join('&');
 
-      print("--- String-to-Sign ---");
-      print(stringToSign);
-      print("----------------------");
+      debugPrint("--- String-to-Sign ---");
+      debugPrint(stringToSign);
+      debugPrint("----------------------");
 
       // Step 3: Perform the actual cryptographic RSA-SHA256 signing
       final privateKey = CryptoUtils.rsaPrivateKeyFromPem(AppConfig.privateKey);
@@ -81,16 +81,16 @@ class TelebirrApiService {
 
       // Step 4: Base64-encode the signature. This produces the final, correct sign string.
       final base64Signature = base64Encode(signatureBytes);
-      print("Generated Base64 Signature: $base64Signature");
+      debugPrint("Generated Base64 Signature: $base64Signature");
       return base64Signature;
     } catch (e, stackTrace) {
-      print("!!! ERROR DURING SIGNING: $e\n$stackTrace");
+      debugPrint("!!! ERROR DURING SIGNING: $e\n$stackTrace");
       throw Exception("Failed to sign request: $e");
     }
   }
 
   String _encryptPin(String pin) {
-    print("WARNING: Real PIN Encryption must be implemented!");
+    debugPrint("WARNING: Real PIN Encryption must be implemented!");
     return AppConfig.consumerPin; // Placeholder for testing
   }
 
@@ -100,17 +100,17 @@ class TelebirrApiService {
     final headers = _getHeaders();
     final requestBodyJson = jsonEncode(body);
 
-    print('--- API Request to ${url.path} ---');
-    print('Body: $requestBodyJson');
+    debugPrint('--- API Request to ${url.path} ---');
+    debugPrint('Body: $requestBodyJson');
 
     try {
       final response = await http
           .post(url, headers: headers, body: requestBodyJson)
           .timeout(const Duration(seconds: 60));
 
-      print('--- API Response from ${url.path} ---');
-      print('Status Code: ${response.statusCode}');
-      print('Body: ${response.body}');
+      debugPrint('--- API Response from ${url.path} ---');
+      debugPrint('Status Code: ${response.statusCode}');
+      debugPrint('Body: ${response.body}');
 
       Map<String, dynamic> responseBodyMap = {};
       if (response.body.isNotEmpty) responseBodyMap = jsonDecode(response.body);
@@ -133,7 +133,7 @@ class TelebirrApiService {
             'API HTTP Error: ${response.statusCode} - (Code: ${responseCode ?? "N/A"}) $errorMsg');
       }
     } catch (e) {
-      print('Error during API call to $endpoint: $e');
+      debugPrint('Error during API call to $endpoint: $e');
       rethrow;
     }
   }
@@ -144,7 +144,7 @@ class TelebirrApiService {
     final responseToken = response['token'] as String?;
     if (responseToken != null && responseToken.isNotEmpty) {
       _token = responseToken;
-      print('Successfully obtained app token.');
+      debugPrint('Successfully obtained app token.');
       return _token;
     }
     throw Exception('Failed to get valid token from response.');
@@ -202,7 +202,7 @@ class TelebirrApiService {
     final prepayId = response['biz_content']?['prepay_id'] as String?;
 
     if (prepayId != null && prepayId.isNotEmpty) {
-      print('Order created successfully. Prepay ID: $prepayId');
+      debugPrint('Order created successfully. Prepay ID: $prepayId');
       return prepayId;
     } else {
       throw Exception(
@@ -238,7 +238,7 @@ class TelebirrApiService {
 
     final response =
         await _postRequest('/payment/v1/app/payOrder', payloadToSend);
-    print("PayOrder response: ${jsonEncode(response)}");
+    debugPrint("PayOrder response: ${jsonEncode(response)}");
     return response;
   }
 
@@ -267,7 +267,7 @@ class TelebirrApiService {
 
     final response = await _postRequest(
         '/payment/v1/queryorder', payloadToSend); // Endpoint for query order
-    print("QueryOrder response: ${jsonEncode(response)}");
+    debugPrint("QueryOrder response: ${jsonEncode(response)}");
     return response;
   }
 }

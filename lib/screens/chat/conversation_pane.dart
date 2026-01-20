@@ -119,7 +119,7 @@ class ConversationPane extends StatefulWidget {
   State<ConversationPane> createState() => _ConversationPaneState();
 }
 
-class _ConversationPaneState extends State<ConversationPane> {
+class _ConversationPaneState extends State<ConversationPane> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FirebaseService _firebaseService = FirebaseService();
@@ -145,6 +145,14 @@ class _ConversationPaneState extends State<ConversationPane> {
     super.initState();
     _isAiChat = widget.otherUserId == AI_USER_ID;
 
+    // Add lifecycle observer to track app state changes
+    WidgetsBinding.instance.addObserver(this);
+
+    // Set user presence to online when entering chat
+    if (!_isAiChat) {
+      _setUserOnline();
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         if (_isAiChat) {
@@ -167,7 +175,58 @@ class _ConversationPaneState extends State<ConversationPane> {
     _messageController.dispose();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    
+    // Set user presence to offline when leaving chat
+    if (!_isAiChat) {
+      _setUserOffline();
+    }
+    
+    // Remove lifecycle observer
+    WidgetsBinding.instance.removeObserver(this);
+    
     super.dispose();
+  }
+
+  // Handle app lifecycle changes for presence management
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_isAiChat) return; // Skip for AI chat
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came to foreground
+        _setUserOnline();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        // App went to background
+        _setUserOffline();
+        break;
+    }
+  }
+
+  // Set current user's presence to online
+  Future<void> _setUserOnline() async {
+    if (_currentUserId == null) return;
+    try {
+      await _firebaseService.updateUserPresence('online');
+      debugPrint("✅ User presence set to ONLINE");
+    } catch (e) {
+      debugPrint("❌ Error setting user online: $e");
+    }
+  }
+
+  // Set current user's presence to offline
+  Future<void> _setUserOffline() async {
+    if (_currentUserId == null) return;
+    try {
+      await _firebaseService.updateUserPresence('offline');
+      debugPrint("✅ User presence set to OFFLINE");
+    } catch (e) {
+      debugPrint("❌ Error setting user offline: $e");
+    }
   }
 
   Future<void> _initializeAiChat() async {
@@ -197,7 +256,7 @@ class _ConversationPaneState extends State<ConversationPane> {
           }
         })
         .catchError((e) {
-          print("AI Initialization Failed: $e");
+          debugPrint("AI Initialization Failed: $e");
           if (mounted) {
             setState(() {
               _aiMessages.add(
@@ -323,7 +382,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         },
       );
     } catch (e) {
-      print("Error sending message: $e");
+      debugPrint("Error sending message: $e");
     }
   }
 
@@ -428,7 +487,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         }
       }
     } catch (e) {
-      print("Error querying AI: $e");
+      debugPrint("Error querying AI: $e");
       setState(() {
         _aiMessages.add(
           ChatMessage(
@@ -542,7 +601,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         SnackBar(content: Text(appStrings.convoMsgDeletedForEveryone)),
       );
     } catch (e) {
-      print("Error deleting message: $e");
+      debugPrint("Error deleting message: $e");
     }
   }
 
@@ -794,7 +853,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         );
       }
     } catch (e) {
-      print("🔥 An error occurred during navigation: $e");
+      debugPrint("🔥 An error occurred during navigation: $e");
       if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(
         context,
@@ -951,6 +1010,7 @@ class _ConversationPaneState extends State<ConversationPane> {
                 bottom: 16,
                 right: 16,
                 child: FloatingActionButton.small(
+                  heroTag: 'chat_scroll_fab',
                   onPressed: () => _scrollController.animateTo(
                     0,
                     duration: const Duration(milliseconds: 300),
@@ -1016,7 +1076,7 @@ class _ConversationPaneState extends State<ConversationPane> {
     }
     if (unreadCount > 0) {
       batch.commit().catchError((error) {
-        print("Error marking messages as read: $error");
+        debugPrint("Error marking messages as read: $error");
       });
     }
   }
@@ -1050,7 +1110,7 @@ class _ConversationPaneState extends State<ConversationPane> {
         SetOptions(merge: true),
       );
     } catch (e) {
-      print("Error setting typing status: $e");
+      debugPrint("Error setting typing status: $e");
     }
   }
 }
@@ -1410,7 +1470,7 @@ class MessageContent extends StatelessWidget {
               timestampWidget: timestampWidget,
             );
           } catch (e) {
-            print("Failed to parse AI JSON: $e");
+            debugPrint("Failed to parse AI JSON: $e");
           }
         }
 
@@ -1580,7 +1640,7 @@ class _AudioWaveformPlayerState extends State<AudioWaveformPlayer> {
         volume: 1.0,
       );
     } catch (e) {
-      print("CRITICAL ERROR in _preparePlayer: $e");
+      debugPrint("CRITICAL ERROR in _preparePlayer: $e");
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -1782,7 +1842,7 @@ class PlayerIcon extends StatelessWidget {
               try {
                 await controller.pausePlayer();
               } on Object catch (e) {
-                print('Error pausing player: $e');
+                debugPrint('Error pausing player: $e');
               }
             } else {
               try {
@@ -1795,7 +1855,7 @@ class PlayerIcon extends StatelessWidget {
                 }
                 await controller.startPlayer();
               } on Object catch (e) {
-                print('Error playing player: $e');
+                debugPrint('Error playing player: $e');
               }
             }
           },
@@ -2244,7 +2304,7 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
     try {
       final status = await Permission.microphone.request();
       if (status != PermissionStatus.granted) {
-        print("Microphone permission was not granted.");
+        debugPrint("Microphone permission was not granted.");
         return;
       }
       await _recorder.openRecorder();
@@ -2252,7 +2312,7 @@ class _MessageInputComposerState extends State<MessageInputComposer> {
         _isRecorderInitialized = true;
       });
     } catch (e) {
-      print("Error initializing recorder: $e");
+      debugPrint("Error initializing recorder: $e");
       setState(() {
         _isRecorderInitialized = false;
       });

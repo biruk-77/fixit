@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -44,7 +45,7 @@ class NotificationService {
       // This function is called when a notification is tapped
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         if (response.payload != null && response.payload!.isNotEmpty) {
-          print('NOTIFICATION TAPPED with payload: ${response.payload}');
+          debugPrint('NOTIFICATION TAPPED with payload: ${response.payload}');
           onNotificationTapped.add(response.payload);
         }
       },
@@ -159,7 +160,7 @@ class NotificationService {
       return await _downloadAndSaveFile(url, 'notification_image.jpg');
     }
     // If the URL is null, empty, or invalid, use the local app icon as a placeholder.
-    print("Image URL is invalid. Using local placeholder icon.");
+    debugPrint("Image URL is invalid. Using local placeholder icon.");
     return await _getPlaceholderIconPath();
   }
 
@@ -176,11 +177,11 @@ class NotificationService {
         await file.writeAsBytes(response.bodyBytes);
         return filePath;
       } else {
-        print("Failed to download image: Status code ${response.statusCode}");
+        debugPrint("Failed to download image: Status code ${response.statusCode}");
         return await _getPlaceholderIconPath(); // Fallback on download error
       }
     } catch (e) {
-      print('Error downloading notification image: $e');
+      debugPrint('Error downloading notification image: $e');
       return await _getPlaceholderIconPath(); // Fallback on any exception
     }
   }
@@ -198,7 +199,7 @@ class NotificationService {
       await File(filePath).writeAsBytes(bytes);
       return filePath;
     } catch (e) {
-      print("Error creating placeholder icon file: $e");
+      debugPrint("Error creating placeholder icon file: $e");
       // If even this fails, return an empty string to prevent a crash.
       return '';
     }

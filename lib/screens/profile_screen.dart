@@ -45,26 +45,26 @@ class ProfileLogger {
   static void logEvent(String event, {String? details}) {
     final elapsed = _stopwatch.elapsedMilliseconds;
     final message = details != null ? '$event - $details' : event;
-    print('$_tag [$elapsed ms] $message');
+    debugPrint('$_tag [$elapsed ms] $message');
   }
 
   static void logError(String error, {StackTrace? stackTrace}) {
     final elapsed = _stopwatch.elapsedMilliseconds;
-    print('$_tag ❌ [$elapsed ms] ERROR: $error');
+    debugPrint('$_tag ❌ [$elapsed ms] ERROR: $error');
     if (stackTrace != null) {
-      print('$_tag Stack: $stackTrace');
+      debugPrint('$_tag Stack: $stackTrace');
     }
   }
 
   static void logSuccess(String message, {String? details}) {
     final elapsed = _stopwatch.elapsedMilliseconds;
     final fullMessage = details != null ? '$message - $details' : message;
-    print('$_tag ✅ [$elapsed ms] $fullMessage');
+    debugPrint('$_tag ✅ [$elapsed ms] $fullMessage');
   }
 
   static void logWarning(String message) {
     final elapsed = _stopwatch.elapsedMilliseconds;
-    print('$_tag ⚠️ [$elapsed ms] $message');
+    debugPrint('$_tag ⚠️ [$elapsed ms] $message');
   }
 }
 // Assuming this is defined for navigation, could be placeholder

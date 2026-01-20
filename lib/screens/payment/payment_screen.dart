@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-
 // Your app's files that this screen depends on
 import '../../models/job.dart';
 import '../../services/firebase_service.dart';
@@ -103,8 +102,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     } catch (e) {
       final errorMessage = e.toString().replaceFirst("Exception: ", "");
       if (mounted) _showErrorSnackBar(errorMessage);
-      print('Error processing payment: $errorMessage');
-      print(e);
+      debugPrint('Error processing payment: $errorMessage');
+      debugPrint("$e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -137,9 +136,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _processCbeBirrPayment() async {
-    print("Simulating CBE Birr payment with QR Data: $_scannedCbeQrData");
+    debugPrint("Simulating CBE Birr payment with QR Data: $_scannedCbeQrData");
     await Future.delayed(const Duration(seconds: 2));
-    print("Simulated CBE Birr success.");
+    debugPrint("Simulated CBE Birr success.");
   }
 
   // --- UI Build & Helper Methods ---

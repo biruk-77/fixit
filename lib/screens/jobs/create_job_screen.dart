@@ -70,7 +70,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         setState(() => _jobCategories = appStrings.jobCategoriesAndSkills);
       }
     } else {
-      print(
+      debugPrint(
         "Warning: AppStrings not available for categories. Using fallback.",
       );
       if (mounted) setState(() => _jobCategories = _getDefaultCategories());
@@ -149,7 +149,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
     List<dynamic> successfullyUploaded = [];
 
     try {
-      print(
+      debugPrint(
         'Starting upload loop (Adapter) for ${_attachments.length} attachments...',
       );
       for (int i = 0; i < _attachments.length; i++) {
@@ -160,16 +160,16 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         // --- Prepare PlatformFile data ---
         if (attachment is PlatformFile) {
           platformFileToUpload = attachment;
-          print("  Prep: PlatformFile ${i + 1}: ${platformFileToUpload.name}");
+          debugPrint("  Prep: PlatformFile ${i + 1}: ${platformFileToUpload.name}");
         } else if (attachment is XFile) {
-          print("  Prep: Converting XFile ${i + 1}: ${attachment.name}...");
+          debugPrint("  Prep: Converting XFile ${i + 1}: ${attachment.name}...");
           Uint8List? bytes;
           int size = 0;
           try {
             size = await attachment.length();
             if (kIsWeb) bytes = await attachment.readAsBytes();
           } catch (e) {
-            print("    Error reading XFile data: $e");
+            debugPrint("    Error reading XFile data: $e");
             _showSnackbar(appStrings.snackErrorReadFile, isError: true);
             continue;
           }
@@ -179,15 +179,15 @@ class _CreateJobScreenState extends State<CreateJobScreen>
             size: size,
             bytes: bytes,
           );
-          print("    Prep: Conversion complete.");
+          debugPrint("    Prep: Conversion complete.");
         } else {
-          print("  Skipping unknown type at index $i");
+          debugPrint("  Skipping unknown type at index $i");
           _showSnackbar(appStrings.snackSkippingUnknownType, isError: true);
           continue;
         }
         // --- End Prep ---
 
-        print(
+        debugPrint(
           "    Calling _firebaseService.uploadJobAttachment for ${platformFileToUpload.name}...",
         );
         // *** CALL THE METHOD THAT ACCEPTS PlatformFile ***
@@ -197,11 +197,11 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         );
 
         if (url != null && url.isNotEmpty) {
-          print("    Upload Success! URL: $url");
+          debugPrint("    Upload Success! URL: $url");
           downloadUrls.add(url);
           successfullyUploaded.add(attachment);
         } else {
-          print(
+          debugPrint(
             "    Upload Failed for ${platformFileToUpload.name}. Skipping.",
           );
         }
@@ -214,10 +214,10 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           );
         });
       }
-      print('Finished upload loop. ${downloadUrls.length} successful URLs.');
+      debugPrint('Finished upload loop. ${downloadUrls.length} successful URLs.');
       return downloadUrls;
     } catch (e, s) {
-      print('Error during adapted upload process: $e\n$s');
+      debugPrint('Error during adapted upload process: $e\n$s');
       if (mounted) {
         _showSnackbar(appStrings.createJobSnackbarErrorUpload, isError: true);
       }
@@ -258,13 +258,13 @@ class _CreateJobScreenState extends State<CreateJobScreen>
       List<String> attachmentUrls = [];
       int initialAttachmentCount = _attachments.length;
       if (initialAttachmentCount > 0) {
-        print("Starting attachment upload process...");
+        debugPrint("Starting attachment upload process...");
         attachmentUrls = await _uploadAttachments();
-        print(
+        debugPrint(
           "Attachment upload finished. URLs count: ${attachmentUrls.length}",
         );
         if (_attachments.isNotEmpty && !_isUploading) {
-          print("Some attachments failed to upload.");
+          debugPrint("Some attachments failed to upload.");
           if (mounted) {
             _showSnackbar(
               appStrings.createJobSnackbarErrorUploadPartial,
@@ -276,7 +276,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         } else if (attachmentUrls.isEmpty &&
             initialAttachmentCount > 0 &&
             !_isUploading) {
-          print("All attachments failed.");
+          debugPrint("All attachments failed.");
           if (mounted) {
             _showSnackbar(
               appStrings.createJobSnackbarErrorUpload,
@@ -310,9 +310,9 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         'clientPhone': currentUser.phoneNumber,
         'clientEmail': currentUser.email,
       };
-      print("Creating job document in Firestore...");
+      debugPrint("Creating job document in Firestore...");
       String jobId = await _firebaseService.createJob(jobData);
-      print("Job document created with ID: $jobId.");
+      debugPrint("Job document created with ID: $jobId.");
 
       await _firebaseService.createNotification(
         userId: currentUser.uid,
@@ -328,7 +328,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
               : null,
         },
       );
-      print('Sent notification to posting user: ${currentUser.uid}');
+      debugPrint('Sent notification to posting user: ${currentUser.uid}');
 
       final workersQuery = await FirebaseFirestore.instance
           .collection('professionals')
@@ -336,7 +336,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           .where('profession', isEqualTo: _selectedCategory)
           .get();
 
-      print(
+      debugPrint(
         'Found \'${workersQuery.docs.length}\' workers with profession: \'$_selectedCategory\'.',
       );
       int notifiedCount = 0;
@@ -363,12 +363,12 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         );
         notifiedCount++;
       }
-      print('Sent notifications to $notifiedCount workers.');
+      debugPrint('Sent notifications to $notifiedCount workers.');
       if (!mounted) return;
       _showSnackbar(appStrings.createJobSnackbarSuccess, isError: false);
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } catch (e, s) {
-      print('Error during job creation: $e\n$s');
+      debugPrint('Error during job creation: $e\n$s');
       if (mounted) {
         _showSnackbar(appStrings.createJobSnackbarError, isError: true);
       }
@@ -1101,7 +1101,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           );
           if (image != null) newlyPicked.add(image);
         } on PlatformException catch (e) {
-          print("!!! Camera PlatformException: ${e.code}");
+          debugPrint("!!! Camera PlatformException: ${e.code}");
           String msg = appStrings.createJobSnackbarErrorPick;
           if (e.code == 'no_available_camera') {
             msg = appStrings.snackErrorCameraNotAvailable;
@@ -1110,7 +1110,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           if (mounted) _showSnackbar(msg, isError: true);
           return;
         } catch (e) {
-          print("!!! Camera error: $e");
+          debugPrint("!!! Camera error: $e");
           if (mounted) {
             _showSnackbar(appStrings.createJobSnackbarErrorPick, isError: true);
           }
@@ -1121,7 +1121,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           final List<XFile> images = await _picker.pickMultipleMedia();
           if (images.isNotEmpty) newlyPicked.addAll(images);
         } on PlatformException catch (e) {
-          print("!!! Gallery PlatformException: ${e.code}");
+          debugPrint("!!! Gallery PlatformException: ${e.code}");
           String msg = appStrings.createJobSnackbarErrorPick;
           if (e.code == 'photo_access_denied') {
             msg = appStrings.snackErrorGalleryPermission;
@@ -1129,7 +1129,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
           if (mounted) _showSnackbar(msg, isError: true);
           return;
         } catch (e) {
-          print("Gallery pick error: $e");
+          debugPrint("Gallery pick error: $e");
           if (mounted) {
             _showSnackbar(appStrings.createJobSnackbarErrorPick, isError: true);
           }
@@ -1157,7 +1157,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
             newlyPicked.addAll(result!.files);
           }
         } catch (e) {
-          print("File pick error: $e");
+          debugPrint("File pick error: $e");
           if (mounted) {
             _showSnackbar(appStrings.createJobSnackbarErrorPick, isError: true);
           }
@@ -1179,7 +1179,7 @@ class _CreateJobScreenState extends State<CreateJobScreen>
         );
       }
     } catch (e, s) {
-      print('Error in _pickMedia: $e\n$s');
+      debugPrint('Error in _pickMedia: $e\n$s');
       if (mounted) {
         _showSnackbar(appStrings.createJobSnackbarErrorPick, isError: true);
       }

@@ -79,7 +79,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
           }
         })
         .catchError((e) {
-          print("Error initializing chat: $e");
+          debugPrint("Error initializing chat: $e");
           if (mounted && _messages.isEmpty) {
             setState(
               () => _messages.add(
@@ -119,7 +119,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
     _flutterTts.setErrorHandler(
       (msg) => mounted
           ? setState(() {
-              print("TTS Error: $msg");
+              debugPrint("TTS Error: $msg");
               _ttsState = TtsState.stopped;
               _currentlyPlayingId = null;
             })
@@ -260,7 +260,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
     // Decode and re-encode as JPEG to standardize the format
     final image = img.decodeImage(bytes);
     if (image == null) {
-      print("Failed to decode picked image");
+      debugPrint("Failed to decode picked image");
       return;
     }
     final jpegBytes = img.encodeJpg(image, quality: 85);
@@ -538,7 +538,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
       try {
         structuredData = jsonDecode(jsonMatch.group(1)!);
       } catch (e) {
-        print("JSON Decode Error: $e");
+        debugPrint("JSON Decode Error: $e");
       }
     }
 
@@ -749,7 +749,7 @@ class _AiChatPanelState extends State<AiChatPanel> {
       child: TouchableCardWrapper(
         onTap: () {
           // TODO: Implement navigation to job detail or other relevant screen
-          print("Tapped notification: $title");
+          debugPrint("Tapped notification: $title");
         },
         child: Container(
           padding: const EdgeInsets.all(12),

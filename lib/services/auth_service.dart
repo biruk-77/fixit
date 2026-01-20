@@ -4,7 +4,7 @@ import '../models/user.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'firebase_service.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-
+import 'package:flutter/foundation.dart' show debugPrint;
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -35,16 +35,16 @@ class AuthService {
       email = email.trim();
       password = password.trim();
 
-      print('Attempting to sign in with email: $email');
+      debugPrint('Attempting to sign in with email: $email');
 
       final UserCredential userCredential = await _auth
           .signInWithEmailAndPassword(email: email, password: password);
 
-      print('Successfully signed in user: ${userCredential.user?.uid}');
+      debugPrint('Successfully signed in user: ${userCredential.user?.uid}');
       await _firebaseService.setupNotificationListener();
       return userCredential;
     } catch (e) {
-      print('Error signing in: $e');
+      debugPrint('Error signing in: $e');
       rethrow;
     }
   }
@@ -54,7 +54,7 @@ class AuthService {
   // --- NEW: Google Silent Sign-In Method ---
   Future<bool> signInSilentlyWithGoogle() async {
     try {
-      print("Attempting Google Silent Sign In...");
+      debugPrint("Attempting Google Silent Sign In...");
 
       // =========================================================================
       // ========== FIX #3: Use the new `attemptLightweightAuthentication` ==========
@@ -63,11 +63,11 @@ class AuthService {
           .attemptLightweightAuthentication();
 
       if (googleUser == null) {
-        print("No existing Google user found silently.");
+        debugPrint("No existing Google user found silently.");
         return false;
       }
 
-      print("Found Google user silently: ${googleUser.email}");
+      debugPrint("Found Google user silently: ${googleUser.email}");
       final GoogleSignInAuthentication googleAuth =
           googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
@@ -78,35 +78,76 @@ class AuthService {
       await _auth.signInWithCredential(credential);
 
       if (_auth.currentUser != null) {
-        print("Firebase silent sign-in successful: ${_auth.currentUser!.uid}");
+        debugPrint("Firebase silent sign-in successful: ${_auth.currentUser!.uid}");
         await _firebaseService.setupNotificationListener();
         return true;
       } else {
-        print("Silent sign-in failed to produce a Firebase user.");
+        debugPrint("Silent sign-in failed to produce a Firebase user.");
         return false;
       }
     } catch (e, s) {
-      print("Error during Google Silent Sign In: $e\n$s");
+      debugPrint("Error during Google Silent Sign In: $e\n$s");
       return false;
     }
   }
 
   Future<void> sendEmailVerificationLink() async {
     try {
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      debugPrint('📧 EMAIL VERIFICATION - Starting Process');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      
       final user = _auth.currentUser;
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
-        print('Verification email sent to ${user.email}');
-      } else if (user == null) {
-        print('Cannot send verification email: User is not logged in.');
-      } else {
-        print(
-          'Verification email not sent: Email (${user.email}) is already verified.',
-        );
+      
+      debugPrint('Step 1: Checking current user...');
+      if (user == null) {
+        debugPrint('❌ ERROR: No user is currently logged in!');
+        debugPrint('   Cannot send verification email without an authenticated user.');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        return;
       }
+      
+      debugPrint('✅ Current user found:');
+      debugPrint('   • User ID: ${user.uid}');
+      debugPrint('   • Email: ${user.email}');
+      debugPrint('   • Display Name: ${user.displayName ?? "(not set)"}');
+      debugPrint('   • Email Verified: ${user.emailVerified}');
+      
+      if (user.emailVerified) {
+        debugPrint('ℹ️  Email is already verified - no need to send verification link');
+        debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+        return;
+      }
+      
+      debugPrint('\nStep 2: Sending verification email...');
+      debugPrint('   Target email: ${user.email}');
+      
+      await user.sendEmailVerification();
+      
+      debugPrint('✅ SUCCESS: Firebase sendEmailVerification() completed!');
+      debugPrint('   Email should be sent to: ${user.email}');
+      debugPrint('\n⚠️  IMPORTANT: Check the following:');
+      debugPrint('   1. Check SPAM/JUNK folder');
+      debugPrint('   2. Email may take 1-2 minutes to arrive');
+      debugPrint('   3. Sender: noreply@${user.email?.split('@').last ?? "firebase"}.firebaseapp.com');
+      debugPrint('   4. If no email after 5 minutes, check Firebase Console quota');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      
     } catch (e, s) {
-      print('Error sending verification email: $e\n$s');
-      // Consider rethrowing or handling the error appropriately
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      debugPrint('❌ EMAIL VERIFICATION - ERROR OCCURRED');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      debugPrint('Error Type: ${e.runtimeType}');
+      debugPrint('Error Message: $e');
+      debugPrint('\nStack Trace:');
+      debugPrint('$s');
+      debugPrint('\n💡 Possible causes:');
+      debugPrint('   • Firebase Authentication not enabled in console');
+      debugPrint('   • Network connection issue');
+      debugPrint('   • Firebase quota exceeded');
+      debugPrint('   • User session expired');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+      rethrow; // Re-throw so calling code can handle it
     }
   }
 
@@ -116,7 +157,7 @@ class AuthService {
     required String smsCode, // The OTP entered by the user
   }) async {
     try {
-      print('Attempting sign in with OTP...');
+      debugPrint('Attempting sign in with OTP...');
       final PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
         smsCode: smsCode,
@@ -125,32 +166,32 @@ class AuthService {
       final UserCredential userCredential = await _auth.signInWithCredential(
         credential,
       );
-      print('Phone OTP Sign In Successful: ${userCredential.user?.uid}');
+      debugPrint('Phone OTP Sign In Successful: ${userCredential.user?.uid}');
       return userCredential; // Return credential for profile creation etc.
     } on FirebaseAuthException catch (e) {
-      print(
+      debugPrint(
         'Firebase Auth Exception during Phone OTP Sign In: ${e.code} - ${e.message}',
       );
       // Handle specific errors like 'invalid-verification-code', 'session-expired' etc.
       rethrow; // Allow UI to handle error
     } catch (e, s) {
-      print('General Error during Phone OTP Sign In: $e\n$s');
+      debugPrint('General Error during Phone OTP Sign In: $e\n$s');
       rethrow;
     }
   }
 
   Future<UserCredential> signInWithCredential(AuthCredential credential) async {
     try {
-      print("AuthService: Signing in with provided credential...");
+      debugPrint("AuthService: Signing in with provided credential...");
       final UserCredential userCredential = await _auth.signInWithCredential(
         credential,
       );
-      print(
+      debugPrint(
         "AuthService: Credential sign in successful. UID: ${userCredential.user?.uid}",
       );
       return userCredential;
     } catch (e) {
-      print("AuthService: Error signing in with credential: $e");
+      debugPrint("AuthService: Error signing in with credential: $e");
       rethrow; // Let the UI handle feedback
     }
   }
@@ -164,7 +205,7 @@ class AuthService {
     Duration timeout = const Duration(seconds: 60),
     int? resendToken, // <-- *** ENSURE THIS NAMED PARAMETER IS PRESENT ***
   }) async {
-    print(
+    debugPrint(
       'AuthService: Verifying phone: $phoneNumber ${resendToken != null ? "(Resending with token $resendToken)" : "(Initial)"}',
     );
     try {
@@ -178,7 +219,7 @@ class AuthService {
         forceResendingToken: resendToken, // <-- Pass the token here
       );
     } catch (e, s) {
-      print('AuthService: Error calling _auth.verifyPhoneNumber: $e\n$s');
+      debugPrint('AuthService: Error calling _auth.verifyPhoneNumber: $e\n$s');
       rethrow; // Let UI handle errors
     }
   }
@@ -201,11 +242,11 @@ class AuthService {
       final docSnapProf = await docRefProf.get();
 
       if (docSnapUser.exists || docSnapProf.exists) {
-        print("User profile already exists for $userId. Skipping creation.");
+        debugPrint("User profile already exists for $userId. Skipping creation.");
         return; // Exit the function if a profile is found
       }
 
-      print("Creating new profile for user $userId...");
+      debugPrint("Creating new profile for user $userId...");
 
       // --- THIS IS THE NEW PART ---
       // We'll use a batch write to create the profile AND the first notification atomically.
@@ -255,7 +296,7 @@ class AuthService {
         final notificationRef = docRefUser.collection('notifications').doc();
         batch.set(notificationRef, welcomeNotification);
 
-        print('Client profile and welcome notification prepared for batch.');
+        debugPrint('Client profile and welcome notification prepared for batch.');
       } else {
         // 'worker'
         // Add worker-specific fields
@@ -274,16 +315,16 @@ class AuthService {
         final notificationRef = docRefProf.collection('notifications').doc();
         batch.set(notificationRef, welcomeNotification);
 
-        print('Worker profile and welcome notification prepared for batch.');
+        debugPrint('Worker profile and welcome notification prepared for batch.');
       }
 
       // --- Commit the batch ---
       await batch.commit();
-      print(
+      debugPrint(
         '✅ Successfully created profile and welcome notification for user $userId.',
       );
     } catch (e) {
-      print('🔥 Error creating user profile and initial notification: $e');
+      debugPrint('🔥 Error creating user profile and initial notification: $e');
       rethrow;
     }
   }
@@ -298,15 +339,15 @@ class AuthService {
       email = email.trim();
       password = password.trim();
 
-      print('Attempting to create user with email: $email');
+      debugPrint('Attempting to create user with email: $email');
 
       final UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      print('Successfully created user: ${userCredential.user?.uid}');
+      debugPrint('Successfully created user: ${userCredential.user?.uid}');
       return userCredential;
     } catch (e) {
-      print('Error creating user: $e');
+      debugPrint('Error creating user: $e');
       rethrow;
     }
   }
@@ -326,12 +367,12 @@ class AuthService {
         idToken: googleAuth.idToken,
       );
 
-      print('Signing in to Firebase with Google credential...');
+      debugPrint('Signing in to Firebase with Google credential...');
       final UserCredential userCredential = await _auth.signInWithCredential(
         credential,
       );
 
-      print('Firebase Google Sign In OK: ${userCredential.user?.uid}');
+      debugPrint('Firebase Google Sign In OK: ${userCredential.user?.uid}');
 
       if (userCredential.user != null) {
         await createUserProfile(
@@ -346,7 +387,7 @@ class AuthService {
       }
       return userCredential;
     } catch (e, s) {
-      print('❌ Google Sign In Error: $e\n$s');
+      debugPrint('❌ Google Sign In Error: $e\n$s');
       rethrow;
     }
   }
@@ -356,11 +397,11 @@ class AuthService {
     try {
       final User? user = _auth.currentUser;
       if (user == null) {
-        print('No authenticated user found for profile retrieval');
+        debugPrint('No authenticated user found for profile retrieval');
         return null;
       }
 
-      print('Attempting to retrieve profile for user: ${user.uid}');
+      debugPrint('Attempting to retrieve profile for user: ${user.uid}');
 
       // Check in professionals collection first
       final professionalDoc = await _firestore
@@ -370,7 +411,7 @@ class AuthService {
       if (professionalDoc.exists) {
         final data = professionalDoc.data()!;
         data['id'] = user.uid; // Ensure ID is set
-        print('Found professional profile for ${user.uid}');
+        debugPrint('Found professional profile for ${user.uid}');
         return AppUser.fromJson(data);
       }
 
@@ -382,15 +423,15 @@ class AuthService {
       if (clientDoc.exists) {
         final data = clientDoc.data()!;
         data['id'] = user.uid; // Ensure ID is set
-        print('Found client profile for ${user.uid}');
+        debugPrint('Found client profile for ${user.uid}');
         return AppUser.fromJson(data);
       }
 
       // If no profile found, return null
-      print('No profile found for user ${user.uid}');
+      debugPrint('No profile found for user ${user.uid}');
       return null;
     } catch (e) {
-      print('Error retrieving user profile: $e');
+      debugPrint('Error retrieving user profile: $e');
       return null;
     }
   }
@@ -401,9 +442,9 @@ class AuthService {
       await _auth.signOut();
       _firebaseService.cancelNotificationListener();
       await _googleSignIn.signOut();
-      print('User signed out');
+      debugPrint('User signed out');
     } catch (e) {
-      print('Error signing out: $e');
+      debugPrint('Error signing out: $e');
       rethrow;
     }
   }

@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiService {
   // Make sure this key is correct and has the Vertex AI API enabled in your Google Cloud project.
-  static const String _apiKey = 'AIzaSyCnZWuqbyyUw86ajDqzT_X3R06JGIACkuk';
+  static const String _apiKey = 'AIzaSyC5rDBaI4K_brpCVUZ9w6L785nyIOwGmBg';
 
   // Public getter for the API key (to be used by AiChatService)
   String get apiKey => _apiKey; // <-- NEW: Public getter for API key
@@ -31,7 +32,7 @@ class GeminiService {
       final response = await _model.generateContent(content);
       return response.text;
     } catch (e) {
-      print("GeminiService Error: $e");
+      debugPrint("GeminiService Error: $e");
       return "An error occurred while connecting to the AI.";
     }
   }

@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'notification_service.dart';
-
+import 'package:flutter/foundation.dart' show debugPrint;
 class FCMService {
   static final FCMService _instance = FCMService._internal();
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -28,17 +28,17 @@ class FCMService {
           );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print('✅ User granted notification permission');
+        debugPrint('✅ User granted notification permission');
       } else if (settings.authorizationStatus ==
           AuthorizationStatus.provisional) {
-        print('⚠️ User granted provisional notification permission');
+        debugPrint('⚠️ User granted provisional notification permission');
       } else {
-        print('❌ User denied notification permission');
+        debugPrint('❌ User denied notification permission');
       }
 
       // Get FCM token
       String? token = await _firebaseMessaging.getToken();
-      print('🔑 FCM Token: $token');
+      debugPrint('🔑 FCM Token: $token');
 
       // Handle foreground messages (when app is open)
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -49,18 +49,18 @@ class FCMService {
       // Handle message when app is opened from notification
       FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageOpenedApp);
 
-      print('✅ FCM Service initialized successfully');
+      debugPrint('✅ FCM Service initialized successfully');
     } catch (e) {
-      print('❌ Error initializing FCM: $e');
+      debugPrint('❌ Error initializing FCM: $e');
     }
   }
 
   /// Handle messages received while app is in foreground
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    print('📬 Foreground message received:');
-    print('Title: ${message.notification?.title}');
-    print('Body: ${message.notification?.body}');
-    print('Data: ${message.data}');
+    debugPrint('📬 Foreground message received:');
+    debugPrint('Title: ${message.notification?.title}');
+    debugPrint('Body: ${message.notification?.body}');
+    debugPrint('Data: ${message.data}');
 
     // Show notification while app is open
     await _notificationService.showRichNotification(
@@ -75,10 +75,10 @@ class FCMService {
   /// Handle messages received while app is in background
   /// This must be a top-level function
   static Future<void> _handleBackgroundMessage(RemoteMessage message) async {
-    print('📬 Background message received:');
-    print('Title: ${message.notification?.title}');
-    print('Body: ${message.notification?.body}');
-    print('Data: ${message.data}');
+    debugPrint('📬 Background message received:');
+    debugPrint('Title: ${message.notification?.title}');
+    debugPrint('Body: ${message.notification?.body}');
+    debugPrint('Data: ${message.data}');
 
     // Initialize notification service for background
     final notificationService = NotificationService();
@@ -93,18 +93,18 @@ class FCMService {
 
   /// Handle when user taps on notification
   Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
-    print('🔔 Notification tapped:');
-    print('Data: ${message.data}');
+    debugPrint('🔔 Notification tapped:');
+    debugPrint('Data: ${message.data}');
 
     // Navigate based on notification type
     final chatRoomId = message.data['chatRoomId'];
     final jobId = message.data['jobId'];
 
     if (chatRoomId != null) {
-      print('Navigating to chat: $chatRoomId');
+      debugPrint('Navigating to chat: $chatRoomId');
       // Navigation will be handled by your app's router
     } else if (jobId != null) {
-      print('Navigating to job: $jobId');
+      debugPrint('Navigating to job: $jobId');
       // Navigation will be handled by your app's router
     }
   }
@@ -114,7 +114,7 @@ class FCMService {
     try {
       return await _firebaseMessaging.getToken();
     } catch (e) {
-      print('Error getting FCM token: $e');
+      debugPrint('Error getting FCM token: $e');
       return null;
     }
   }
@@ -123,9 +123,9 @@ class FCMService {
   Future<void> subscribeToTopic(String topic) async {
     try {
       await _firebaseMessaging.subscribeToTopic(topic);
-      print('✅ Subscribed to topic: $topic');
+      debugPrint('✅ Subscribed to topic: $topic');
     } catch (e) {
-      print('❌ Error subscribing to topic: $e');
+      debugPrint('❌ Error subscribing to topic: $e');
     }
   }
 
@@ -133,9 +133,9 @@ class FCMService {
   Future<void> unsubscribeFromTopic(String topic) async {
     try {
       await _firebaseMessaging.unsubscribeFromTopic(topic);
-      print('✅ Unsubscribed from topic: $topic');
+      debugPrint('✅ Unsubscribed from topic: $topic');
     } catch (e) {
-      print('❌ Error unsubscribing from topic: $e');
+      debugPrint('❌ Error unsubscribing from topic: $e');
     }
   }
 }

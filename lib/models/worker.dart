@@ -1,5 +1,5 @@
 // lib/models/worker.dart
-
+import 'package:flutter/foundation.dart' show debugPrint;
 class AvailabilitySlot {
   final String start;
   final String end;
@@ -96,7 +96,7 @@ class Worker {
               value as Map<String, dynamic>,
             );
           } catch (e) {
-            print("Could not parse availability slot for key $key: $e");
+            debugPrint("Could not parse availability slot for key $key: $e");
           }
         }
       });

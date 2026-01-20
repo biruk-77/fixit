@@ -1266,7 +1266,8 @@ class _CustomTextField extends StatelessWidget {
     this.hint,
     this.icon,
     this.suffixIcon,
-    this.isNumeric = false, // <--- THIS WAS MISSING
+    this.isNumeric = false,
+    this.isRequired = false,
     this.maxLines = 1,
   });
 

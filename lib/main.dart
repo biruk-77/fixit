@@ -111,7 +111,6 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
-    final appStrings = AppLocalizations.of(context); // Get strings safely
 
     return FutureBuilder<bool>(
       future: Future(() => authService.isUserLoggedIn()),
@@ -127,12 +126,12 @@ class AuthWrapper extends StatelessWidget {
           );
         }
         if (snapshot.hasError) {
-          print('Error in AuthWrapp FutureBuilder: ${snapshot.error}');
+          debugPrint('Error in AuthWrapp FutureBuilder: ${snapshot.error}');
           // Consider showing a generic error screen
           return const LoginScreen();
         }
         final bool isLoggedIn = snapshot.data ?? false;
-        print("AuthWrapper: User logged in = $isLoggedIn");
+        debugPrint("AuthWrapper: User logged in = $isLoggedIn");
         return isLoggedIn ? const MainScreen() : const LoginScreen();
       },
     );
@@ -283,7 +282,7 @@ class _MainScreenState extends State<MainScreen> {
       _initializeScreensAndNavItems();
     } catch (e, s) {
       if (!mounted) return;
-      print('MainScreen Error: Determining user type failed: $e\n$s');
+      debugPrint('MainScreen Error: Determining user type failed: $e\n$s');
       _userType = 'client';
       _initializeScreensAndNavItems(); // Use fallback
       final appStrings = AppLocalizations.of(context);
@@ -304,7 +303,7 @@ class _MainScreenState extends State<MainScreen> {
     final appStrings = AppLocalizations.of(context);
     _userType ??= 'client'; 
     if (appStrings == null) {
-      print(
+      debugPrint(
         "MainScreen Warning: AppLocalizations was null during init. Using fallbacks.",
       );
       _initializeWithFallbackKeys();
@@ -356,7 +355,7 @@ class _MainScreenState extends State<MainScreen> {
     if (mounted && _selectedIndex >= _screens.length) {
       _selectedIndex = 0;
     } 
-    print(
+    debugPrint(
       "MainScreen: Initialized UI for $_userType with locale ${appStrings.locale.languageCode}.",
     );
   }
@@ -392,7 +391,7 @@ class _MainScreenState extends State<MainScreen> {
       ];
       _screenTitles = ['Home', 'Post New Job', 'My Profile', 'jobs'];
     }
-    print("MainScreen: Initialized UI for $_userType with FALLBACK keys.");
+    debugPrint("MainScreen: Initialized UI for $_userType with FALLBACK keys.");
     if (mounted && _selectedIndex >= _screens.length) {
       _selectedIndex = 0; 
     }
@@ -414,12 +413,12 @@ class _MainScreenState extends State<MainScreen> {
       );
     }
     if (_screens.isEmpty || _navItems.isEmpty || _screenTitles.isEmpty) {
-      print(
+      debugPrint(
         "MainScreen: Re-initializing UI in build (maybe strings became ready).",
       );
       _initializeScreensAndNavItems();
       if (_screens.isEmpty || _navItems.isEmpty || _screenTitles.isEmpty) {
-        print(
+        debugPrint(
           "MainScreen Build ERROR: Screen lists STILL empty. Critical error.",
         );
         return Scaffold(
@@ -474,7 +473,7 @@ class _MainScreenState extends State<MainScreen> {
                 if (index < _screens.length && mounted) {
                   setState(() => _selectedIndex = index);
                 } else if (mounted) {
-                  print(
+                  debugPrint(
                     "Error: GNav index out of bounds! Index: $index, Screen count: ${_screens.length}",
                   );
                 }

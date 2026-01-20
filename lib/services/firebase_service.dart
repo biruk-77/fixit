@@ -1,5 +1,6 @@
 import 'dart:async'; // FIX #1: ADD THIS for StreamSubscription
 import 'notification_service.dart'; // FIX #2: ADD THIS for NotificationService
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -27,11 +28,11 @@ class FirebaseService {
   Future<void> setupNotificationListener() async {
     final user = _auth.currentUser;
     if (user == null) {
-      print("Notification listener setup failed: No user logged in.");
+      debugPrint("Notification listener setup failed: No user logged in.");
       return;
     }
 
-    print(
+    debugPrint(
       "--- 🔔 Setting up SYSTEM notification listener for user ${user.uid} ---",
     );
 
@@ -55,7 +56,7 @@ class FirebaseService {
             // We ignore this first batch to avoid sending old notifications again.
             if (_isFirstBatch) {
               _isFirstBatch = false;
-              print(
+              debugPrint(
                 "--- ✅ Notification listener initialized. Ignoring first batch. ---",
               );
               return;
@@ -64,7 +65,7 @@ class FirebaseService {
             // From now on, we only care about documents that were ADDED.
             for (var change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
-                print(
+                debugPrint(
                   "--- 🚀 New Notification Received! Triggering system notification. ---",
                 );
                 final notificationData =
@@ -74,7 +75,7 @@ class FirebaseService {
             }
           },
           onError: (error) {
-            print("Error listening to system notifications: $error");
+            debugPrint("Error listening to system notifications: $error");
           },
         );
   }
@@ -109,7 +110,7 @@ class FirebaseService {
       }
     }
 
-    print(
+    debugPrint(
       "--- Triggering notification of type '$type' with image URL: $imageUrl ---",
     );
 
@@ -127,7 +128,7 @@ class FirebaseService {
   }
 
   void cancelNotificationListener() {
-    print("--- 🔕 Cancelling system notification listener ---");
+    debugPrint("--- 🔕 Cancelling system notification listener ---");
     _notificationSubscription?.cancel();
     _notificationSubscription = null;
   }
@@ -152,14 +153,14 @@ class FirebaseService {
           .orderBy('createdAt', descending: true)
           .get();
 
-      print('Found ${snapshot.docs.length} PENDING jobs for worker $workerId');
+      debugPrint('Found ${snapshot.docs.length} PENDING jobs for worker $workerId');
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting pending jobs for worker: $e');
+      debugPrint('Error getting pending jobs for worker: $e');
       return [];
     }
   }
@@ -184,7 +185,7 @@ class FirebaseService {
           .orderBy('createdAt', descending: true)
           .get();
 
-      print('Found ${snapshot.docs.length} ACTIVE jobs for worker $workerId');
+      debugPrint('Found ${snapshot.docs.length} ACTIVE jobs for worker $workerId');
 
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -192,7 +193,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting active work for worker: $e');
+      debugPrint('Error getting active work for worker: $e');
       return [];
     }
   }
@@ -210,9 +211,9 @@ class FirebaseService {
         'status': status,
         'last_seen': FieldValue.serverTimestamp(),
       });
-      print("User presence updated to: $status");
+      debugPrint("User presence updated to: $status");
     } catch (e) {
-      print("Error updating user presence: $e");
+      debugPrint("Error updating user presence: $e");
     }
   }
 
@@ -234,7 +235,7 @@ class FirebaseService {
   // Create sample professionals for demo purposes
   Future<void> _createSampleProfessionals() async {
     try {
-      print('Starting to create sample professionals...');
+      debugPrint('Starting to create sample professionals...');
       final sampleWorkers = [
         {
           'name': 'Abebe Kebede',
@@ -278,7 +279,7 @@ class FirebaseService {
       ];
 
       for (var worker in sampleWorkers) {
-        print('Creating professional: ${worker['name']}');
+        debugPrint('Creating professional: ${worker['name']}');
 
         // Create in professionals collection
         final docRef = _firestore.collection('professionals').doc();
@@ -298,7 +299,7 @@ class FirebaseService {
           'completedJobs': 15,
           'createdAt': FieldValue.serverTimestamp(),
         });
-        print('Created professional with ID: ${docRef.id}');
+        debugPrint('Created professional with ID: ${docRef.id}');
 
         // Also create in workers collection for backward compatibility
         await _firestore.collection('professionals').doc(docRef.id).set({
@@ -317,11 +318,11 @@ class FirebaseService {
         });
       }
 
-      print(
+      debugPrint(
         'Successfully created ${sampleWorkers.length} sample professionals',
       );
     } catch (e) {
-      print('Error creating sample professionals: $e');
+      debugPrint('Error creating sample professionals: $e');
     }
   }
 
@@ -336,7 +337,7 @@ class FirebaseService {
         final isAvailable = await checkDayAvailability(workerId, dateOnly);
         availabilityMap[dateOnly] = isAvailable;
       } catch (e) {
-        print('Error fetching availability for $dateOnly: $e');
+        debugPrint('Error fetching availability for $dateOnly: $e');
         availabilityMap[dateOnly] = false; // Assume not available on error
       }
     }
@@ -361,7 +362,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error: $e');
+      debugPrint('Error: $e');
       return [];
     }
   }
@@ -379,7 +380,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting applied jobs: $e');
+      debugPrint('Error getting applied jobs: $e');
       return [];
     }
   }
@@ -404,7 +405,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting client jobs: $e');
+      debugPrint('Error getting client jobs: $e');
       return [];
     }
   }
@@ -412,7 +413,7 @@ class FirebaseService {
   Future<List<Worker>> getWorkers({String? location}) async {
     try {
       List<Worker> workers = [];
-      print(
+      debugPrint(
         'Attempting to load workers from the "professionals" collection...',
       );
 
@@ -432,7 +433,7 @@ class FirebaseService {
       );
 
       QuerySnapshot professionalsSnapshot = await professionalsQuery.get();
-      print(
+      debugPrint(
         'Found ${professionalsSnapshot.docs.length} completed profiles in "professionals" collection.',
       );
 
@@ -447,35 +448,35 @@ class FirebaseService {
           ); // This line is failing silently.
           workers.add(worker);
         } catch (e, s) {
-          print('--- ERROR PARSING WORKER DOCUMENT ---');
-          print('Failed to process document ID: ${doc.id}');
-          print('Error: $e');
-          print('Stack Trace: $s');
-          print('Problematic Data: $data');
-          print('------------------------------------');
+          debugPrint('--- ERROR PARSING WORKER DOCUMENT ---');
+          debugPrint('Failed to process document ID: ${doc.id}');
+          debugPrint('Error: $e');
+          debugPrint('Stack Trace: $s');
+          debugPrint('Problematic Data: $data');
+          debugPrint('------------------------------------');
         }
       }
 
       // If no workers found, you can optionally create sample data for testing.
       // Note: This might not be desirable in a production app.
       if (workers.isEmpty) {
-        print(
+        debugPrint(
           'No professionals found. Creating sample data for demonstration...',
         );
         await _createSampleProfessionals();
 
         // Try fetching again after creating the samples.
         // This is a recursive call, be mindful of infinite loops if sample creation fails.
-        print('Re-fetching professionals after creating samples...');
+        debugPrint('Re-fetching professionals after creating samples...');
         return await getWorkers(location: location);
       }
 
-      print('Successfully loaded ${workers.length} professionals.');
+      debugPrint('Successfully loaded ${workers.length} professionals.');
       return workers;
     } catch (e) {
-      print('--- FATAL ERROR in getWorkers ---');
-      print('Error: $e');
-      print('---------------------------------');
+      debugPrint('--- FATAL ERROR in getWorkers ---');
+      debugPrint('Error: $e');
+      debugPrint('---------------------------------');
       return []; // Return an empty list on failure
     }
   }
@@ -494,7 +495,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('Error getting professional profile: $e');
+      debugPrint('Error getting professional profile: $e');
       return null;
     }
   }
@@ -620,7 +621,7 @@ class FirebaseService {
       }
       return _supabaseClient.storage.from(videoBucket).getPublicUrl(filePath);
     } catch (e) {
-      print('Supabase video upload error: $e');
+      debugPrint('Supabase video upload error: $e');
       return null;
     }
   }
@@ -632,7 +633,7 @@ class FirebaseService {
   }) async {
     final User? user = _auth.currentUser;
     if (user == null) {
-      print('Cannot upload: User not logged in.');
+      debugPrint('Cannot upload: User not logged in.');
       return null;
     }
 
@@ -640,7 +641,7 @@ class FirebaseService {
     final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
     final pathInBucket = 'public/$folderPath/${user.uid}/$fileName';
 
-    print(
+    debugPrint(
       'Uploading to Supabase bucket: "$bucketName" at path: "$pathInBucket"',
     );
 
@@ -655,17 +656,17 @@ class FirebaseService {
       final publicUrl = _supabaseClient.storage
           .from(bucketName)
           .getPublicUrl(pathInBucket);
-      print('Supabase upload successful. URL: $publicUrl');
+      debugPrint('Supabase upload successful. URL: $publicUrl');
       return publicUrl;
     } on StorageException catch (e) {
-      print('!!! Supabase Storage Error: ${e.message}');
-      print('!!! PLEASE CHECK:');
-      print('    1. Bucket named "$bucketName" exists and is PUBLIC.');
-      print(
+      debugPrint('!!! Supabase Storage Error: ${e.message}');
+      debugPrint('!!! PLEASE CHECK:');
+      debugPrint('    1. Bucket named "$bucketName" exists and is PUBLIC.');
+      debugPrint(
         '    2. You have a Storage Policy that allows INSERT for authenticated users.',
       );
     } catch (e) {
-      print('An unknown error occurred during Supabase upload: $e');
+      debugPrint('An unknown error occurred during Supabase upload: $e');
       return null;
     }
     return null;
@@ -712,7 +713,7 @@ class FirebaseService {
 
       return workers;
     } catch (e) {
-      print('Error searching workers: $e');
+      debugPrint('Error searching workers: $e');
       return [];
     }
   }
@@ -731,7 +732,7 @@ class FirebaseService {
         return Worker.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error filtering workers by location: $e');
+      debugPrint('Error filtering workers by location: $e');
       return [];
     }
   }
@@ -750,7 +751,7 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('Error getting worker by ID: $e');
+      debugPrint('Error getting worker by ID: $e');
       return null;
     }
   }
@@ -772,7 +773,7 @@ class FirebaseService {
         'phoneNumber': '+251912345678',
       });
     } catch (e) {
-      print('Error adding dummy worker: $e');
+      debugPrint('Error adding dummy worker: $e');
     }
   }
 
@@ -812,9 +813,9 @@ class FirebaseService {
       };
 
       await docRef.set(workerData);
-      print('Created sample worker: $name');
+      debugPrint('Created sample worker: $name');
     } catch (e) {
-      print('Error creating sample worker: $e');
+      debugPrint('Error creating sample worker: $e');
       rethrow;
     }
   }
@@ -854,7 +855,7 @@ class FirebaseService {
 
       return docRef.id;
     } catch (e) {
-      print('Error creating job: $e');
+      debugPrint('Error creating job: $e');
       rethrow;
     }
   }
@@ -911,7 +912,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error fetching jobs: $e');
+      debugPrint('Error fetching jobs: $e');
       return [];
     }
   }
@@ -953,7 +954,7 @@ class FirebaseService {
 
       // Commit the batch
       await batch.commit();
-      print(
+      debugPrint(
         'Application declined for job $jobId by worker $workerId from client $clientId',
       );
 
@@ -972,9 +973,9 @@ class FirebaseService {
         type: 'application_declined',
         data: {'jobId': jobId, 'clientId': clientId, 'jobTitle': jobTitle},
       );
-      print('Notification sent to worker for declined application.');
+      debugPrint('Notification sent to worker for declined application.');
     } catch (e) {
-      print('Error declining job application: $e');
+      debugPrint('Error declining job application: $e');
       rethrow;
     }
   }
@@ -984,7 +985,7 @@ class FirebaseService {
     required String clientId,
     required String currentlyAssignedWorkerId,
   }) async {
-    print('Starting process to change worker for job: $jobId');
+    debugPrint('Starting process to change worker for job: $jobId');
     final batch = _firestore.batch();
 
     try {
@@ -1029,7 +1030,7 @@ class FirebaseService {
 
       // Commit all changes at once. If any part fails, none will be applied.
       await batch.commit();
-      print(
+      debugPrint(
         'Successfully unassigned worker $currentlyAssignedWorkerId from job $jobId.',
       );
 
@@ -1045,9 +1046,9 @@ class FirebaseService {
         type: 'assignment_changed',
         data: {'jobId': jobId, 'clientId': clientId},
       );
-      print('Notification sent to the unassigned worker.');
+      debugPrint('Notification sent to the unassigned worker.');
     } catch (e) {
-      print('Error changing assigned worker: $e');
+      debugPrint('Error changing assigned worker: $e');
       rethrow; // Rethrow the error so the UI can handle it
     }
   }
@@ -1069,7 +1070,7 @@ class FirebaseService {
       // and will provide default values if they are missing.
       return Job.fromJson(jobData);
     } catch (e) {
-      print('Error getting job by ID: $e');
+      debugPrint('Error getting job by ID: $e');
       return null;
     }
   }
@@ -1080,7 +1081,7 @@ class FirebaseService {
         'applications': FieldValue.arrayUnion([workerId]),
       });
     } catch (e) {
-      print('Error applying to job: $e');
+      debugPrint('Error applying to job: $e');
       rethrow;
     }
   }
@@ -1092,7 +1093,7 @@ class FirebaseService {
         'status': 'assigned',
       });
     } catch (e) {
-      print('Error assigning job: $e');
+      debugPrint('Error assigning job: $e');
       rethrow;
     }
   }
@@ -1103,7 +1104,7 @@ class FirebaseService {
         'status': 'completed',
       });
     } catch (e) {
-      print('Error completing job: $e');
+      debugPrint('Error completing job: $e');
       rethrow;
     }
   }
@@ -1118,7 +1119,7 @@ class FirebaseService {
           .get();
 
       if (userDoc.exists) {
-        print("✅ Found user '$userId' in the 'users' (client) collection.");
+        debugPrint("✅ Found user '$userId' in the 'users' (client) collection.");
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         data['id'] = userDoc.id;
         return AppUser.fromJson(data);
@@ -1131,7 +1132,7 @@ class FirebaseService {
           .get();
 
       if (workerDoc.exists) {
-        print(
+        debugPrint(
           "✅ Found user '$userId' in the 'professionals' (worker) collection.",
         );
         Map<String, dynamic> data = workerDoc.data() as Map<String, dynamic>;
@@ -1140,12 +1141,12 @@ class FirebaseService {
       }
 
       // If the user is not found in either collection
-      print(
+      debugPrint(
         "⚠️ User '$userId' not found in 'users' or 'professionals' collections.",
       );
       return null;
     } catch (e) {
-      print('🔥 Error fetching user profile for ID $userId: $e');
+      debugPrint('🔥 Error fetching user profile for ID $userId: $e');
       return null;
     }
   }
@@ -1154,7 +1155,7 @@ class FirebaseService {
     try {
       await _firestore.collection('users').doc(user.id).update(user.toJson());
     } catch (e) {
-      print('Error updating user: $e');
+      debugPrint('Error updating user: $e');
       rethrow;
     }
   }
@@ -1164,11 +1165,11 @@ class FirebaseService {
     try {
       final User? user = _auth.currentUser;
       if (user == null) {
-        print('No authenticated user found');
+        debugPrint('No authenticated user found');
         return null;
       }
 
-      print('Getting profile for user ID: ${user.uid}');
+      debugPrint('Getting profile for user ID: ${user.uid}');
 
       // First check professionals collection
       final professionalDoc = await _firestore
@@ -1176,7 +1177,7 @@ class FirebaseService {
           .doc(user.uid)
           .get();
       if (professionalDoc.exists) {
-        print('Found user in professionals collection');
+        debugPrint('Found user in professionals collection');
         final data = professionalDoc.data() as Map<String, dynamic>;
         data['id'] = professionalDoc.id;
         return AppUser.fromJson(data);
@@ -1188,7 +1189,7 @@ class FirebaseService {
           .doc(user.uid)
           .get();
       if (workerDoc.exists) {
-        print('Found user in workers collection');
+        debugPrint('Found user in workers collection');
         final data = workerDoc.data() as Map<String, dynamic>;
         data['id'] = workerDoc.id;
         data['role'] = 'worker'; // Ensure role is set correctly
@@ -1201,7 +1202,7 @@ class FirebaseService {
           .doc(user.uid)
           .get();
       if (clientDoc.exists) {
-        print('Found user in clients collection');
+        debugPrint('Found user in clients collection');
         final data = clientDoc.data() as Map<String, dynamic>;
         data['id'] = clientDoc.id;
         data['role'] = 'client'; // Ensure role is set correctly
@@ -1209,7 +1210,7 @@ class FirebaseService {
       }
 
       // If no profile found but user is authenticated, create a default client profile
-      print(
+      debugPrint(
         'No profile found for authenticated user, creating default client profile',
       );
       await createUserProfile(
@@ -1234,7 +1235,7 @@ class FirebaseService {
 
       return null;
     } catch (e) {
-      print('Error getting current user profile: $e');
+      debugPrint('Error getting current user profile: $e');
       return null;
     }
   }
@@ -1256,7 +1257,7 @@ class FirebaseService {
     try {
       final User? user = _auth.currentUser;
       if (user == null) {
-        print('No authenticated user found for profile creation');
+        debugPrint('No authenticated user found for profile creation');
         return;
       }
 
@@ -1285,7 +1286,7 @@ class FirebaseService {
       if (userType == 'client') {
         final clientData = {...userData, 'jobsPosted': 0, 'completedJobs': 0};
 
-        print('Creating client profile for user ${user.uid}');
+        debugPrint('Creating client profile for user ${user.uid}');
         await _firestore.collection('users').doc(user.uid).set(clientData);
       } else {
         final professionalData = {
@@ -1298,7 +1299,7 @@ class FirebaseService {
           'profileImage': '',
         };
 
-        print('Creating professional profile for user ${user.uid}');
+        debugPrint('Creating professional profile for user ${user.uid}');
         await _firestore
             .collection('professionals')
             .doc(user.uid)
@@ -1331,9 +1332,9 @@ class FirebaseService {
         }
       }
 
-      print('User profile created successfully for ${user.uid}');
+      debugPrint('User profile created successfully for ${user.uid}');
     } catch (e) {
-      print('Error creating user profile: $e');
+      debugPrint('Error creating user profile: $e');
       rethrow;
     }
   }
@@ -1349,7 +1350,7 @@ class FirebaseService {
       if (userId == null) {
         user = _auth.currentUser;
         if (user == null) {
-          print('No authenticated user found');
+          debugPrint('No authenticated user found');
           return [];
         }
       }
@@ -1389,7 +1390,7 @@ class FirebaseService {
 
       return jobs;
     } catch (e) {
-      print('Error getting user jobs: $e');
+      debugPrint('Error getting user jobs: $e');
       return [];
     }
   }
@@ -1412,7 +1413,7 @@ class FirebaseService {
 
       return userCredential;
     } catch (e) {
-      print('Error signing in: $e');
+      debugPrint('Error signing in: $e');
       rethrow;
     }
   }
@@ -1432,7 +1433,7 @@ class FirebaseService {
         password: password,
       );
     } catch (e) {
-      print('Error creating user: $e');
+      debugPrint('Error creating user: $e');
       rethrow;
     }
   }
@@ -1445,7 +1446,7 @@ class FirebaseService {
 
       await _auth.signOut();
     } catch (e) {
-      print('Error signing out: $e');
+      debugPrint('Error signing out: $e');
       rethrow;
     }
   }
@@ -1465,7 +1466,7 @@ class FirebaseService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
-      print('Error sending password reset email: $e');
+      debugPrint('Error sending password reset email: $e');
       rethrow;
     }
   }
@@ -1478,7 +1479,7 @@ class FirebaseService {
         await _firestore.collection('users').doc(user.uid).update(data);
       }
     } catch (e) {
-      print('Error updating user profile: $e');
+      debugPrint('Error updating user profile: $e');
       rethrow;
     }
   }
@@ -1486,7 +1487,7 @@ class FirebaseService {
   Future<String?> uploadProfileImageToSupabase(File imageFile) async {
     final User? user = _auth.currentUser; // Use aliased User
     if (user == null) {
-      print('Error uploading image to Supabase: User not logged in.');
+      debugPrint('Error uploading image to Supabase: User not logged in.');
       return null;
     }
 
@@ -1506,10 +1507,10 @@ class FirebaseService {
       // Using 'public/' is a common convention for public buckets
       final filePath = 'public/$userId/$fileName';
 
-      print('Uploading profile image to Supabase Storage...');
-      print('  File: ${imageFile.path}');
-      print('  Bucket: $profileImageBucket');
-      print('  Path in bucket: $filePath');
+      debugPrint('Uploading profile image to Supabase Storage...');
+      debugPrint('  File: ${imageFile.path}');
+      debugPrint('  Bucket: $profileImageBucket');
+      debugPrint('  Path in bucket: $filePath');
 
       // Upload the file using Supabase client
       await _supabaseClient.storage
@@ -1523,7 +1524,7 @@ class FirebaseService {
             ),
           );
 
-      print('Supabase upload successful. Getting public URL...');
+      debugPrint('Supabase upload successful. Getting public URL...');
 
       // Get the public URL for the uploaded file
       final imageUrlResponse = _supabaseClient.storage
@@ -1533,21 +1534,21 @@ class FirebaseService {
       // The public URL is directly in the response string
       final imageUrl = imageUrlResponse;
 
-      print('Supabase Profile Image URL: $imageUrl');
+      debugPrint('Supabase Profile Image URL: $imageUrl');
       return imageUrl;
     } on StorageException catch (e) {
       // Catch Supabase-specific storage errors
-      print('[Supabase Storage Error]');
-      print('  Message: ${e.message}');
-      print('  Error details: ${e.error ?? 'N/A'}');
-      print(
+      debugPrint('[Supabase Storage Error]');
+      debugPrint('  Message: ${e.message}');
+      debugPrint('  Error details: ${e.error ?? 'N/A'}');
+      debugPrint(
         '  Status code: ${e.statusCode ?? 'N/A'}',
       ); // Will show 404 if bucket not found
       return null; // Return null on Supabase-specific failure
     } catch (e, s) {
-      print('[General Error during Supabase upload]');
-      print('  Error: $e');
-      print('  Stack Trace: $s');
+      debugPrint('[General Error during Supabase upload]');
+      debugPrint('  Error: $e');
+      debugPrint('  Stack Trace: $s');
       return null; // Return null on general failure
     }
   }
@@ -1567,7 +1568,7 @@ class FirebaseService {
     if (user == null) throw Exception('User not logged in for worker setup');
 
     final userId = user.uid;
-    print('Completing worker setup/update for user $userId...');
+    debugPrint('Completing worker setup/update for user $userId...');
 
     try {
       // Data to save/update in the 'professionals' collection
@@ -1603,9 +1604,9 @@ class FirebaseService {
           .doc(userId)
           .set(dataToUpdate, SetOptions(merge: true));
 
-      print('Worker profile setup/update completed successfully for $userId.');
+      debugPrint('Worker profile setup/update completed successfully for $userId.');
     } catch (e) {
-      print('Error during worker profile setup/update: $e');
+      debugPrint('Error during worker profile setup/update: $e');
       rethrow;
     }
   }
@@ -1692,9 +1693,9 @@ class FirebaseService {
         ...workerData,
       }, SetOptions(merge: true));
 
-      print('Worker profile created/updated for ${user.uid}');
+      debugPrint('Worker profile created/updated for ${user.uid}');
     } catch (e) {
-      print('Error creating worker profile: $e');
+      debugPrint('Error creating worker profile: $e');
       rethrow;
     }
   }
@@ -1711,10 +1712,10 @@ class FirebaseService {
     } else if (normalizedRole == 'client' || normalizedRole == 'seeker') {
       collectionPath = 'users';
     } else {
-      print("Error: Unknown user role '$role' for profile image update.");
+      debugPrint("Error: Unknown user role '$role' for profile image update.");
       collectionPath = 'users'; // Defaulting
     }
-    print(
+    debugPrint(
       "Updating profile image URL in Firestore collection '$collectionPath' for user $userId...",
     );
     try {
@@ -1723,11 +1724,11 @@ class FirebaseService {
         'profileImage': imageUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      print(
+      debugPrint(
         "Firestore profile image URL updated successfully in $collectionPath.",
       );
     } catch (e) {
-      print(
+      debugPrint(
         "Error updating profile image URL in Firestore ($collectionPath): $e",
       );
       rethrow;
@@ -1776,7 +1777,7 @@ class FirebaseService {
       }
 
       await batch.commit();
-      print('✅ Application submitted successfully.');
+      debugPrint('✅ Application submitted successfully.');
 
       // --- This part now creates both the Firestore and System notification ---
       await createNotification(
@@ -1796,7 +1797,7 @@ class FirebaseService {
         },
       );
     } catch (e) {
-      print("Error in applyForJob: $e");
+      debugPrint("Error in applyForJob: $e");
       rethrow;
     }
   }
@@ -1831,7 +1832,7 @@ class FirebaseService {
         'status': 'assigned',
       });
     } catch (e) {
-      print('Error assigning job to worker: $e');
+      debugPrint('Error assigning job to worker: $e');
       rethrow;
     }
   }
@@ -1884,9 +1885,9 @@ class FirebaseService {
           'lastUpdated': FieldValue.serverTimestamp(),
         });
       }
-      print('Review added successfully');
+      debugPrint('Review added successfully');
     } catch (e) {
-      print('Error adding review: $e');
+      debugPrint('Error adding review: $e');
       rethrow;
     }
   }
@@ -1923,10 +1924,10 @@ class FirebaseService {
                 .doc(workerId)
                 .update({'isAvailable': false})
                 .then((_) {
-                  print('✅ Successfully updated Firestore to false');
+                  debugPrint('✅ Successfully updated Firestore to false');
                 })
                 .catchError((error) {
-                  print('❌ Error updating Firestore: $error');
+                  debugPrint('❌ Error updating Firestore: $error');
                 });
           }
 
@@ -1955,7 +1956,7 @@ class FirebaseService {
     final dateString =
         '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-    print('🔍 Checking availability for worker: $workerId on $dateString');
+    debugPrint('🔍 Checking availability for worker: $workerId on $dateString');
 
     return _firestore
         .collection('professionals')
@@ -1965,7 +1966,7 @@ class FirebaseService {
         .snapshots()
         .map((snapshot) {
           if (!snapshot.exists) {
-            print('❌ Document does NOT exist for $workerId on $dateString');
+            debugPrint('❌ Document does NOT exist for $workerId on $dateString');
             return true; // Default to available if document doesn't exist
           }
 
@@ -1973,11 +1974,11 @@ class FirebaseService {
           String todayString =
               "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
 
-          print('📅 Today: $todayString');
+          debugPrint('📅 Today: $todayString');
 
           final data = snapshot.data();
           if (data == null || !data.containsKey('isAvailable')) {
-            print(
+            debugPrint(
               '⚠️ "isAvailable" field missing for $workerId on $dateString',
             );
             return true; // Default to available if field is missing
@@ -1987,7 +1988,7 @@ class FirebaseService {
 
           // 🔄 If it's today's date and marked unavailable, update it to false
           if (dateString == todayString && isAvailable == false) {
-            print(
+            debugPrint(
               '🔄 Updating availability for $workerId on $dateString to FALSE',
             );
 
@@ -1996,10 +1997,10 @@ class FirebaseService {
                 .doc(workerId)
                 .update({'isAvailable': false})
                 .then((_) {
-                  print('✅ Successfully updated Firestore to false');
+                  debugPrint('✅ Successfully updated Firestore to false');
                 })
                 .catchError((error) {
-                  print('❌ Error updating Firestore: $error');
+                  debugPrint('❌ Error updating Firestore: $error');
                 });
           } else {
             _firestore
@@ -2007,18 +2008,18 @@ class FirebaseService {
                 .doc(workerId)
                 .update({'isAvailable': true})
                 .then((_) {
-                  print('✅ Successfully updated Firestore to false');
+                  debugPrint('✅ Successfully updated Firestore to false');
                 })
                 .catchError((error) {
-                  print('❌ Error updating Firestore: $error');
+                  debugPrint('❌ Error updating Firestore: $error');
                 });
           }
 
-          print('✅ Availability for $workerId on $dateString: $isAvailable');
+          debugPrint('✅ Availability for $workerId on $dateString: $isAvailable');
           return isAvailable;
         })
         .handleError((error) {
-          print('🔥 Firestore error for $workerId on $dateString: $error');
+          debugPrint('🔥 Firestore error for $workerId on $dateString: $error');
           return false; // Default to unavailable on error
         });
   }
@@ -2054,9 +2055,9 @@ class FirebaseService {
   ) async {
     final batch = _firestore.batch(); // Initialize Firestore batch
     try {
-      print('✅ Updating job status for job: $jobId to $status');
-      print('👨‍💻 Professional ID: $professionalId');
-      print('👨‍👩‍👧 Client ID: $clientId');
+      debugPrint('✅ Updating job status for job: $jobId to $status');
+      debugPrint('👨‍💻 Professional ID: $professionalId');
+      debugPrint('👨‍👩‍👧 Client ID: $clientId');
 
       // Verify job exists and get workerId
       final jobDoc = await _firestore
@@ -2067,17 +2068,17 @@ class FirebaseService {
           .get();
 
       if (!jobDoc.exists) {
-        print('🛑 Job $jobId not found in client jobs');
+        debugPrint('🛑 Job $jobId not found in client jobs');
         return false;
       }
 
       // Use workerId from jobDoc if available, fallback to professionalId
       final workerId = jobDoc.data()?['workerId'] as String? ?? professionalId;
       if (workerId == null) {
-        print('🛑 No valid workerId found for job $jobId');
+        debugPrint('🛑 No valid workerId found for job $jobId');
         return false;
       }
-      print('👷 Worker ID resolved: $workerId');
+      debugPrint('👷 Worker ID resolved: $workerId');
 
       // Collections to update
       final collectionsToUpdate = [
@@ -2110,11 +2111,11 @@ class FirebaseService {
       for (final docRef in collectionsToUpdate) {
         final docSnap = await docRef.get();
         if (!docSnap.exists) {
-          print('⚠️ Skipping non-existent doc: ${docRef.path}');
+          debugPrint('⚠️ Skipping non-existent doc: ${docRef.path}');
           continue;
         }
 
-        print('✅ Adding to batch: ${docRef.path}');
+        debugPrint('✅ Adding to batch: ${docRef.path}');
         batch.update(docRef, {
           'status': status,
           'lastUpdated':
@@ -2124,7 +2125,7 @@ class FirebaseService {
 
       // Commit batch
       await batch.commit();
-      print('🎉 Successfully updated job $jobId to status: $status');
+      debugPrint('🎉 Successfully updated job $jobId to status: $status');
 
       // Send notification to client
       await createNotification(
@@ -2144,7 +2145,7 @@ class FirebaseService {
       );
       return true;
     } catch (e) {
-      print('🔥 Error updating job status: $e');
+      debugPrint('🔥 Error updating job status: $e');
       return false;
     }
   }
@@ -2158,15 +2159,15 @@ class FirebaseService {
   ) async {
     final batch = _firestore.batch(); // Initialize Firestore batch
     try {
-      print('✅ Updating job status for job: $jobId to "$status"');
-      print('👨‍💻 Client ID: $clientId');
-      print('👨‍💼 Professional ID from firebase : $professionalId');
+      debugPrint('✅ Updating job status for job: $jobId to "$status"');
+      debugPrint('👨‍💻 Client ID: $clientId');
+      debugPrint('👨‍💼 Professional ID from firebase : $professionalId');
 
       // --- Step 1: Reliably determine the Worker ID ---
       // Prioritize the ID passed into the function, but fall back to the one in the document.
       final rootJobDoc = await _firestore.collection('jobs').doc(jobId).get();
       if (!rootJobDoc.exists) {
-        print(
+        debugPrint(
           '🛑 CRITICAL ERROR: Main job document $jobId not found. Aborting update.',
         );
         return false;
@@ -2175,11 +2176,11 @@ class FirebaseService {
           professionalId ?? rootJobDoc.data()?['workerId'] as String?;
 
       if (workerId == null || workerId.isEmpty) {
-        print(
+        debugPrint(
           '⚠️ No valid workerId found for job $jobId. Will only update client and root docs.',
         );
       } else {
-        print('👷 Worker ID resolved: $workerId');
+        debugPrint('👷 Worker ID resolved: $workerId');
       }
 
       // --- Step 2: Define ALL document references that need to be updated ---
@@ -2211,16 +2212,16 @@ class FirebaseService {
       for (final docRef in allRefs) {
         final docSnap = await docRef.get();
         if (docSnap.exists) {
-          print('✅ Adding to batch: ${docRef.path}');
+          debugPrint('✅ Adding to batch: ${docRef.path}');
           batch.update(docRef, dataToUpdate);
         } else {
-          print('⚠️ Skipping non-existent doc: ${docRef.path}');
+          debugPrint('⚠️ Skipping non-existent doc: ${docRef.path}');
         }
       }
 
       // --- Step 4: Commit all changes at once ---
       await batch.commit();
-      print(
+      debugPrint(
         '🎉 Successfully updated job $jobId to status: "$status" across all locations!',
       );
       final jobRef = _firestore.collection('jobs').doc(jobId);
@@ -2252,7 +2253,7 @@ class FirebaseService {
 
       return true;
     } catch (e) {
-      print('🔥 FATAL ERROR during updateJobStatus: $e');
+      debugPrint('🔥 FATAL ERROR during updateJobStatus: $e');
       return false;
     }
   }
@@ -2269,7 +2270,7 @@ class FirebaseService {
       final jobDoc = await _firestore.collection('jobs').doc(jobId).get();
 
       if (workerProfile == null || !jobDoc.exists) {
-        print("Could not create notification: Worker or Job not found.");
+        debugPrint("Could not create notification: Worker or Job not found.");
         return;
       }
 
@@ -2292,9 +2293,9 @@ class FirebaseService {
           'location': jobDoc.data()?['location'],
         },
       );
-      print("🔔 Application notification sent to client $clientId.");
+      debugPrint("🔔 Application notification sent to client $clientId.");
     } catch (e) {
-      print("🔥 Error creating application notification: $e");
+      debugPrint("🔥 Error creating application notification: $e");
     }
   }
 
@@ -2303,7 +2304,7 @@ class FirebaseService {
       final dateString =
           '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
-      print('🔍 Checking availability for worker: $workerId on $dateString');
+      debugPrint('🔍 Checking availability for worker: $workerId on $dateString');
 
       final snapshot = await _firestore
           .collection('professionals')
@@ -2313,21 +2314,21 @@ class FirebaseService {
           .get();
 
       if (!snapshot.exists) {
-        print('❌ Document does NOT exist for $workerId on $dateString');
+        debugPrint('❌ Document does NOT exist for $workerId on $dateString');
         return true; // Default to available if document doesn't exist
       }
 
       final data = snapshot.data();
       if (data == null || !data.containsKey('isAvailable')) {
-        print('⚠️ "isAvailable" field missing for $workerId on $dateString');
+        debugPrint('⚠️ "isAvailable" field missing for $workerId on $dateString');
         return true; // Default to available if field is missing
       }
 
       final isAvailable = data['isAvailable'] as bool? ?? true;
-      print('✅ Availability for $workerId on $dateString: $isAvailable');
+      debugPrint('✅ Availability for $workerId on $dateString: $isAvailable');
       return isAvailable;
     } catch (e) {
-      print('🔥 Error checking availability for $workerId on : $e');
+      debugPrint('🔥 Error checking availability for $workerId on : $e');
       return false; // Default to unavailable on error
     }
   }
@@ -2361,11 +2362,11 @@ class FirebaseService {
       // 2. Add the notification to the correct place (either users/... or professionals/...).
       await notificationsCollection.add(notificationData);
 
-      print(
+      debugPrint(
         "✅ Notification created for user $userId of type $type in their correct directory.",
       );
     } catch (e) {
-      print('🔥 Error creating notification: $e');
+      debugPrint('🔥 Error creating notification: $e');
     }
   }
 
@@ -2399,14 +2400,14 @@ class FirebaseService {
 
     if (profDoc.exists) {
       // If they are a professional, return the subcollection from there.
-      print("User $userId is a Professional. Using 'professionals' directory.");
+      debugPrint("User $userId is a Professional. Using 'professionals' directory.");
       return _firestore
           .collection('professionals')
           .doc(userId)
           .collection('notifications');
     } else {
       // Otherwise, assume they are a client in the 'users' collection.
-      print("User $userId is a Client. Using 'users' directory.");
+      debugPrint("User $userId is a Client. Using 'users' directory.");
       return _firestore
           .collection('users')
           .doc(userId)
@@ -2501,7 +2502,7 @@ class FirebaseService {
       // Directly update the document using the correct reference.
       await notificationsRef.doc(notificationId).update({'isRead': true});
     } catch (e) {
-      print('Error marking notification as read: $e');
+      debugPrint('Error marking notification as read: $e');
     }
   }
 
@@ -2540,7 +2541,7 @@ class FirebaseService {
 
       return true;
     } catch (e) {
-      print('Error checking professional availability: $e');
+      debugPrint('Error checking professional availability: $e');
       return false; // Default to unavailable on error
     }
   }
@@ -2557,8 +2558,8 @@ class FirebaseService {
     DateTime? scheduledDate, // When it's happenin' (optional)
   }) async {
     try {
-      print("🚀 Kickin' off job request creation...");
-      print('👤 Client: $clientId | 👨‍💻 Pro: $professionalId');
+      debugPrint("🚀 Kickin' off job request creation...");
+      debugPrint('👤 Client: $clientId | 👨‍💻 Pro: $professionalId');
 
       // Check if the pro's free when we need 'em
       if (scheduledDate != null) {
@@ -2567,21 +2568,21 @@ class FirebaseService {
           scheduledDate,
         );
         if (!isAvailable) {
-          print("📅 $professionalId's booked on $scheduledDate—can't do it!");
+          debugPrint("📅 $professionalId's booked on $scheduledDate—can't do it!");
           return null;
         }
-        print("✅ $professionalId's good for $scheduledDate");
+        debugPrint("✅ $professionalId's good for $scheduledDate");
       } else {
         final isAvailable = await checkProfessionalAvailability(professionalId);
         if (!isAvailable) {
-          print("🚫 $professionalId's too busy right now");
+          debugPrint("🚫 $professionalId's too busy right now");
           return null;
         }
-        print("✅ $professionalId's ready to roll!");
+        debugPrint("✅ $professionalId's ready to roll!");
       }
 
       // Fetch client and pro profiles—make sure they exist
-      print("🔍 Lookin' up client and pro deets...");
+      debugPrint("🔍 Lookin' up client and pro deets...");
       final clientDoc = await _firestore
           .collection('users')
           .doc(clientId)
@@ -2592,23 +2593,23 @@ class FirebaseService {
           .get();
 
       if (!clientDoc.exists) {
-        print("❌ Client $clientId ain't in the system");
+        debugPrint("❌ Client $clientId ain't in the system");
         return null;
       }
       if (!proDoc.exists) {
-        print("❌ Pro $professionalId ain't found");
+        debugPrint("❌ Pro $professionalId ain't found");
         return null;
       }
 
       final clientData = clientDoc.data() as Map<String, dynamic>;
       final proData = proDoc.data() as Map<String, dynamic>;
-      print(
+      debugPrint(
         '👤 Found client: ${clientData['name']} | 👨‍💻 Found pro: ${proData['name']}',
       );
 
       // Generate a single job ID for all collections
       final jobId = _firestore.collection('jobs').doc().id;
-      print('🆔 New job ID: $jobId');
+      debugPrint('🆔 New job ID: $jobId');
 
       // Build the job data with fallback vibes
       Map<String, dynamic> jobData = {
@@ -2639,7 +2640,7 @@ class FirebaseService {
 
       // Batch it up—atomic writes for the win
       final batch = _firestore.batch();
-      print("📦 Batchin' up the writes...");
+      debugPrint("📦 Batchin' up the writes...");
 
       // Main jobs collection
       batch.set(_firestore.collection('jobs').doc(jobId), jobData);
@@ -2697,12 +2698,12 @@ class FirebaseService {
           },
           SetOptions(merge: true),
         );
-        print('📅 Locked $dateString for $professionalId');
+        debugPrint('📅 Locked $dateString for $professionalId');
       }
 
       // Commit the batch—make it official
       await batch.commit();
-      print('✅ Job $jobId is live across all collections!');
+      debugPrint('✅ Job $jobId is live across all collections!');
 
       // Notify the pro with some swagger
       await createNotification(
@@ -2717,11 +2718,11 @@ class FirebaseService {
           'scheduledDate': scheduledDate?.toIso8601String(),
         },
       );
-      print('🔔 Pro $professionalId got the memo!');
+      debugPrint('🔔 Pro $professionalId got the memo!');
 
       return jobId;
     } catch (e) {
-      print("🔥 Whoops, somethin' broke: $e");
+      debugPrint("🔥 Whoops, somethin' broke: $e");
       return null;
     }
   }
@@ -2741,7 +2742,7 @@ class FirebaseService {
         return Job.fromFirestore(data..['id'] = doc.id); // Include document ID
       }).toList();
     } catch (e) {
-      print('Error fetching requested jobs: $e');
+      debugPrint('Error fetching requested jobs: $e');
       return [];
     }
   }
@@ -2751,7 +2752,7 @@ class FirebaseService {
     try {
       await _firestore.collection('jobs').doc(jobId).delete();
     } catch (e) {
-      print('Error deleting job: $e');
+      debugPrint('Error deleting job: $e');
       rethrow;
     }
   }
@@ -2769,7 +2770,7 @@ class FirebaseService {
 
       await notificationsCollection.doc(notificationId).delete();
     } catch (e) {
-      print('Error deleting notification: $e');
+      debugPrint('Error deleting notification: $e');
       rethrow;
     }
   }
@@ -2794,7 +2795,7 @@ class FirebaseService {
 
       await batch.commit();
     } catch (e) {
-      print('Error deleting all notifications: $e');
+      debugPrint('Error deleting all notifications: $e');
       rethrow;
     }
   }
@@ -2832,7 +2833,7 @@ class FirebaseService {
 
       return applicants;
     } catch (e) {
-      print('Error getting job applicants: $e');
+      debugPrint('Error getting job applicants: $e');
       return [];
     }
   }
@@ -2853,7 +2854,7 @@ class FirebaseService {
         return data;
       }).toList();
     } catch (e) {
-      print('Error getting worker reviews: $e');
+      debugPrint('Error getting worker reviews: $e');
       return [];
     }
   }
@@ -3029,7 +3030,7 @@ class FirebaseService {
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting worker assigned jobs: $e');
+      debugPrint('Error getting worker assigned jobs: $e');
       return [];
     }
   }
@@ -3043,14 +3044,14 @@ class FirebaseService {
           .where('status', isEqualTo: 'assigned')
           .orderBy('createdAt', descending: true)
           .get();
-      print('this is worker id form getworkereassignedjobs$workerId');
+      debugPrint('this is worker id form getworkereassignedjobs$workerId');
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return Job.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error getting worker assigned jobs: $e');
+      debugPrint('Error getting worker assigned jobs: $e');
       return [];
     }
   }
@@ -3060,7 +3061,7 @@ class FirebaseService {
     required String userId, // User ID for path structure
   }) async {
     if (userId.isEmpty) {
-      print('Error uploading job attachment: User ID is empty.');
+      debugPrint('Error uploading job attachment: User ID is empty.');
       return null;
     }
 
@@ -3074,10 +3075,10 @@ class FirebaseService {
     final String filePath =
         'public/jobs/$userId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
 
-    print('Uploading job attachment to Supabase Storage...');
-    print('  File Name: ${platformFile.name}');
-    print('  Bucket: $jobAttachmentsBucket');
-    print('  Path in bucket: $filePath');
+    debugPrint('Uploading job attachment to Supabase Storage...');
+    debugPrint('  File Name: ${platformFile.name}');
+    debugPrint('  Bucket: $jobAttachmentsBucket');
+    debugPrint('  Path in bucket: $filePath');
 
     try {
       // Determine content type
@@ -3090,14 +3091,14 @@ class FirebaseService {
         upsert: false, // Don't overwrite files
         contentType: mimeType, // Set content type
       );
-      print('  Detected MIME type: $mimeType');
+      debugPrint('  Detected MIME type: $mimeType');
 
       if (kIsWeb) {
         // WEB Upload using bytes
         if (platformFile.bytes == null) {
           throw Exception('File bytes are null for web upload.');
         }
-        print('  Uploading using bytes (Web)...');
+        debugPrint('  Uploading using bytes (Web)...');
         // Use uploadBinary for web byte arrays
         await _supabaseClient.storage
             .from(jobAttachmentsBucket)
@@ -3111,7 +3112,7 @@ class FirebaseService {
         if (platformFile.path == null) {
           throw Exception('File path is null for mobile upload.');
         }
-        print('  Uploading using path (Mobile/Desktop)...');
+        debugPrint('  Uploading using path (Mobile/Desktop)...');
         final file = File(platformFile.path!);
         // Use upload for mobile File objects
         await _supabaseClient.storage
@@ -3119,7 +3120,7 @@ class FirebaseService {
             .upload(filePath, file, fileOptions: fileOptions);
       }
 
-      print('Supabase attachment upload successful. Getting public URL...');
+      debugPrint('Supabase attachment upload successful. Getting public URL...');
 
       // Get the public URL for the uploaded file
       final imageUrlResponse = _supabaseClient.storage
@@ -3127,21 +3128,21 @@ class FirebaseService {
           .getPublicUrl(filePath);
 
       final imageUrl = imageUrlResponse; // URL is the string itself
-      print('Supabase Job Attachment URL: $imageUrl');
+      debugPrint('Supabase Job Attachment URL: $imageUrl');
       return imageUrl;
     } on StorageException catch (e) {
       // Catch specific Supabase errors
-      print('[Supabase Storage Error - Job Attachment]');
-      print(
+      debugPrint('[Supabase Storage Error - Job Attachment]');
+      debugPrint(
         '  Message: ${e.message}',
       ); // This will show bucket not found or RLS errors
-      print('  Error details: ${e.error ?? 'N/A'}');
-      print('  Status code: ${e.statusCode ?? 'N/A'}');
+      debugPrint('  Error details: ${e.error ?? 'N/A'}');
+      debugPrint('  Status code: ${e.statusCode ?? 'N/A'}');
       return null;
     } catch (e, s) {
-      print('[General Error during Supabase job attachment upload]');
-      print('  Error: $e');
-      print('  Stack Trace: $s');
+      debugPrint('[General Error during Supabase job attachment upload]');
+      debugPrint('  Error: $e');
+      debugPrint('  Stack Trace: $s');
       return null;
     }
   }
@@ -3196,9 +3197,9 @@ class FirebaseService {
           .collection('jobs')
           .doc(jobId)
           .update({'status': 'paycompleted'});
-      print('Incremented completedJobs for user ${user.uid}');
+      debugPrint('Incremented completedJobs for user ${user.uid}');
     } catch (e) {
-      print('Error creating payment record: $e');
+      debugPrint('Error creating payment record: $e');
       rethrow;
     }
   }

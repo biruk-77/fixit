@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/job.dart';
 import '../models/user.dart';
@@ -28,7 +29,7 @@ class AiChatService {
   }
 
   Future<void> initializePersonalizedChat() async {
-    print("AI Chat Service: Initializing personalized context...");
+    debugPrint("AI Chat Service: Initializing personalized context...");
     final AppUser? currentUser = await _firebaseService.getCurrentUserProfile();
     if (currentUser == null) {
       throw Exception("User not logged in.");
@@ -64,7 +65,7 @@ class AiChatService {
         ]),
       ],
     );
-    print(
+    debugPrint(
       "AI Chat Service: Personalized context initialized for user ${currentUser.name}.",
     );
   }
