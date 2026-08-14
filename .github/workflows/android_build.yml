@@ -38,22 +38,28 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # 4. Install Dependencies
+      # 4. Accept Android SDK Licenses
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses || true
+
+      # 5. Install Dependencies
       - name: Install Dependencies
         run: flutter pub get
 
-      # 5. Build Release APK
+      # 6. Build Release APK
       - name: Build Android Release APK
         run: flutter build apk --release
 
-      # 6. Upload Build Artifact
+      # 7. Upload Build Artifact
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # 7. Auto Deploy to GitHub Releases (on push to main or tag)
+      # 8. Auto Deploy to GitHub Releases (on push to main or tag)
       - name: Create & Publish GitHub Release
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2

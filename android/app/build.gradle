@@ -10,7 +10,7 @@ plugins {
 android {
     namespace = "com.example.my_app1" // TODO: Replace with your namespace
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "29.0.13113456" // Keep if needed
+    ndkVersion = flutter.ndkVersion
     
 
     compileOptions {
