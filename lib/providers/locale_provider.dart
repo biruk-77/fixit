@@ -130,14 +130,5 @@ class LocaleProvider with ChangeNotifier {
       }
     });
     return options;
-    // Alternatively, if AppLocalizations.supportedLocales is comprehensive:
-    return AppLocalizations.supportedLocales.map((locale) {
-      return {
-        'code': locale.languageCode,
-        'name':
-            _languageDisplayNames[locale.languageCode] ?? locale.languageCode,
-        'locale': locale,
-      };
-    }).toList();
   }
 }

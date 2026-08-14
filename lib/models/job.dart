@@ -127,9 +127,6 @@ class Job {
       'category': category,
       'skill': skill,
       'isUrgent': isUrgent,
-      'category': category,
-      'skill': skill,
-      'isUrgent': isUrgent,
       // --- FIXED: Added attachments ---
       'attachments': attachments,
       'clientName': clientName,
