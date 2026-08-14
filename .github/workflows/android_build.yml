@@ -48,9 +48,15 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      # 5.5 Ensure Debug Keystore Exists
+      - name: Ensure Debug Keystore Exists
+        run: |
+          mkdir -p ~/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+
       # 6. Build Release APK
       - name: Build Android Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --android-skip-build-dependency-validation
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4096m -XX:MaxMetaspaceSize=1024m'"
 

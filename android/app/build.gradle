@@ -25,12 +25,13 @@ android {
 
     signingConfigs {
         debug {
-           
-            storeFile file("${System.properties['user.home']}/.android/debug.keystore")
-            // Standard password/alias for the default debug key
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            def debugKeystoreFile = file("${System.properties['user.home']}/.android/debug.keystore")
+            if (debugKeystoreFile.exists()) {
+                storeFile debugKeystoreFile
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
         }
         release {
             // TODO: Configure your release keystore here for actual releases
