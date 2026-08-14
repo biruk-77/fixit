@@ -51,6 +51,8 @@ jobs:
       # 6. Build Release APK
       - name: Build Android Release APK
         run: flutter build apk --release
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4096m -XX:MaxMetaspaceSize=1024m'"
 
       # 7. Upload Build Artifact
       - name: Upload APK Artifact
