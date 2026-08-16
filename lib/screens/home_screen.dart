@@ -227,6 +227,7 @@ class _HomeScreenState extends State<HomeScreen>
     try {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 4),
       );
       if (mounted) {
         setState(() {
@@ -239,11 +240,6 @@ class _HomeScreenState extends State<HomeScreen>
       }
     } catch (e) {
       debugPrint("Error getting location: $e");
-      if (mounted) {
-        _showErrorSnackbar(
-          "Could not get your location. Distances won't be available.",
-        );
-      }
     }
   }
 
@@ -401,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen>
     setStateIfMounted(() {
       _isLoading = true;
     });
-    await _getCurrentUserLocation(); // Ensure location is determined early
+    _getCurrentUserLocation(); // Non-blocking location fetch
     _fabAnimationController.forward();
     try {
       final userProfile = await _authService.getCurrentUserProfile();
@@ -448,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _refreshData({bool isInitialLoad = false}) async {
     if (!mounted) return;
     if (_userLatitude == null || _userLongitude == null) {
-      await _getCurrentUserLocation(); // Re-attempt location if null
+      _getCurrentUserLocation(); // Non-blocking location check
     }
     if (isInitialLoad || !_isLoading) {
       setStateIfMounted(() => _isLoading = true);
@@ -597,7 +593,9 @@ class _HomeScreenState extends State<HomeScreen>
         _availableCategories = sortedCategories;
         _applyWorkerFilters();
       });
-      await _initializeAiService();
+      _initializeAiService().catchError(
+        (e) => debugPrint("AI service initialization error: $e"),
+      );
     } catch (e, s) {
       debugPrint("DEBUG: Error loading workers: $e\n$s");
       if (mounted) {

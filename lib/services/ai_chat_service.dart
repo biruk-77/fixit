@@ -83,7 +83,8 @@ class AiChatService {
                 .where((n) => !(n['isRead'] as bool? ?? true))
                 .toList(),
           )
-          .first;
+          .first
+          .timeout(const Duration(seconds: 3), onTimeout: () => []);
 
   String _redactPII(String s) {
     if (s.isEmpty) return s;
